@@ -1,0 +1,22 @@
+{
+  "name": "@zendfi/sdk-test",
+  "version": "1.0.0",
+  "description": "Test project for ZendFi SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild": "cd ../sdk && npm run build",
+    "test": "npm run prebuild && node test.js",
+    "test:payment": "npm run prebuild && node test-payment.js",
+    "test:payment-link": "npm run prebuild && node test-payment-link.js",
+    "test:webhook": "npm run prebuild && node test-webhook.js",
+    "test:all": "npm run prebuild && npm run test:payment && npm run test:payment-link && npm run test:webhook"
+  },
+  "dependencies": {
+    "@zendfi/sdk": "file:../sdk",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0"
+  }
+}
