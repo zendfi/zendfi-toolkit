@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ Features
+## Features
 
 - **Zero Configuration** - Works out of the box, auto-detects environment
 - **Type-Safe** - Full TypeScript support with complete type definitions
@@ -14,7 +14,7 @@
 - **Environment Detection** - Automatically switches between test/production
 - **Smart Defaults** - Sensible defaults for all options
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @zendfi/sdk
@@ -24,7 +24,7 @@ yarn add @zendfi/sdk
 pnpm add @zendfi/sdk
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Set your API key
 
@@ -48,7 +48,7 @@ console.log(payment.checkout_url); // Send this to your customer
 
 That's it! The SDK handles everything else automatically. 🎉
 
-## 📖 Usage
+## Usage
 
 ### Payments
 
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
 }
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -201,7 +201,7 @@ const client = new ZendFiClient({
 });
 ```
 
-## 🔧 Advanced Features
+## Advanced Features
 
 ### Auto Environment Detection
 
@@ -263,7 +263,7 @@ console.log(payment.status);
 console.log(payment.checkout_url);
 ```
 
-## 🛡️ Error Handling
+## Error Handling
 
 ```typescript
 import { AuthenticationError, ValidationError, NetworkError } from '@zendfi/sdk';
@@ -283,7 +283,7 @@ try {
 }
 ```
 
-## 🌐 Framework Examples
+## Framework Examples
 
 ### Next.js App Router
 
@@ -351,7 +351,7 @@ function CheckoutButton() {
 }
 ```
 
-## 📚 API Reference
+## API Reference
 
 ### Methods
 
@@ -369,7 +369,7 @@ function CheckoutButton() {
 
 See [full API documentation](https://docs.zendfi.tech/sdk) for detailed reference.
 
-## 🐛 Debugging
+## Debugging
 
 Enable debug logs:
 
@@ -377,13 +377,13 @@ Enable debug logs:
 DEBUG=zendfi:* node your-app.js
 ```
 
-## 🤝 Support
+## Support
 
 - [Documentation](https://docs.zendfi.tech)
 - [API Reference](https://docs.zendfi.tech/api)
 - [GitHub Issues](https://github.com/zendfi/zendfi-toolkit/issues)
 - Email: dev@zendfi.tech
 
-## 📄 License
+## License
 
 MIT © ZendFi

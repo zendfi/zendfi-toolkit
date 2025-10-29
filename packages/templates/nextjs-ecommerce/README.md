@@ -4,12 +4,12 @@ A Next.js e-commerce application powered by ZendFi for crypto payments.
 
 ## Features
 
-- 🛍️ Product catalog
-- 🛒 Shopping cart
-- 💳 Crypto checkout with ZendFi
-- ✅ Order confirmation
-- 🔔 Webhook handling
-- 📊 Admin dashboard (embedded)
+- Product catalog
+- Shopping cart
+- Crypto checkout with ZendFi
+- Order confirmation
+- Webhook handling
+- Admin dashboard (embedded)
 
 ## Getting Started
 

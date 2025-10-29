@@ -4,14 +4,14 @@ A Next.js SaaS application with subscription management powered by ZendFi.
 
 ## Features
 
-- 🎯 Subscription Plans (Free, Pro, Enterprise)
-- 💳 Crypto Payments with ZendFi
-- 📊 Usage Tracking
-- 👤 User Dashboard
-- 🔔 Webhook Handling
-- 📈 Analytics Dashboard
-- 🔐 Authentication Ready
-- 💰 Payment History
+- Subscription Plans (Free, Pro, Enterprise)
+- Crypto Payments with ZendFi
+- Usage Tracking
+- User Dashboard
+- Webhook Handling
+- Analytics Dashboard
+- Authentication Ready
+- Payment History
 
 ## Getting Started
 
@@ -78,10 +78,10 @@ A Next.js SaaS application with subscription management powered by ZendFi.
 ## Webhooks
 
 The webhook handler (`app/api/webhooks/zendfi/route.ts`) automatically handles:
-- ✅ Subscription activation
-- 🔄 Subscription renewal
-- ⚠️ Payment failures
-- ❌ Subscription cancellation
+- Subscription activation
+- Subscription renewal
+- Payment failures
+- Subscription cancellation
 
 ## Learn More
 

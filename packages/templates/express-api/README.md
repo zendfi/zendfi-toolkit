@@ -4,13 +4,13 @@ Express.js API with ZendFi crypto payment integration.
 
 ## Features
 
-- 🚀 Express.js REST API
-- 💳 Crypto payment processing
-- 🔔 Webhook handling with HMAC verification
-- 🔐 CORS & Helmet security
-- 📝 TypeScript
-- 🔄 Hot reload in development
-- ✅ Error handling middleware
+- Express.js REST API
+- Crypto payment processing
+- Webhook handling with HMAC verification
+- CORS & Helmet security
+- TypeScript
+- Hot reload in development
+- Error handling middleware
 
 ## API Endpoints
 
@@ -128,11 +128,11 @@ Response:
 
 ## Security
 
-- ✅ HMAC webhook verification
-- ✅ CORS protection
-- ✅ Helmet security headers
-- ✅ Request validation
-- ✅ Error handling
+- HMAC webhook verification
+- CORS protection
+- Helmet security headers
+- Request validation
+- Error handling
 
 ## Deploy
 
