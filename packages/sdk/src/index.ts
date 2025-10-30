@@ -19,3 +19,12 @@ export { ZendFiClient, zendfi } from './client';
 export * from './types';
 export { ConfigLoader } from './utils';
 export * from './webhooks';
+
+// Webhook handler utilities
+export {
+  processWebhook,
+  type WebhookHandlers,
+  type WebhookHandlerConfig,
+  type WebhookResult,
+  type WebhookEventHandler,
+} from './webhook-handler';

@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
 
   // Handle different event types
   switch (payload.event) {
-    case 'payment.completed':
-      console.log('💰 Payment completed:', payload.data);
+    case 'payment.confirmed':
+      console.log('💰 Payment confirmed:', payload.data);
       
       // Create or renew subscription
       if (payload.data.metadata?.subscriptionType === 'recurring') {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       }
       break;
 
-    case 'subscription.cancelled':
+    case 'subscription.canceled':
       console.log('🚫 Subscription cancelled:', payload.data);
       
       const userId = 'user_123'; // In production, extract from payload
@@ -50,8 +50,12 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Subscription cancelled for user ${userId}`);
       break;
 
-    case 'payment.pending':
-      console.log('⏳ Payment pending:', payload.data);
+    case 'payment.created':
+      console.log('⏳ Payment created:', payload.data);
+      break;
+
+    case 'payment.expired':
+      console.log('⏰ Payment expired:', payload.data);
       break;
 
     default:

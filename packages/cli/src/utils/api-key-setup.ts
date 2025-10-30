@@ -257,7 +257,7 @@ async function createNewAccount(): Promise<string | null> {
  */
 export async function setupApiKey(): Promise<string | null> {
   console.log(chalk.cyan('\n┌─────────────────────────────────────────────────────┐'));
-  console.log(chalk.cyan('│') + chalk.bold('   ZendFi API Setup                              ') + chalk.cyan('│'));
+  console.log(chalk.cyan('│') + chalk.bold('       ZendFi API Setup                              ') + chalk.cyan('│'));
   console.log(chalk.cyan('└─────────────────────────────────────────────────────┘\n'));
 
   const { choice } = await inquirer.prompt([

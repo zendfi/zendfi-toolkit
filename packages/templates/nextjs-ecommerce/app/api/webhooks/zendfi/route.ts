@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
   // Handle different event types
   switch (payload.event) {
-    case 'payment.completed':
-      console.log('💰 Payment completed:', payload.data);
+    case 'payment.confirmed':
+      console.log('💰 Payment confirmed:', payload.data);
       // TODO: Mark order as paid, send confirmation email, etc.
       break;
 
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
       // TODO: Handle failed payment
       break;
 
-    case 'payment.pending':
-      console.log('⏳ Payment pending:', payload.data);
-      // TODO: Handle pending payment
+    case 'payment.created':
+      console.log('⏳ Payment created:', payload.data);
+      // TODO: Handle new payment
       break;
 
     default:

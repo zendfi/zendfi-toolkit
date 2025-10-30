@@ -2,8 +2,8 @@
  * ZendFi SDK Configuration
  */
 
-import { ZendFi } from '@zendfi/sdk';
+import { ZendFiClient } from '@zendfi/sdk';
 
-export const zendfi = new ZendFi();
+export const zendfi = new ZendFiClient();
 
 export type { PaymentLink, WebhookPayload } from '@zendfi/sdk';

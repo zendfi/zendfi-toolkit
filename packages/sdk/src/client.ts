@@ -360,23 +360,46 @@ export class ZendFiClient {
         return false;
       }
 
-      // Parse payload to ensure it's valid JSON
-      const parsedPayload = JSON.parse(request.payload) as WebhookPayload;
-      
-      // Validate payload structure
-      if (!parsedPayload.event || !parsedPayload.merchant_id || !parsedPayload.timestamp) {
+      // Normalize payload: accept either string or object
+      let payloadString: string;
+      let parsedPayload: WebhookPayload | null = null;
+
+      if (typeof request.payload === 'string') {
+        payloadString = request.payload;
+        try {
+          parsedPayload = JSON.parse(payloadString) as WebhookPayload;
+        } catch (e) {
+          // Malformed JSON
+          return false;
+        }
+      } else if (typeof request.payload === 'object') {
+        // Already-parsed object; stringify for HMAC and validate shape
+        parsedPayload = request.payload as WebhookPayload;
+        try {
+          payloadString = JSON.stringify(request.payload);
+        } catch (e) {
+          return false;
+        }
+      } else {
         return false;
       }
 
-      // Compute HMAC-SHA256 signature
-      const computedSignature = this.computeHmacSignature(request.payload, request.secret);
+      // Validate payload structure
+      if (!parsedPayload || !parsedPayload.event || !parsedPayload.merchant_id || !parsedPayload.timestamp) {
+        return false;
+      }
+
+      // Compute HMAC-SHA256 signature over the original JSON string
+      const computedSignature = this.computeHmacSignature(payloadString, request.secret);
 
       // Timing-safe comparison to prevent timing attacks
       return this.timingSafeEqual(request.signature, computedSignature);
-    } catch (error) {
-      // Log error in development
+    } catch (err) {
+      // In dev, print concise error message (avoid dumping large objects)
+      const error = err as Error | undefined;
       if (this.config.environment === 'development') {
-        console.error('Webhook verification error:', error);
+        // eslint-disable-next-line no-console
+        console.error('Webhook verification error:', error?.message || String(error));
       }
       return false;
     }

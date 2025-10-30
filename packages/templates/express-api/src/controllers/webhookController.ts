@@ -20,8 +20,8 @@ export async function handleZendFiWebhook(req: Request, res: Response) {
 
     // Handle different event types
     switch (payload.event) {
-      case 'payment.completed':
-        console.log('💰 Payment completed:', payload.data);
+      case 'payment.confirmed':
+        console.log('💰 Payment confirmed:', payload.data);
         // TODO: Update database, send confirmation email, etc.
         await handlePaymentCompleted(payload.data);
         break;
@@ -32,15 +32,14 @@ export async function handleZendFiWebhook(req: Request, res: Response) {
         await handlePaymentFailed(payload.data);
         break;
 
-      case 'payment.pending':
-        console.log('⏳ Payment pending:', payload.data);
-        // TODO: Handle pending payment
+      case 'payment.created':
+        console.log('⏳ Payment created:', payload.data);
+        // TODO: Handle new payment
         break;
 
-      case 'payment.refunded':
-        console.log('💸 Payment refunded:', payload.data);
-        // TODO: Handle refund
-        await handlePaymentRefunded(payload.data);
+      case 'payment.expired':
+        console.log('⏰ Payment expired:', payload.data);
+        // TODO: Handle expired payment
         break;
 
       default:

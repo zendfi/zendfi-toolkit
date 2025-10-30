@@ -200,7 +200,9 @@ export interface WebhookPayload {
 }
 
 export interface VerifyWebhookRequest {
-  payload: string;
+  // Allow either the raw JSON string body or the already-parsed object.
+  // The SDK will handle both cases.
+  payload: string | object;
   signature: string;
   secret: string;
 }
