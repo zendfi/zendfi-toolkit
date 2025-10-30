@@ -18,44 +18,35 @@ import type { CliOptions, ProjectConfig, Template } from '../types.js';
 import { TEMPLATES } from '../types.js';
 
 export async function createApp(projectName: string | undefined, options: CliOptions): Promise<void> {
-  // Step 1: Get project name
   const name = await getProjectName(projectName);
   
-  // Step 2: Validate project name
   validateProjectName(name);
-  
-  // Step 3: Check if directory exists
   const projectPath = path.resolve(process.cwd(), name);
   await checkDirectoryExists(projectPath);
-  
-  // Step 4: Get template choice
+
   const template = await getTemplate(options.template);
   
-  // Step 5: Get environment
   const environment = options.env || 'development';
   
-  // Step 6: Detect package manager
   const packageManager = await detectPackageManager();
   
-  // Step 7: Create project config
   const config: ProjectConfig = {
     name,
-    projectName: name,  // Alias for compatibility
+    projectName: name,
     path: projectPath,
-    projectPath,  // Alias for compatibility
+    projectPath,
     template,
     environment,
     packageManager,
   };
   
-  console.log('\n' + chalk.cyan('📋 Project Configuration:'));
+  console.log('\n' + chalk.cyan(' Project Configuration:'));
   console.log(chalk.gray('  Name:'), chalk.white(name));
   console.log(chalk.gray('  Template:'), chalk.white(TEMPLATES[template].name));
   console.log(chalk.gray('  Framework:'), chalk.white(TEMPLATES[template].framework));
   console.log(chalk.gray('  Environment:'), chalk.white(environment));
   console.log(chalk.gray('  Package Manager:'), chalk.white(packageManager));
   
-  // Step 8: Confirm (skip if --yes flag is set)
   if (!options.yes) {
     const { confirm } = await inquirer.prompt([
       {
@@ -67,20 +58,17 @@ export async function createApp(projectName: string | undefined, options: CliOpt
     ]);
     
     if (!confirm) {
-      console.log(chalk.yellow('\n⚠️  Aborted by user'));
+      console.log(chalk.yellow('\n  Aborted by user'));
       process.exit(0);
     }
   }
   
-  // Step 9: Create project directory
   const spinner = ora('Creating project directory...').start();
   await fs.ensureDir(projectPath);
   spinner.succeed('Project directory created');
   
-  // Step 10: Scaffold project from template
   await scaffoldProject(config);
   
-  // Step 11: Setup API key
   const apiKey = await setupApiKey();
   if (apiKey) {
     // Update .env file with API key
@@ -92,29 +80,26 @@ export async function createApp(projectName: string | undefined, options: CliOpt
         `ZENDFI_API_KEY=${apiKey}`
       );
       await fs.writeFile(envPath, envContent, 'utf-8');
-      console.log(chalk.green('✓ API key saved to .env file'));
+      console.log(chalk.green(' API key saved to .env file'));
     } catch (error) {
-      console.log(chalk.yellow('⚠️  Could not save API key to .env file'));
+      console.log(chalk.yellow('  Could not save API key to .env file'));
       console.log(chalk.gray('Please add it manually:\n'));
       console.log(chalk.cyan(`ZENDFI_API_KEY=${apiKey}\n`));
     }
   }
   
-  // Step 12: Install dependencies
   if (!options.skipInstall) {
     await installDependencies(projectPath, packageManager);
   } else {
-    console.log(chalk.yellow('\n⚠️  Skipped dependency installation'));
+    console.log(chalk.yellow('\n  Skipped dependency installation'));
   }
   
-  // Step 13: Initialize git
   if (!options.skipGit) {
     await initGit(projectPath);
   } else {
-    console.log(chalk.yellow('\n⚠️  Skipped git initialization'));
+    console.log(chalk.yellow('\n  Skipped git initialization'));
   }
   
-  // Step 14: Display success message
   displaySuccessMessage(config);
 }
 
@@ -170,7 +155,7 @@ async function checkDirectoryExists(projectPath: string): Promise<void> {
     ]);
     
     if (!overwrite) {
-      console.log(chalk.yellow('\n⚠️  Aborted by user'));
+      console.log(chalk.yellow('\n  Aborted by user'));
       process.exit(0);
     }
     

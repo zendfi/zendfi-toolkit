@@ -6,7 +6,6 @@ import { execaCommand } from 'execa';
 import type { PackageManager } from '../types.js';
 
 export async function detectPackageManager(): Promise<PackageManager> {
-  // Check npm_config_user_agent (set by package managers)
   const userAgent = process.env.npm_config_user_agent;
   
   if (userAgent) {
@@ -15,7 +14,6 @@ export async function detectPackageManager(): Promise<PackageManager> {
     if (userAgent.startsWith('bun')) return 'bun';
   }
   
-  // Check which package managers are available
   const managers: PackageManager[] = ['pnpm', 'yarn', 'bun', 'npm'];
   
   for (const manager of managers) {
@@ -24,7 +22,6 @@ export async function detectPackageManager(): Promise<PackageManager> {
     }
   }
   
-  // Default to npm (always available)
   return 'npm';
 }
 

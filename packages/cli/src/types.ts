@@ -18,9 +18,9 @@ export interface CliOptions {
 
 export interface ProjectConfig {
   name: string;
-  projectName: string;  // Alias for name
+  projectName: string;
   path: string;
-  projectPath: string;  // Alias for path
+  projectPath: string;
   template: Template;
   environment: Environment;
   packageManager: PackageManager;

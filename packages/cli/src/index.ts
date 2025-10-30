@@ -20,7 +20,7 @@ const version = pkg.version;
 // ASCII Art Logo
 const logo = `
 ${chalk.hex('#667eea').bold('╔══════════════════════════════════════╗')}
-${chalk.hex('#667eea').bold('║')}  ${chalk.hex('#764ba2').bold('🚀 ZendFi App Generator')}           ${chalk.hex('#667eea').bold('║')}
+${chalk.hex('#667eea').bold('║')}  ${chalk.hex('#764ba2').bold(' ZendFi App Generator')}           ${chalk.hex('#667eea').bold('║')}
 ${chalk.hex('#667eea').bold('║')}  ${chalk.gray('Create a crypto payment app')}       ${chalk.hex('#667eea').bold('║')}
 ${chalk.hex('#667eea').bold('║')}  ${chalk.gray('in seconds')}                        ${chalk.hex('#667eea').bold('║')}
 ${chalk.hex('#667eea').bold('╚══════════════════════════════════════╝')}

@@ -12,19 +12,16 @@ export async function initGit(projectPath: string): Promise<void> {
   }).start();
 
   try {
-    // Initialize git
     await execa('git', ['init'], {
       cwd: projectPath,
       stdio: 'pipe',
     });
 
-    // Add all files
     await execa('git', ['add', '.'], {
       cwd: projectPath,
       stdio: 'pipe',
     });
 
-    // Create initial commit
     await execa('git', ['commit', '-m', 'Initial commit from create-zendfi-app'], {
       cwd: projectPath,
       stdio: 'pipe',

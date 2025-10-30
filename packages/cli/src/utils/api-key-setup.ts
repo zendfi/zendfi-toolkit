@@ -79,8 +79,6 @@ async function verifyApiKey(apiKey: string): Promise<boolean> {
       },
     });
     
-    // For now, just check if the API is reachable
-    // In production, we'd have a dedicated verify endpoint
     return response.ok;
   } catch (error) {
     return false;
@@ -91,9 +89,9 @@ async function verifyApiKey(apiKey: string): Promise<boolean> {
  * Prompt for existing API key
  */
 async function promptExistingKey(): Promise<string | null> {
-  console.log(chalk.cyan('\n📋 Enter your ZendFi API key\n'));
+  console.log(chalk.cyan('\nEnter your ZendFi API key\n'));
   console.log(chalk.gray('You can find this in your ZendFi dashboard:'));
-  console.log(chalk.gray('https://dashboard.zendfi.tech/settings/api-keys\n'));
+  console.log(chalk.gray('https://api.zendfi.tech/dashboard\n'));
 
   const { apiKey } = await inquirer.prompt([
     {
@@ -124,10 +122,9 @@ async function promptExistingKey(): Promise<string | null> {
  * Create a new merchant account
  */
 async function createNewAccount(): Promise<string | null> {
-  console.log(chalk.cyan('\n🎉 Let\'s create your ZendFi merchant account!\n'));
+  console.log(chalk.cyan('\nLet\'s create your ZendFi merchant account!\n'));
   console.log(chalk.gray('This takes less than a minute. We just need a few details.\n'));
 
-  // Collect merchant information
   const answers = await inquirer.prompt([
     {
       type: 'input',
@@ -169,11 +166,11 @@ async function createNewAccount(): Promise<string | null> {
       message: 'Choose your wallet type:',
       choices: [
         {
-          name: chalk.bold('🔐 MPC Passkey Wallet') + chalk.gray(' - Non-custodial, secured by Face ID/Touch ID (Recommended)'),
+          name: chalk.bold('MPC Passkey Wallet') + chalk.gray(' - Non-custodial, secured by Face ID/Touch ID (Recommended)'),
           value: 'mpc_passkey',
         },
         {
-          name: chalk.bold('⚡ Simple Wallet') + chalk.gray(' - Fastest setup, managed by ZendFi (Custodial)'),
+          name: chalk.bold('Simple Wallet') + chalk.gray(' - Fastest setup, managed by ZendFi (Custodial)'),
           value: 'simple',
         },
       ],
@@ -208,11 +205,11 @@ async function createNewAccount(): Promise<string | null> {
     }
 
     const data = await response.json() as QuickCreateResponse;
-    spinner.succeed(chalk.green('Merchant account created successfully! 🎉'));
+    spinner.succeed(chalk.green('Merchant account created successfully!'));
 
     // Display account information
     console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
-    console.log(chalk.bold.green('✨ Your ZendFi Account is Ready!'));
+    console.log(chalk.bold.green('  Your ZendFi Account is Ready!'));
     console.log(chalk.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
     console.log(chalk.bold('Merchant ID:'), data.merchant.id);
@@ -225,7 +222,7 @@ async function createNewAccount(): Promise<string | null> {
 
     // Show next steps based on wallet type
     if (data.next_steps?.setup_required) {
-      console.log(chalk.yellow('\n⚠️  Important: Complete Passkey Setup'));
+      console.log(chalk.yellow('\n  Important: Complete Passkey Setup'));
       console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
       console.log(chalk.white('To activate auto-settlements and access your funds:'));
       console.log(chalk.cyan('\n1. Open this URL in your browser:'));
@@ -234,12 +231,12 @@ async function createNewAccount(): Promise<string | null> {
       console.log(chalk.gray(`   (Takes ${data.next_steps.estimated_time || '30 seconds'})`));
       console.log(chalk.cyan('\n3. Your wallet will be ready to receive payments!\n'));
       
-      console.log(chalk.gray('💡 You can start building now and complete setup later'));
+      console.log(chalk.gray(' You can start building now and complete setup later'));
     } else {
-      console.log(chalk.green('\n✅ Your wallet is ready to receive payments immediately!\n'));
+      console.log(chalk.green('\n Your wallet is ready to receive payments immediately!\n'));
     }
 
-    console.log(chalk.yellow('🔐 Security Note:'));
+    console.log(chalk.yellow('Security Note:'));
     console.log(chalk.gray(data.security_note || 'Keep your API key secure - it will not be shown again!\n'));
 
     console.log(chalk.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
@@ -260,7 +257,7 @@ async function createNewAccount(): Promise<string | null> {
  */
 export async function setupApiKey(): Promise<string | null> {
   console.log(chalk.cyan('\n┌─────────────────────────────────────────────────────┐'));
-  console.log(chalk.cyan('│') + chalk.bold('  🔑 ZendFi API Setup                              ') + chalk.cyan('│'));
+  console.log(chalk.cyan('│') + chalk.bold('   ZendFi API Setup                              ') + chalk.cyan('│'));
   console.log(chalk.cyan('└─────────────────────────────────────────────────────┘\n'));
 
   const { choice } = await inquirer.prompt([
@@ -270,15 +267,15 @@ export async function setupApiKey(): Promise<string | null> {
       message: 'Do you already have a ZendFi account?',
       choices: [
         {
-          name: chalk.green('✓ Yes') + chalk.gray(' - I have an API key'),
+          name: chalk.green(' Yes') + chalk.gray(' - I have an API key'),
           value: 'existing',
         },
         {
-          name: chalk.blue('✨ No') + chalk.gray(' - Create a new merchant account'),
+          name: chalk.blue(' No') + chalk.gray(' - Create a new merchant account'),
           value: 'create',
         },
         {
-          name: chalk.yellow('⏭  Skip') + chalk.gray(' - I\'ll set this up later'),
+          name: chalk.yellow('  Skip') + chalk.gray(' - I\'ll set this up later'),
           value: 'skip',
         },
       ],
@@ -308,14 +305,14 @@ export async function setupApiKey(): Promise<string | null> {
   } else if (choice === 'create') {
     apiKey = await createNewAccount();
   } else {
-    console.log(chalk.yellow('\n⏭  Skipping API key setup'));
+    console.log(chalk.yellow('\n  Skipping API key setup'));
     console.log(chalk.gray('You can configure your API key later in the .env file\n'));
-    console.log(chalk.gray('Get your API key at: https://dashboard.zendfi.tech\n'));
+    console.log(chalk.gray('Get your API key at: https://api.zendfi.tech/dashboard\n'));
     return null;
   }
 
   if (apiKey) {
-    console.log(chalk.green('\n✅ API key configured successfully!\n'));
+    console.log(chalk.green('\nAPI key configured successfully!\n'));
     return apiKey;
   }
 

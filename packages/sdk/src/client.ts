@@ -159,10 +159,6 @@ export class ZendFiClient {
     return [];
   }
 
-  // ===================================================================
-  // INSTALLMENT PLANS - Pay over time
-  // ===================================================================
-
   /**
    * Create an installment plan
    * Split a purchase into multiple scheduled payments
@@ -218,10 +214,6 @@ export class ZendFiClient {
       `/api/v1/installment-plans/${planId}/cancel`
     );
   }
-
-  // ===================================================================
-  // ESCROW - Secure fund holding
-  // ===================================================================
 
   /**
    * Create an escrow transaction
@@ -296,10 +288,6 @@ export class ZendFiClient {
       created_at: string;
     }>('POST', `/api/v1/escrows/${escrowId}/dispute`, request);
   }
-
-  // ===================================================================
-  // INVOICES - Professional billing
-  // ===================================================================
 
   /**
    * Create an invoice
