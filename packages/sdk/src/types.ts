@@ -84,21 +84,29 @@ export interface CreatePaymentLinkRequest {
 }
 
 export interface PaymentLink {
-  id: string;
   link_code: string;
-  payment_url: string;
-  hosted_page_url: string;
+  merchant_id: string;
+  title?: string;
+  description?: string;
   amount: number;
   currency: string;
-  token: string;
-  max_uses?: number;
-  uses_count: number;
+  payment_methods?: string[];
+  redirect_url?: string;
   expires_at?: string;
-  is_active: boolean;
+  metadata?: Record<string, any>;
+  payment_url: string;
+  hosted_page_url: string;
   created_at: string;
+  updated_at: string;
   
   // Convenience aliases
   url: string;  // Alias for hosted_page_url
+  
+  id?: string;
+  token?: string;
+  max_uses?: number;
+  uses_count?: number;
+  is_active?: boolean;
 }
 
 export interface Payment {

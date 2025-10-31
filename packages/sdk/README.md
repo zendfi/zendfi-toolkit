@@ -67,323 +67,241 @@ const payment = await zendfi.createPayment({
     customerId: 'CUST-456',
   },
 });
+# @zendfi/sdk
 
-// Redirect customer to checkout
+Zero-config TypeScript SDK for ZendFi crypto payments.
+
+[![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## What’s new
+
+- Robust, auto-verifying webhook handler with optional deduplication and framework adapters (Next.js App Router + Express).  
+- New `listPaymentLinks()` client method and expanded `PaymentLink` types.  
+- Improved verify helpers: `verifyNextWebhook`, `verifyExpressWebhook`, and `verifyWebhookSignature`.  
+- Zero-config `ZendFiClient` with retries, idempotency, and environment detection.
+
+## Installation
+
+```bash
+npm install @zendfi/sdk
+# or
+pnpm add @zendfi/sdk
+```
+
+## Quick start
+
+1) Configure your API key in the environment (or pass it to `ZendFiClient`):
+
+```bash
+```markdown
+# @zendfi/sdk
+
+> Zero-config TypeScript SDK for ZendFi crypto payments
+
+[![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Features
+
+- Zero Configuration — auto-detects environment and works with sensible defaults
+- Type-Safe — full TypeScript types for payments, payment links, subscriptions, escrows, invoices and webhook payloads
+- Auto-Retry — built-in retry logic with exponential backoff for network/server errors
+- Idempotency — automatic idempotency key generation for safe retries
+- Webhook helpers & adapters — auto-verified handlers + optional deduplication
+
+## Installation
+
+```bash
+npm install @zendfi/sdk
+# or
+pnpm add @zendfi/sdk
+```
+
+## Quick Start
+
+1) Set your API key (env or pass to client):
+
+```bash
+# .env.local
+ZENDFI_API_KEY=zfi_test_your_api_key_here
+```
+
+2) Use the default singleton or create an explicit client:
+
+```ts
+import { zendfi, ZendFiClient } from '@zendfi/sdk';
+
+// singleton auto-configured from environment
+const payment = await zendfi.createPayment({ amount: 50 });
+
+// or create an explicit client (recommended for server code)
+const client = new ZendFiClient({ apiKey: process.env.ZENDFI_API_KEY });
+const links = await client.listPaymentLinks();
+```
+
+## Usage examples
+
+### Create a payment
+
+```ts
+const payment = await zendfi.createPayment({
+  amount: 99.99,
+  currency: 'USD',
+  description: 'Annual subscription',
+  customer_email: 'customer@example.com',
+  redirect_url: 'https://yourapp.com/success',
+  metadata: { orderId: 'ORD-123' },
+});
+
+// redirect customer
 window.location.href = payment.checkout_url;
 ```
 
-#### Get Payment Status
+### Payment links
 
-```typescript
-const payment = await zendfi.getPayment('payment_id');
+```ts
+const client = new ZendFiClient({ apiKey: process.env.ZENDFI_API_KEY });
+const created = await client.createPaymentLink({ amount: 20, currency: 'USD' });
+console.log(created.hosted_page_url);
 
-console.log(payment.status); // 'pending' | 'confirmed' | 'failed' | 'expired'
+const links = await client.listPaymentLinks();
+console.log(links.length, 'links total');
 ```
 
-#### List Payments
+If you get a 405 when calling `listPaymentLinks()` in tests, confirm `ZENDFI_API_URL` / `baseURL` and the API key point to a server that exposes `GET /api/v1/payment-links`.
 
-```typescript
-const payments = await zendfi.listPayments({
-  page: 1,
-  limit: 10,
-  status: 'confirmed',
-  from_date: '2025-01-01',
-  to_date: '2025-12-31',
-});
+## Webhooks — recommended handlers
 
-console.log(payments.data); // Array of payments
-console.log(payments.pagination); // Pagination info
-```
+The SDK includes a robust webhook processing flow: signature verification, optional deduplication, and typed handler dispatch.
 
-### Subscriptions
+- Core: `processWebhook(payload, handlers, config)` (internal; used by adapters).
+- Next.js App Router adapter: `createNextWebhookHandler(config)` — use as `export const POST = createNextWebhookHandler(...)`.
+- Next.js Pages adapter: `createPagesWebhookHandler(config)` — use in `pages/api` with `export default` and set `export const config = { api: { bodyParser: false } }`.
+- Express adapter: `createExpressWebhookHandler(config)` — use with `express.raw({ type: 'application/json' })`.
 
-#### Create a Plan
+Examples (use the exact exported names shown):
 
-```typescript
-const plan = await zendfi.createSubscriptionPlan({
-  name: 'Pro Plan',
-  description: 'Access to all premium features',
-  amount: 29.99,
-  interval: 'monthly',
-  trial_days: 14,
-});
-```
+Next.js App Router (App directory)
 
-#### Create a Subscription
+```ts
+// app/api/webhooks/zendfi/route.ts
+import { createNextWebhookHandler } from '@zendfi/sdk/next';
 
-```typescript
-const subscription = await zendfi.createSubscription({
-  plan_id: plan.id,
-  customer_email: 'customer@example.com',
-  metadata: {
-    userId: 'user_123',
+export const POST = createNextWebhookHandler({
+  secret: process.env.ZENDFI_WEBHOOK_SECRET!,
+  handlers: {
+    'payment.confirmed': async (payment) => {
+      // payment is already verified and typed
+      await db.orders.update({ where: { id: payment.metadata.orderId }, data: { status: 'paid' } });
+    },
   },
 });
 ```
 
-#### Cancel a Subscription
+Next.js Pages Router (legacy)
 
-```typescript
-const canceled = await zendfi.cancelSubscription(subscription.id);
-```
+```ts
+// pages/api/webhooks/zendfi.ts
+import { createPagesWebhookHandler } from '@zendfi/sdk/next';
 
-### Webhooks
-
-#### Verify Webhook Signature
-
-```typescript
-import { zendfi } from '@zendfi/sdk';
-
-// In your webhook handler (e.g., /api/webhooks/zendfi)
-export async function POST(request: Request) {
-  const payload = await request.text();
-  const signature = request.headers.get('x-zendfi-signature');
-
-  const isValid = zendfi.verifyWebhook({
-    payload,
-    signature,
-    secret: process.env.ZENDFI_WEBHOOK_SECRET!,
-  });
-
-  if (!isValid) {
-    return new Response('Invalid signature', { status: 401 });
-  }
-
-  const event = JSON.parse(payload);
-
-  switch (event.event) {
-    case 'payment.confirmed':
-      // Handle payment confirmation
-      break;
-    case 'subscription.activated':
-      // Handle subscription activation
-      break;
-  }
-
-  return new Response('OK', { status: 200 });
-}
-```
-
-## Configuration
-
-### Environment Variables
-
-The SDK automatically detects and uses these environment variables:
-
-```bash
-# API Key (required)
-ZENDFI_API_KEY=zfi_test_...
-
-# Or for Next.js
-NEXT_PUBLIC_ZENDFI_API_KEY=zfi_test_...
-
-# Or for Create React App
-REACT_APP_ZENDFI_API_KEY=zfi_test_...
-
-# Environment (optional, auto-detected)
-ZENDFI_ENVIRONMENT=development # or staging, production
-
-# Custom API URL (optional)
-ZENDFI_API_URL=https://api.zendfi.tech
-```
-
-### Manual Configuration
-
-```typescript
-import { ZendFiClient } from '@zendfi/sdk';
-
-const client = new ZendFiClient({
-  apiKey: 'zfi_test_...',
-  environment: 'development',
-  timeout: 30000, // 30 seconds
-  retries: 3,
-  idempotencyEnabled: true,
-});
-```
-
-## Advanced Features
-
-### Auto Environment Detection
-
-The SDK automatically detects your environment:
-
-| Environment | Detected When                          |
-| ----------- | -------------------------------------- |
-| Development | `localhost`, `127.0.0.1`, `NODE_ENV=development` |
-| Staging     | `*.staging.*`, `*.vercel.app`, `NODE_ENV=staging` |
-| Production  | `NODE_ENV=production`, production domains |
-
-### Automatic Retries
-
-The SDK retries failed requests automatically:
-
-- **Server errors (5xx)**: Retries up to 3 times with exponential backoff
-- **Network errors**: Retries up to 3 times
-- **Client errors (4xx)**: No retry (fix your request)
-
-```typescript
-// This will retry automatically on network errors
-const payment = await zendfi.createPayment({ amount: 50 });
-```
-
-### Idempotency Keys
-
-Prevent duplicate payments with automatic idempotency:
-
-```typescript
-// SDK automatically adds: Idempotency-Key: zfi_idem_1234567890_abc123
-
-const payment = await zendfi.createPayment({
-  amount: 50,
+export default createPagesWebhookHandler({
+  secret: process.env.ZENDFI_WEBHOOK_SECRET!,
+  handlers: {
+    'payment.confirmed': async (payment) => {
+      await fulfillOrder(payment.metadata.orderId);
+    },
+  },
 });
 
-// Safe to retry - won't create duplicate payments
+export const config = {
+  api: { bodyParser: false }, // Important: disable body parser so raw body is available
+};
 ```
 
-## 🎯 TypeScript Support
+Express example
 
-Full type definitions included:
-
-```typescript
-import type {
-  Payment,
-  PaymentStatus,
-  Subscription,
-  SubscriptionPlan,
-  WebhookEvent,
-} from '@zendfi/sdk';
-
-const payment: Payment = await zendfi.createPayment({
-  amount: 50,
-});
-
-// IntelliSense for all fields
-console.log(payment.id);
-console.log(payment.status);
-console.log(payment.checkout_url);
-```
-
-## Error Handling
-
-```typescript
-import { AuthenticationError, ValidationError, NetworkError } from '@zendfi/sdk';
-
-try {
-  const payment = await zendfi.createPayment({
-    amount: 50,
-  });
-} catch (error) {
-  if (error instanceof AuthenticationError) {
-    console.error('Invalid API key');
-  } else if (error instanceof ValidationError) {
-    console.error('Invalid request:', error.details);
-  } else if (error instanceof NetworkError) {
-    console.error('Network error, will retry automatically');
-  }
-}
-```
-
-## Framework Examples
-
-### Next.js App Router
-
-```typescript
-// app/api/checkout/route.ts
-import { zendfi } from '@zendfi/sdk';
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request) {
-  const { amount } = await request.json();
-
-  const payment = await zendfi.createPayment({
-    amount,
-    redirect_url: `${process.env.NEXT_PUBLIC_URL}/success`,
-  });
-
-  return NextResponse.json({ url: payment.checkout_url });
-}
-```
-
-### Express.js
-
-```typescript
+```ts
 import express from 'express';
-import { zendfi } from '@zendfi/sdk';
+import { createExpressWebhookHandler } from '@zendfi/sdk/express';
 
 const app = express();
 
-app.post('/api/checkout', async (req, res) => {
-  const { amount } = req.body;
-
-  const payment = await zendfi.createPayment({
-    amount,
-    redirect_url: 'https://yourapp.com/success',
-  });
-
-  res.json({ url: payment.checkout_url });
-});
+app.post('/api/webhooks/zendfi',
+  express.raw({ type: 'application/json' }), // preserve raw body for signature verification
+  createExpressWebhookHandler({
+    secret: process.env.ZENDFI_WEBHOOK_SECRET!,
+    handlers: {
+      'payment.confirmed': async (payment) => {
+        // handle payment
+      },
+    },
+  })
+);
 ```
 
-### React
+Deduplication
 
-```typescript
-import { useState } from 'react';
-import { zendfi } from '@zendfi/sdk';
+By default the handler uses an in-memory Set for deduplication (development). For production supply `isProcessed` and `onProcessed` hooks (or the aliases `checkDuplicate` / `markProcessed`) backed by Redis or your datastore. When deduplication is enabled duplicate requests will be rejected with HTTP 409 by the framework adapters.
 
-function CheckoutButton() {
-  const [loading, setLoading] = useState(false);
+## Manual verification helpers
 
-  const handleCheckout = async () => {
-    setLoading(true);
+If you prefer to verify manually:
 
-    const payment = await zendfi.createPayment({
-      amount: 50,
-    });
+- `verifyNextWebhook(request, secret?)` — Next.js App Router helper that returns parsed payload or null.  
+- `verifyExpressWebhook(req, secret?)` — Express helper that returns parsed payload or null.  
+- `verifyWebhookSignature(payload, signature, secret)` — low-level boolean verifier.
 
-    window.location.href = payment.checkout_url;
-  };
+Example (manual Next.js usage):
 
-  return (
-    <button onClick={handleCheckout} disabled={loading}>
-      {loading ? 'Creating checkout...' : 'Pay with Crypto'}
-    </button>
-  );
+```ts
+import { verifyNextWebhook } from '@zendfi/sdk/webhooks';
+
+export async function POST(request: Request) {
+  const payload = await verifyNextWebhook(request);
+  if (!payload) return new Response('Invalid signature', { status: 401 });
+
+  // handle payload
+  return new Response('OK');
 }
 ```
 
-## API Reference
+## Errors & types
 
-### Methods
+SDK throws typed errors you can import and check with `instanceof`: `AuthenticationError`, `ValidationError`, `NetworkError`, etc.
 
-| Method                      | Description                |
-| --------------------------- | -------------------------- |
-| `createPayment()`           | Create a new payment       |
-| `getPayment(id)`            | Get payment by ID          |
-| `listPayments(options)`     | List all payments          |
-| `createSubscriptionPlan()`  | Create subscription plan   |
-| `getSubscriptionPlan(id)`   | Get plan by ID             |
-| `createSubscription()`      | Create a subscription      |
-| `getSubscription(id)`       | Get subscription by ID     |
-| `cancelSubscription(id)`    | Cancel a subscription      |
-| `verifyWebhook()`           | Verify webhook signature   |
+## Configuration & environment
 
-See [full API documentation](https://docs.zendfi.tech/sdk) for detailed reference.
+- `ZENDFI_API_KEY` — required unless provided to `ZendFiClient`  
+- `ZENDFI_WEBHOOK_SECRET` — used by adapters for auto-verification  
+- `ZENDFI_API_URL` — override the API base URL (useful for local testing)  
+- `ZENDFI_ENVIRONMENT` — optional environment override
 
-## Debugging
+## Troubleshooting
 
-Enable debug logs:
+- If you see tsup warnings about the `types` condition in `package.json` exports, this is a packaging order issue that can be adjusted without changing runtime behavior.  
+- Webhook verification failures are usually caused by middleware that consumes the raw body. Use `express.raw()` or disable Next.js body parsing for pages router.
+
+## Contributing
+
+Run the SDK build and tests locally before opening a PR:
 
 ```bash
-DEBUG=zendfi:* node your-app.js
+cd packages/sdk
+pnpm install
+pnpm run build
+pnpm test
 ```
 
 ## Support
 
-- [Documentation](https://docs.zendfi.tech)
-- [API Reference](https://docs.zendfi.tech/api)
-- [GitHub Issues](https://github.com/zendfi/zendfi-toolkit/issues)
+- Documentation: https://docs.zendfi.tech
+- API Reference: https://docs.zendfi.tech/api
+- GitHub Issues: https://github.com/zendfi/zendfi-toolkit/issues
 - Email: dev@zendfi.tech
 
 ## License
 
 MIT © ZendFi
+
+```

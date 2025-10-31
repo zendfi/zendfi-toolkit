@@ -6,7 +6,6 @@
 import 'dotenv/config';
 import { ZendFiClient } from '@zendfi/sdk';
 
-// Color codes for terminal output
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -50,7 +49,6 @@ async function testPaymentLinks() {
   }
 
   try {
-    // Initialize SDK
     logSection('1. SDK Initialization');
     const zendfi = new ZendFiClient({
       apiKey: process.env.ZENDFI_API_KEY,
@@ -59,7 +57,6 @@ async function testPaymentLinks() {
     logSuccess('SDK initialized successfully');
     logInfo(`Base URL: ${process.env.ZENDFI_BASE_URL || 'https://api.zendfi.tech'}`);
 
-    // Test 1: Create Payment Link
     logSection('2. Create Payment Link');
     logInfo('Creating payment link for $50.00 USDC...');
     
@@ -91,7 +88,6 @@ async function testPaymentLinks() {
     console.log(`  Active: ${paymentLink.is_active}`);
     console.log(`  Uses: ${paymentLink.uses_count}/${paymentLink.max_uses || '∞'}`);
 
-    // Test 2: Retrieve Payment Link
     logSection('3. Retrieve Payment Link');
     logInfo(`Fetching payment link by code: ${paymentLink.link_code}`);
     
@@ -104,7 +100,6 @@ async function testPaymentLinks() {
     console.log(`  Status: ${retrievedLink.is_active ? 'Active' : 'Inactive'}`);
     console.log(`  Uses: ${retrievedLink.uses_count}/${retrievedLink.max_uses || '∞'}`);
 
-    // Test 3: Verify URL Alias
     logSection('4. Verify URL Alias');
     if (retrievedLink.url === retrievedLink.hosted_page_url) {
       logSuccess('URL alias matches hosted_page_url ✓');
@@ -116,7 +111,6 @@ async function testPaymentLinks() {
       console.log(`  Got: ${retrievedLink.url}`);
     }
 
-    // Test 4: Create Payment Link with Expiration
     logSection('5. Create Payment Link with Expiration');
     logInfo('Creating payment link that expires in 1 hour...');
     
@@ -141,25 +135,51 @@ async function testPaymentLinks() {
     console.log(`  Expires At: ${expiringLink.expires_at}`);
     console.log(`  Max Uses: ${expiringLink.max_uses}`);
 
-    // Test 5: List Payment Links (placeholder)
     logSection('6. List Payment Links');
-    logInfo('Attempting to list payment links...');
+    logInfo('Fetching all payment links...');
     
-    try {
-      const links = await zendfi.listPaymentLinks();
-      if (links.length === 0) {
-        logInfo('List endpoint not yet implemented in backend (returns empty array)');
-      } else {
-        logSuccess(`Found ${links.length} payment links`);
-        links.forEach((link, i) => {
-          console.log(`  ${i + 1}. ${link.link_code} - $${link.amount} ${link.currency}`);
-        });
+    const links = await zendfi.listPaymentLinks();
+    
+    logSuccess(`Found ${links.length} payment link(s)!`);
+    
+    if (links.length > 0) {
+      console.log('\n📋 Payment Links:');
+      console.log('─'.repeat(60));
+      
+      const displayLinks = links.slice(0, 5);
+      displayLinks.forEach((link, i) => {
+        console.log(`\n${i + 1}. ${link.link_code}`);
+        if (link.title) {
+          console.log(`   Title: ${link.title}`);
+        }
+        console.log(`   Amount: $${link.amount} ${link.currency}`);
+        console.log(`   URL: ${link.url}`);
+        if (link.expires_at) {
+          const expiresAt = new Date(link.expires_at);
+          const isExpired = expiresAt < new Date();
+          console.log(`   Expires: ${expiresAt.toLocaleString()} ${isExpired ? '⚠️ EXPIRED' : '✓'}`);
+        }
+        console.log(`   Created: ${new Date(link.created_at).toLocaleString()}`);
+      });
+      
+      if (links.length > 5) {
+        console.log(`\n... and ${links.length - 5} more`);
       }
-    } catch (error) {
-      logInfo('List endpoint not yet implemented in backend');
+      
+      console.log('\n' + '─'.repeat(60));
+      
+      const createdLinkCodes = [paymentLink.link_code, expiringLink.link_code];
+      const foundLinks = links.filter(link => createdLinkCodes.includes(link.link_code));
+      
+      if (foundLinks.length === 2) {
+        logSuccess('Both created links found in list! ✓');
+      } else {
+        console.log(`ℹ Found ${foundLinks.length}/2 created links (may have been created earlier)`);
+      }
+    } else {
+      logInfo('No payment links found. Create some at: https://dashboard.zendfi.tech');
     }
 
-    // Summary
     logSection('✨ Test Summary');
     logSuccess('All payment link tests passed!');
     console.log('\nCreated Payment Links:');

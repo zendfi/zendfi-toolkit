@@ -1,85 +1,74 @@
 /**
  * Webhook Controller
+ * 
+ * ✅ Auto-verified webhook handler with type-safe event routing
+ * Uses ZendFi SDK webhook handler for automatic signature verification
  */
 
-import { Request, Response } from 'express';
-import { verifyExpressWebhook } from '@zendfi/sdk';
-import type { ApiResponse } from '../types/index.js';
+import { Request, Response, RequestHandler } from 'express';
+import { webhookHandler } from '@zendfi/sdk/express';
 
-export async function handleZendFiWebhook(req: Request, res: Response) {
-  try {
-    // Verify webhook signature
-    const payload = verifyExpressWebhook(req);
-
-    if (!payload) {
-      res.status(401);
-      throw new Error('Invalid webhook signature');
-    }
-
-    console.log('✅ Webhook verified:', payload.event);
-
-    // Handle different event types
-    switch (payload.event) {
-      case 'payment.confirmed':
-        console.log('💰 Payment confirmed:', payload.data);
-        // TODO: Update database, send confirmation email, etc.
-        await handlePaymentCompleted(payload.data);
-        break;
-
-      case 'payment.failed':
-        console.log('❌ Payment failed:', payload.data);
-        // TODO: Handle failed payment
-        await handlePaymentFailed(payload.data);
-        break;
-
-      case 'payment.created':
-        console.log('⏳ Payment created:', payload.data);
-        // TODO: Handle new payment
-        break;
-
-      case 'payment.expired':
-        console.log('⏰ Payment expired:', payload.data);
-        // TODO: Handle expired payment
-        break;
-
-      default:
-        console.log('ℹ️  Unhandled event:', payload.event);
-    }
-
-    const response: ApiResponse = {
-      success: true,
-      data: { received: true },
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500);
-    throw error;
-  }
-}
-
-async function handlePaymentCompleted(data: any) {
-  // TODO: Implement your business logic
-  // - Update order status in database
-  // - Send confirmation email
-  // - Trigger fulfillment process
-  // - Update analytics
-  console.log('Processing completed payment:', data.id);
-}
-
-async function handlePaymentFailed(data: any) {
-  // TODO: Implement your business logic
-  // - Update order status to failed
-  // - Send failure notification
-  // - Log for manual review
-  console.log('Processing failed payment:', data.id);
-}
-
-async function handlePaymentRefunded(data: any) {
-  // TODO: Implement your business logic
-  // - Reverse order
-  // - Update inventory
-  // - Send refund confirmation
-  console.log('Processing refund:', data.id);
-}
+// Export the webhook handler as Express middleware
+export const handleZendFiWebhook: RequestHandler = webhookHandler({
+  'payment.confirmed': async (payment) => {
+    // Payment successfully completed
+    console.log('💰 Payment confirmed:', payment.payment_id);
+    
+    // TODO: Implement your business logic
+    // - Update order status in database
+    // - Send confirmation email
+    // - Trigger fulfillment process
+    // - Update analytics
+    // Example:
+    // await db.order.update({
+    //   where: { paymentId: payment.payment_id },
+    //   data: { status: 'confirmed' }
+    // });
+    // await sendConfirmationEmail(payment.customer.email);
+  },
+  
+  'payment.failed': async (payment) => {
+    // Payment failed
+    console.log('❌ Payment failed:', payment.payment_id);
+    
+    // TODO: Implement your business logic
+    // - Update order status to failed
+    // - Send failure notification
+    // - Log for manual review
+    // Example:
+    // await db.order.update({
+    //   where: { paymentId: payment.payment_id },
+    //   data: { status: 'failed' }
+    // });
+    // await sendFailureEmail(payment.customer.email);
+  },
+  
+  'payment.created': async (payment) => {
+    // Payment initiated (pending)
+    console.log('⏳ Payment created:', payment.payment_id);
+    
+    // TODO: Optional - track pending payments
+  },
+  
+  'payment.expired': async (payment) => {
+    // Payment link or session expired
+    console.log('⏰ Payment expired:', payment.payment_id);
+    
+    // TODO: Optional - clean up expired payment records
+  },
+  
+  'refund.completed': async (refund) => {
+    // Refund successfully processed
+    console.log('💸 Refund completed:', refund.refund_id);
+    
+    // TODO: Implement your business logic
+    // - Reverse order in database
+    // - Update inventory
+    // - Send refund confirmation
+    // Example:
+    // await db.order.update({
+    //   where: { paymentId: refund.payment_id },
+    //   data: { status: 'refunded' }
+    // });
+  },
+});

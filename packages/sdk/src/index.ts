@@ -20,7 +20,6 @@ export * from './types';
 export { ConfigLoader } from './utils';
 export * from './webhooks';
 
-// Webhook handler utilities
 export {
   processWebhook,
   type WebhookHandlers,

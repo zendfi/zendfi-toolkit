@@ -42,7 +42,6 @@ export class ConfigLoader {
       return envVar as Environment;
     }
 
-    // Node environment detection
     if (typeof process !== 'undefined' && process.env) {
       const nodeEnv = process.env.NODE_ENV;
 
@@ -51,27 +50,22 @@ export class ConfigLoader {
       if (nodeEnv === 'development' || nodeEnv === 'test') return 'development';
     }
 
-    // Browser detection (if window is available)
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
 
-      // Production domains
       if (hostname === 'yourdomain.com' || hostname === 'www.yourdomain.com') {
         return 'production';
       }
 
-      // Staging domains
       if (hostname.includes('staging') || hostname.includes('.vercel.app')) {
         return 'staging';
       }
 
-      // Local development
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'development';
       }
     }
 
-    // Default to development for safety
     return 'development';
   }
 
@@ -79,10 +73,8 @@ export class ConfigLoader {
    * Load API key from various sources
    */
   private static loadApiKey(explicitKey?: string): string {
-    // 1. Explicit key in constructor
     if (explicitKey) return explicitKey;
 
-    // 2. Environment variables (try multiple variants)
     if (typeof process !== 'undefined' && process.env) {
       const envKey =
         process.env.ZENDFI_API_KEY ||
@@ -92,7 +84,6 @@ export class ConfigLoader {
       if (envKey) return envKey;
     }
 
-    // 3. CLI credentials file (for development)
     try {
       const credentials = this.loadCLICredentials();
       if (credentials?.apiKey) return credentials.apiKey;
@@ -112,7 +103,7 @@ export class ConfigLoader {
     if (explicitURL) return explicitURL;
 
     // For now, all environments use the same API
-    // In the future, you might have separate staging/dev APIs
+    // TODO: In the future, you might have separate staging/dev APIs
     return process.env.ZENDFI_API_URL || 'https://api.zendfi.tech';
   }
 
@@ -120,13 +111,11 @@ export class ConfigLoader {
    * Load credentials from CLI config file (~/.zendfi/credentials.json)
    */
   private static loadCLICredentials(): { apiKey?: string } | null {
-    // Only works in Node.js environment
     if (typeof process === 'undefined' || !process.env.HOME) {
       return null;
     }
 
     try {
-      // Dynamic import to avoid bundling fs in browser builds
       const fs = require('fs');
       const path = require('path');
 
@@ -147,14 +136,12 @@ export class ConfigLoader {
    * Validate API key format
    */
   static validateApiKey(apiKey: string): void {
-    // ZendFi API keys start with zfi_test_ or zfi_live_
     if (!apiKey.startsWith('zfi_test_') && !apiKey.startsWith('zfi_live_')) {
       throw new Error(
         'Invalid API key format. ZendFi API keys should start with "zfi_test_" or "zfi_live_"'
       );
     }
 
-    // Warn if using live key in development
     if (apiKey.startsWith('zfi_live_')) {
       const env = this.detectEnvironment();
       if (env === 'development') {
@@ -176,7 +163,6 @@ export function parseError(response: Response, body?: any): ZendFiError {
   const errorCode = body?.code;
   const details = body?.details;
 
-  // Map status codes to appropriate error types
   switch (statusCode) {
     case 401:
     case 403:

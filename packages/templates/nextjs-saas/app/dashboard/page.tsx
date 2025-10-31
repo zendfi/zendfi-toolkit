@@ -28,7 +28,7 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 
         {/* Current Plan */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-8 text-white mb-8">
+        <div className="bg-accent rounded-xl p-8 text-white mb-8">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 mb-2">Current Plan</p>

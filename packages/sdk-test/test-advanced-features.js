@@ -6,7 +6,6 @@
 import { ZendFiClient } from '@zendfi/sdk';
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
 
 const zendfi = new ZendFiClient({
@@ -14,10 +13,10 @@ const zendfi = new ZendFiClient({
   baseURL: 'https://api.zendfi.tech',
 });
 
-console.log('\n🧪 ZendFi SDK - Advanced Features Test\n');
+console.log('\n ZendFi SDK - Advanced Features Test\n');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-// Test wallets (example Solana addresses)
+// Test wallets (example Solana addresses, please do not send funds to this wallets!!!)
 const SELLER_WALLET = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 const PLATFORM_WALLET = '8yKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsV';
 const AFFILIATE_WALLET = '9zKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsW';
@@ -34,9 +33,9 @@ let testResults = {
  */
 async function runTest(name, testFn) {
   try {
-    console.log(`\n📋 ${name}`);
+    console.log(`\n ${name}`);
     await testFn();
-    console.log(`✅ PASSED: ${name}`);
+    console.log(` PASSED: ${name}`);
     testResults.passed++;
   } catch (error) {
     console.error(`❌ FAILED: ${name}`);
@@ -156,7 +155,6 @@ await runTest('Create Installment Plan (3 Months)', async () => {
   console.log(`   Plan ID: ${plan.id || plan.plan_id}`);
   console.log(`   Status: ${plan.status}`);
 
-  // Create response only has plan_id and status, not full details
   if (!plan.id && !plan.plan_id) {
     throw new Error('Expected plan ID');
   }
@@ -166,7 +164,6 @@ await runTest('Create Installment Plan (3 Months)', async () => {
 });
 
 await runTest('Get Installment Plan', async () => {
-  // First create a plan
   const createdPlan = await zendfi.createInstallmentPlan({
     customer_wallet: BUYER_WALLET,
     customer_email: 'test@example.com',
@@ -176,7 +173,6 @@ await runTest('Get Installment Plan', async () => {
     description: 'Test Plan',
   });
 
-  // Then fetch it
   const plan = await zendfi.getInstallmentPlan(createdPlan.id);
 
   console.log(`   Plan ID: ${plan.id}`);
@@ -264,7 +260,6 @@ await runTest('Create Escrow (Time-Based)', async () => {
 });
 
 await runTest('Get Escrow', async () => {
-  // First create an escrow
   const createdEscrow = await zendfi.createEscrow({
     buyer_wallet: BUYER_WALLET,
     seller_wallet: SELLER_WALLET,
@@ -277,7 +272,6 @@ await runTest('Get Escrow', async () => {
     },
   });
 
-  // Then fetch it
   const escrow = await zendfi.getEscrow(createdEscrow.id);
 
   console.log(`   Escrow ID: ${escrow.id}`);
@@ -348,7 +342,6 @@ await runTest('Create Invoice', async () => {
 });
 
 await runTest('Get Invoice', async () => {
-  // First create an invoice
   const createdInvoice = await zendfi.createInvoice({
     customer_email: 'test@example.com',
     customer_name: 'Test Customer',
@@ -356,7 +349,6 @@ await runTest('Get Invoice', async () => {
     description: 'Test Invoice',
   });
 
-  // Then fetch it
   const invoice = await zendfi.getInvoice(createdInvoice.id);
 
   console.log(`   Invoice ID: ${invoice.id}`);
@@ -379,7 +371,6 @@ await runTest('List Invoices', async () => {
 });
 
 await runTest('Send Invoice', async () => {
-  // First create an invoice
   const createdInvoice = await zendfi.createInvoice({
     customer_email: 'recipient@example.com',
     customer_name: 'Invoice Recipient',
@@ -387,7 +378,6 @@ await runTest('Send Invoice', async () => {
     description: 'Consulting Services - October 2025',
   });
 
-  // Then send it
   const result = await zendfi.sendInvoice(createdInvoice.id);
 
   console.log(`   Invoice sent: ${result.success}`);

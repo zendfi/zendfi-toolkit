@@ -6,7 +6,6 @@
 import 'dotenv/config';
 import { ZendFiClient, verifyWebhookSignature } from '@zendfi/sdk';
 
-// Color codes for terminal output
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -49,7 +48,6 @@ async function testWebhooks() {
   }
 
   try {
-    // Initialize SDK
     logSection('1. SDK Initialization');
     const zendfi = new ZendFiClient({
       apiKey: process.env.ZENDFI_API_KEY || 'test_key',
@@ -57,7 +55,6 @@ async function testWebhooks() {
     });
     logSuccess('SDK initialized successfully');
 
-    // Test 1: Valid Webhook Signature
     logSection('2. Test Valid Webhook Signature');
     
     const mockPayload = {
@@ -97,7 +94,6 @@ async function testWebhooks() {
       logError('Webhook signature verification failed!');
     }
 
-    // Test 2: Invalid Webhook Signature
     logSection('3. Test Invalid Webhook Signature');
     
     const invalidSignature = 'invalid_signature_12345';
@@ -115,7 +111,6 @@ async function testWebhooks() {
       logError('Invalid signature was incorrectly accepted!');
     }
 
-    // Test 3: Modified Payload
     logSection('4. Test Modified Payload Detection');
     
     const modifiedPayload = JSON.stringify({
@@ -124,7 +119,7 @@ async function testWebhooks() {
       timestamp: mockPayload.timestamp,
       data: {
         ...mockPayload.data,
-        amount: 999.99, // Tampered amount
+        amount: 999.99,
       },
     });
 
@@ -142,7 +137,6 @@ async function testWebhooks() {
       logError('Tampered payload was not detected!');
     }
 
-    // Test 4: Different Webhook Events
     logSection('5. Test Different Webhook Events');
     
     const events = [
@@ -187,7 +181,6 @@ async function testWebhooks() {
       logSuccess('All event types verified successfully!');
     }
 
-    // Summary
     logSection('✨ Test Summary');
     logSuccess('All webhook tests passed!');
     console.log('\nWebhook Security Features Tested:');

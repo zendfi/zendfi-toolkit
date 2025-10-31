@@ -47,11 +47,9 @@ export function createWebhookHandler(
 
   return async function webhookHandler(
     req: Request,
-    res: Response,
-    next: NextFunction
+    res: Response
   ): Promise<void> {
     try {
-      // Get raw body (requires express.raw() middleware)
       let body: string;
       
       if (Buffer.isBuffer(req.body)) {
@@ -65,7 +63,6 @@ export function createWebhookHandler(
         return;
       }
 
-      // Get signature from header
       const signature = (req.headers['x-zendfi-signature'] || 
                         req.headers['x-webhook-signature'] ||
                         '') as string;
@@ -75,7 +72,6 @@ export function createWebhookHandler(
         return;
       }
 
-      // Verify webhook signature
       const isValid = client.verifyWebhook({
         payload: body,
         signature,
@@ -87,10 +83,8 @@ export function createWebhookHandler(
         return;
       }
 
-      // Parse payload
       const payload = JSON.parse(body);
 
-      // Process webhook with handlers
       const result = await processWebhook(payload, config.handlers, config);
 
       if (!result.success) {
@@ -174,7 +168,6 @@ export function verifyWebhookMiddleware(config: { secret: string }) {
         return;
       }
 
-      // Attach parsed payload to request
       (req as any).webhookPayload = JSON.parse(body);
       next();
     } catch (error) {

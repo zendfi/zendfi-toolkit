@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+      <div className="bg-accent text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
@@ -84,7 +84,7 @@ export default function HomePage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+      <div className="bg-accent text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Ready to Get Started?
@@ -108,7 +108,7 @@ export default function HomePage() {
             <p className="text-gray-400">
               Powered by{' '}
               <a
-                href="https://zendfi.com"
+                href="https://zendfi.tech"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-400 hover:text-purple-300"

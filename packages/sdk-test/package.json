@@ -10,7 +10,8 @@
     "test:payment": "npm run prebuild && node test-payment.js",
     "test:payment-link": "npm run prebuild && node test-payment-link.js",
     "test:webhook": "npm run prebuild && node test-webhook.js",
-    "test:all": "npm run prebuild && npm run test:payment && npm run test:payment-link && npm run test:webhook"
+    "test:webhook-handler": "npm run prebuild && node test-webhook-handler.js",
+    "test:all": "npm run prebuild && npm run test:payment && npm run test:payment-link && npm run test:webhook && npm run test:webhook-handler"
   },
   "dependencies": {
     "@zendfi/sdk": "file:../sdk",

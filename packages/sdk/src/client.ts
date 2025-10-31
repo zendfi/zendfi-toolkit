@@ -27,8 +27,8 @@ import type {
 import { ConfigLoader, parseError, generateIdempotencyKey, sleep } from './utils';
 
 /**
- * ZendFi SDK Client
- * Zero-config TypeScript SDK for crypto payments
+ * ZendFi SDK Client.
+ * AZero-config TypeScript SDK for crypto payments
  */
 export class ZendFiClient {
   private config: Required<ZendFiConfig>;
@@ -130,7 +130,6 @@ export class ZendFiClient {
       token: request.token || 'USDC',
     });
     
-    // Add url alias for convenience
     return {
       ...response,
       url: response.hosted_page_url,
@@ -143,7 +142,6 @@ export class ZendFiClient {
   async getPaymentLink(linkCode: string): Promise<PaymentLink> {
     const response = await this.request<PaymentLink>('GET', `/api/v1/payment-links/${linkCode}`);
     
-    // Add url alias for convenience
     return {
       ...response,
       url: response.hosted_page_url,
@@ -151,12 +149,14 @@ export class ZendFiClient {
   }
 
   /**
-   * List all payment links
+   * List all payment links for the authenticated merchant
    */
   async listPaymentLinks(): Promise<PaymentLink[]> {
-    // Backend doesn't have a list endpoint yet, return empty array
-    // TODO: Add this endpoint to backend
-    return [];
+    const response = await this.request<PaymentLink[]>('GET', '/api/v1/payment-links');
+    return response.map(link => ({
+      ...link,
+      url: link.hosted_page_url,
+    }));
   }
 
   /**
@@ -169,7 +169,6 @@ export class ZendFiClient {
       '/api/v1/installment-plans',
       request
     );
-    // Return response with plan_id mapped to both id and plan_id for compatibility
     return {
       id: response.plan_id,
       plan_id: response.plan_id,
@@ -355,12 +354,10 @@ export class ZendFiClient {
    */
   verifyWebhook(request: VerifyWebhookRequest): boolean {
     try {
-      // Validate inputs
       if (!request.payload || !request.signature || !request.secret) {
         return false;
       }
 
-      // Normalize payload: accept either string or object
       let payloadString: string;
       let parsedPayload: WebhookPayload | null = null;
 
@@ -369,11 +366,9 @@ export class ZendFiClient {
         try {
           parsedPayload = JSON.parse(payloadString) as WebhookPayload;
         } catch (e) {
-          // Malformed JSON
           return false;
         }
       } else if (typeof request.payload === 'object') {
-        // Already-parsed object; stringify for HMAC and validate shape
         parsedPayload = request.payload as WebhookPayload;
         try {
           payloadString = JSON.stringify(request.payload);
@@ -384,15 +379,12 @@ export class ZendFiClient {
         return false;
       }
 
-      // Validate payload structure
       if (!parsedPayload || !parsedPayload.event || !parsedPayload.merchant_id || !parsedPayload.timestamp) {
         return false;
       }
 
-      // Compute HMAC-SHA256 signature over the original JSON string
       const computedSignature = this.computeHmacSignature(payloadString, request.secret);
 
-      // Timing-safe comparison to prevent timing attacks
       return this.timingSafeEqual(request.signature, computedSignature);
     } catch (err) {
       // In dev, print concise error message (avoid dumping large objects)
@@ -410,14 +402,12 @@ export class ZendFiClient {
    * Works in both Node.js and browser environments
    */
   private computeHmacSignature(payload: string, secret: string): string {
-    // Node.js environment
     if (typeof process !== 'undefined' && process.versions?.node) {
       return createHmac('sha256', secret)
         .update(payload, 'utf8')
         .digest('hex');
     }
 
-    // Browser environment (using Web Crypto API)
     throw new Error(
       'Webhook verification in browser is not supported. Use this method in your backend/server environment.'
     );
@@ -427,12 +417,10 @@ export class ZendFiClient {
    * Timing-safe string comparison to prevent timing attacks
    */
   private timingSafeEqual(a: string, b: string): boolean {
-    // Different lengths = definitely not equal
     if (a.length !== b.length) {
       return false;
     }
 
-    // Node.js environment - use crypto.timingSafeEqual
     if (typeof process !== 'undefined' && process.versions?.node) {
       try {
         const bufferA = Buffer.from(a, 'utf8');
@@ -443,8 +431,6 @@ export class ZendFiClient {
       }
     }
 
-    // Manual timing-safe comparison
-    // Always compare all characters even if mismatch found
     let result = 0;
     for (let i = 0; i < a.length; i++) {
       result |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -490,7 +476,6 @@ export class ZendFiClient {
 
       clearTimeout(timeoutId);
 
-      // Parse response
       let body: any;
       try {
         body = await response.json();
@@ -498,11 +483,9 @@ export class ZendFiClient {
         body = null;
       }
 
-      // Handle errors
       if (!response.ok) {
         const error = parseError(response, body);
 
-        // Retry on server errors (5xx)
         if (response.status >= 500 && attempt < this.config.retries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
           await sleep(delay);
@@ -517,12 +500,10 @@ export class ZendFiClient {
 
       return body as T;
     } catch (error: any) {
-      // Network errors
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.config.timeout}ms`);
       }
 
-      // Retry network errors
       if (attempt < this.config.retries && error.message?.includes('fetch')) {
         const delay = Math.pow(2, attempt) * 1000;
         await sleep(delay);
@@ -549,7 +530,6 @@ export const zendfi = (() => {
   try {
     return new ZendFiClient();
   } catch (error) {
-    // In test/dev environments without API key, return a proxy that throws helpful errors
     if (process.env.NODE_ENV === 'test' || !process.env.ZENDFI_API_KEY) {
       return new Proxy({} as ZendFiClient, {
         get() {

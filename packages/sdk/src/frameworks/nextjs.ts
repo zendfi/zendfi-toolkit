@@ -44,7 +44,6 @@ export function createWebhookHandler(
 
   return async function POST(request: any): Promise<any> {
     try {
-      // Get raw body and signature
       const body = await request.text();
       const signature = request.headers.get('x-zendfi-signature');
 
@@ -55,7 +54,6 @@ export function createWebhookHandler(
         );
       }
 
-      // Verify webhook signature
       const isValid = client.verifyWebhook({
         payload: body,
         signature,
@@ -69,7 +67,6 @@ export function createWebhookHandler(
         );
       }
 
-      // Parse and process
       const payload = JSON.parse(body);
       const result = await processWebhook(payload, config.handlers, config);
 
@@ -131,14 +128,12 @@ export function createPagesWebhookHandler(
     }
 
     try {
-      // Get raw body
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
         chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
       }
       const body = Buffer.concat(chunks).toString('utf8');
 
-      // Get signature
       const signature = req.headers['x-zendfi-signature'] || 
                        req.headers['x-webhook-signature'] ||
                        '';
@@ -147,7 +142,6 @@ export function createPagesWebhookHandler(
         return res.status(401).json({ error: 'Missing webhook signature' });
       }
 
-      // Verify signature
       const isValid = client.verifyWebhook({
         payload: body,
         signature,
@@ -158,7 +152,6 @@ export function createPagesWebhookHandler(
         return res.status(401).json({ error: 'Invalid webhook signature' });
       }
 
-      // Parse and process
       const payload = JSON.parse(body);
       const result = await processWebhook(payload, config.handlers, config);
 

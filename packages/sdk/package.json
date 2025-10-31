@@ -8,18 +8,15 @@
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./nextjs": {
       "import": "./dist/nextjs.mjs",
-      "require": "./dist/nextjs.js",
-      "types": "./dist/nextjs.d.ts"
+      "require": "./dist/nextjs.js"
     },
     "./express": {
       "import": "./dist/express.mjs",
-      "require": "./dist/express.js",
-      "types": "./dist/express.d.ts"
+      "require": "./dist/express.js"
     }
   },
   "files": [
