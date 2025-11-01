@@ -20,16 +20,32 @@ export class ConfigLoader {
   static load(options?: Partial<ZendFiConfig>): Required<ZendFiConfig> {
     const environment = this.detectEnvironment();
     const apiKey = this.loadApiKey(options?.apiKey);
-    const baseURL = this.getBaseURL(environment, options?.baseURL);
+    const mode = this.detectMode(apiKey);
+    const baseURL = this.getBaseURL(environment, mode, options?.baseURL);
 
     return {
       apiKey,
       baseURL,
       environment,
+      mode,
       timeout: options?.timeout ?? 30000,
       retries: options?.retries ?? 3,
       idempotencyEnabled: options?.idempotencyEnabled ?? true,
     };
+  }
+
+  /**
+   * Detect mode (test/live) from API key prefix
+   */
+  private static detectMode(apiKey: string): 'test' | 'live' {
+    if (apiKey.startsWith('zfi_test_')) {
+      return 'test';
+    }
+    if (apiKey.startsWith('zfi_live_')) {
+      return 'live';
+    }
+    // Fallback to live if no prefix detected
+    return 'live';
   }
 
   /**
@@ -98,12 +114,14 @@ export class ConfigLoader {
 
   /**
    * Get base URL for API
+   * Note: Both test and live modes use the same API endpoint.
+   * The backend routes requests to devnet or mainnet based on API key prefix.
    */
-  private static getBaseURL(_environment: Environment, explicitURL?: string): string {
+  private static getBaseURL(_environment: Environment, _mode: 'test' | 'live', explicitURL?: string): string {
     if (explicitURL) return explicitURL;
 
-    // For now, all environments use the same API
-    // TODO: In the future, you might have separate staging/dev APIs
+    // Single API endpoint for both test (devnet) and live (mainnet) modes
+    // Backend uses API key prefix to determine network routing
     return process.env.ZENDFI_API_URL || 'https://api.zendfi.tech';
   }
 
@@ -142,14 +160,21 @@ export class ConfigLoader {
       );
     }
 
-    if (apiKey.startsWith('zfi_live_')) {
-      const env = this.detectEnvironment();
-      if (env === 'development') {
-        console.warn(
-          '⚠️  Warning: Using a live API key (zfi_live_) in development environment. ' +
-            'This will create real transactions. Use a test key (zfi_test_) for development.'
-        );
-      }
+    const mode = this.detectMode(apiKey);
+    const env = this.detectEnvironment();
+    
+    if (mode === 'live' && env === 'development') {
+      console.warn(
+        '⚠️  Warning: Using a live API key (zfi_live_) in development environment. ' +
+          'This will create real mainnet transactions. Use a test key (zfi_test_) for devnet testing.'
+      );
+    }
+    
+    if (mode === 'test' && env === 'production') {
+      console.warn(
+        '⚠️  Warning: Using a test API key (zfi_test_) in production environment. ' +
+          'This will create devnet transactions only. Use a live key (zfi_live_) for mainnet.'
+      );
     }
   }
 }

@@ -5,6 +5,8 @@
 
 export type Environment = 'development' | 'staging' | 'production';
 
+export type ApiKeyMode = 'test' | 'live';
+
 export type Currency = 'USD' | 'EUR' | 'GBP';
 
 export type PaymentToken = 'SOL' | 'USDC' | 'USDT';
@@ -46,6 +48,7 @@ export interface ZendFiConfig {
   apiKey?: string;
   baseURL?: string;
   environment?: Environment;
+  mode?: ApiKeyMode;
   timeout?: number;
   retries?: number;
   idempotencyEnabled?: boolean;

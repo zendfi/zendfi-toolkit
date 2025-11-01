@@ -36,6 +36,15 @@ export class ZendFiClient {
   constructor(options?: Partial<ZendFiConfig>) {
     this.config = ConfigLoader.load(options);
     ConfigLoader.validateApiKey(this.config.apiKey);
+    
+    // Log initialization info
+    if (this.config.environment === 'development') {
+      console.log(
+        `✓ ZendFi SDK initialized in ${this.config.mode} mode (${
+          this.config.mode === 'test' ? 'devnet' : 'mainnet'
+        })`
+      );
+    }
   }
 
   /**
