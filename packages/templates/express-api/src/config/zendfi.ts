@@ -3,6 +3,10 @@
  */
 
 import { ZendFiClient } from '@zendfi/sdk';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 export const zendfi = new ZendFiClient();
 

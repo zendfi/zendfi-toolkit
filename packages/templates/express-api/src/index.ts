@@ -40,9 +40,9 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💳 ZendFi: ${process.env.ZENDFI_ENVIRONMENT || 'development'}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`ZendFi: ${process.env.ZENDFI_ENVIRONMENT || 'development'}`);
 });
 
 export default app;

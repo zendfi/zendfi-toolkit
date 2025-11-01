@@ -58,20 +58,5 @@ export const handleZendFiWebhook: RequestHandler = createExpressWebhookHandler({
     
     // TODO: Optional - clean up expired payment records
   },
-  
-  'refund.completed': async (refund: any) => {
-    // Refund successfully processed
-    console.log('💸 Refund completed:', refund.refund_id);
-    
-    // TODO: Implement your business logic
-    // - Reverse order in database
-    // - Update inventory
-    // - Send refund confirmation
-    // Example:
-    // await db.order.update({
-    //   where: { paymentId: refund.payment_id },
-    //   data: { status: 'refunded' }
-    // });
-  },
   }
 });

@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-  "module": "ESNext",
-  "lib": ["ES2022"],
-  "moduleResolution": "nodenext",
+    "module": "NodeNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "nodenext",
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
@@ -14,7 +14,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-  "types": ["node", "express"]
+    "types": ["node", "express"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
