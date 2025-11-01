@@ -13,7 +13,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 // Load environment variables
 dotenv.config();
 
-const app = express();
+const app: express.Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
@@ -32,8 +32,8 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/payments', paymentRoutes);
-app.use('/api/webhooks', webhookRoutes);
+app.use('/api/payments', paymentRoutes as express.Router);
+app.use('/api/webhooks', webhookRoutes as express.Router);
 
 // Error handling
 app.use(errorHandler);

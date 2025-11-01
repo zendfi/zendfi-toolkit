@@ -6,11 +6,13 @@
  */
 
 import { Request, Response, RequestHandler } from 'express';
-import { webhookHandler } from '@zendfi/sdk/express';
+import { createExpressWebhookHandler } from '@zendfi/sdk/express';
 
 // Export the webhook handler as Express middleware
-export const handleZendFiWebhook: RequestHandler = webhookHandler({
-  'payment.confirmed': async (payment) => {
+export const handleZendFiWebhook: RequestHandler = createExpressWebhookHandler({
+  secret: process.env.ZENDFI_WEBHOOK_SECRET!,
+  handlers: {
+  'payment.confirmed': async (payment: any) => {
     // Payment successfully completed
     console.log('💰 Payment confirmed:', payment.payment_id);
     
@@ -27,7 +29,7 @@ export const handleZendFiWebhook: RequestHandler = webhookHandler({
     // await sendConfirmationEmail(payment.customer.email);
   },
   
-  'payment.failed': async (payment) => {
+  'payment.failed': async (payment: any) => {
     // Payment failed
     console.log('❌ Payment failed:', payment.payment_id);
     
@@ -43,21 +45,21 @@ export const handleZendFiWebhook: RequestHandler = webhookHandler({
     // await sendFailureEmail(payment.customer.email);
   },
   
-  'payment.created': async (payment) => {
+  'payment.created': async (payment: any) => {
     // Payment initiated (pending)
     console.log('⏳ Payment created:', payment.payment_id);
     
     // TODO: Optional - track pending payments
   },
   
-  'payment.expired': async (payment) => {
+  'payment.expired': async (payment: any) => {
     // Payment link or session expired
     console.log('⏰ Payment expired:', payment.payment_id);
     
     // TODO: Optional - clean up expired payment records
   },
   
-  'refund.completed': async (refund) => {
+  'refund.completed': async (refund: any) => {
     // Refund successfully processed
     console.log('💸 Refund completed:', refund.refund_id);
     
@@ -71,4 +73,5 @@ export const handleZendFiWebhook: RequestHandler = webhookHandler({
     //   data: { status: 'refunded' }
     // });
   },
+  }
 });

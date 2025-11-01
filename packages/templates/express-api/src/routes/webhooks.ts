@@ -6,7 +6,7 @@ import { Router } from 'express';
 import express from 'express';
 import { handleZendFiWebhook } from '../controllers/webhookController.js';
 
-const router = Router();
+const router: express.Router = Router();
 
 // ZendFi webhook endpoint
 // ⚠️ IMPORTANT: Must use raw body parser for signature verification

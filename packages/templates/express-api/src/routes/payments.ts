@@ -2,10 +2,10 @@
  * Payment Routes
  */
 
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { createPayment, getPayment, listPayments } from '../controllers/paymentController.js';
 
-const router = Router();
+const router: express.Router = Router();
 
 // Create a new payment
 router.post('/create', createPayment);
