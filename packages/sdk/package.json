@@ -27,7 +27,6 @@
     "dev": "tsup src/index.ts src/nextjs.ts src/express.ts --format esm,cjs --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:list-links": "npm run build  && node test-list-links.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
