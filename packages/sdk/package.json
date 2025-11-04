@@ -1,6 +1,6 @@
 {
   "name": "@zendfi/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zero-config TypeScript SDK for ZendFi crypto payments",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
