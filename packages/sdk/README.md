@@ -26,9 +26,20 @@ pnpm add @zendfi/sdk
 ### 1. Set your API key
 
 ```bash
-# .env.local
-ZENDFI_API_KEY=zfi_test_your_api_key_here
+# .env.local or .env
+
+# For development (uses Solana devnet)
+ZENDFI_API_KEY=zfi_test_your_test_api_key_here
+
+# For production (uses Solana mainnet)
+# ZENDFI_API_KEY=zfi_live_your_live_api_key_here
 ```
+
+**API Key Modes:**
+- `zfi_test_*` keys route to **Solana Devnet** (free test SOL, no real money)
+- `zfi_live_*` keys route to **Solana Mainnet** (real crypto transactions)
+
+The SDK automatically detects the mode from your API key prefix.
 
 ### 2. Create a payment
 
@@ -61,6 +72,31 @@ const payment = await client.createPayment({
 ```
 
 That's it! The SDK handles everything else automatically. 🎉
+
+## Test vs Live Mode
+
+ZendFi provides separate API keys for testing and production:
+
+| Mode | API Key Prefix | Network | Purpose |
+|------|---------------|---------|---------|
+| **Test** | `zfi_test_` | Solana Devnet | Development & testing with fake SOL |
+| **Live** | `zfi_live_` | Solana Mainnet | Production with real crypto |
+
+### Getting Test SOL
+
+For testing on devnet:
+1. Use your `zfi_test_` API key
+2. Get free devnet SOL from [sol-faucet.com](https://www.sol-faucet.com/) or `solana airdrop`
+3. All transactions use test tokens (no real value)
+
+### Going Live
+
+When ready for production:
+1. Switch to your `zfi_live_` API key
+2. All transactions will use real crypto on mainnet
+3. Customers pay with real SOL/USDC/USDT
+
+The SDK automatically routes to the correct network based on your API key prefix!
 
 ## Usage
 

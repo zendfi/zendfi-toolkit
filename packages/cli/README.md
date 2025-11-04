@@ -73,9 +73,15 @@ Backend API template with:
    Update `.env`:
    
    ```env
-   ZENDFI_API_KEY=your_api_key_here
+   # For development (Solana Devnet)
+   ZENDFI_API_KEY=zfi_test_your_test_api_key_here
    ZENDFI_WEBHOOK_SECRET=your_webhook_secret_here
+   
+   # For production (Solana Mainnet)
+   # ZENDFI_API_KEY=zfi_live_your_live_api_key_here
    ```
+   
+   **Note:** Use `zfi_test_` keys for development (devnet with free test SOL) and `zfi_live_` keys for production (mainnet with real crypto).
 
 4. **Start development server**
    

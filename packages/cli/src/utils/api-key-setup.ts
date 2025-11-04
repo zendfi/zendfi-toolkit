@@ -27,7 +27,10 @@ interface QuickCreateResponse {
     settlement_preference: string;
     wallet_generation_method: string;
   };
-  api_key: string;
+  api_keys: {
+    test: string;
+    live: string;
+  };
   message: string;
   security_note?: string;
   next_steps?: {
@@ -35,7 +38,7 @@ interface QuickCreateResponse {
     setup_required: boolean;
     estimated_time?: string;
   };
-  warning: string;
+  warning?: string;
 }
 
 /**
@@ -236,12 +239,23 @@ async function createNewAccount(): Promise<string | null> {
       console.log(chalk.green('\n Your wallet is ready to receive payments immediately!\n'));
     }
 
+    console.log(chalk.yellow('\n  API Keys'));
+    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+    console.log(chalk.bold('Test API Key (Devnet):'));
+    console.log(chalk.cyan(`  ${data.api_keys.test}`));
+    console.log(chalk.gray('  Use this for development and testing\n'));
+    
+    console.log(chalk.bold('Live API Key (Mainnet):'));
+    console.log(chalk.cyan(`  ${data.api_keys.live}`));
+    console.log(chalk.gray('  Use this for production deployments\n'));
+
     console.log(chalk.yellow('Security Note:'));
-    console.log(chalk.gray(data.security_note || 'Keep your API key secure - it will not be shown again!\n'));
+    console.log(chalk.gray(data.security_note || 'Keep your API keys secure - they will not be shown again!\n'));
 
     console.log(chalk.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
-    return data.api_key;
+    // Return test API key by default (for development)
+    return data.api_keys.test;
 
   } catch (error) {
     spinner.fail(chalk.red('Failed to create merchant account'));
