@@ -31,6 +31,7 @@ export class ConfigLoader {
       timeout: options?.timeout ?? 30000,
       retries: options?.retries ?? 3,
       idempotencyEnabled: options?.idempotencyEnabled ?? true,
+      debug: options?.debug ?? false,
     };
   }
 

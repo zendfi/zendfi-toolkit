@@ -20,6 +20,34 @@ export * from './types';
 export { ConfigLoader } from './utils';
 export * from './webhooks';
 
+// Error handling
+export {
+  ZendFiError,
+  AuthenticationError,
+  PaymentError,
+  ValidationError,
+  NetworkError,
+  RateLimitError,
+  ApiError,
+  WebhookError,
+  createZendFiError,
+  isZendFiError,
+  ERROR_CODES,
+  type ZendFiErrorType,
+  type ZendFiErrorData,
+} from './errors';
+
+// Interceptors
+export {
+  type RequestConfig,
+  type ResponseData,
+  type RequestInterceptor,
+  type ResponseInterceptor,
+  type ErrorInterceptor,
+  type Interceptors,
+  InterceptorManager,
+} from './interceptors';
+
 export {
   processWebhook,
   type WebhookHandlers,

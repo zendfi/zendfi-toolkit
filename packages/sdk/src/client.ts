@@ -24,7 +24,9 @@ import type {
   CreateInvoiceRequest,
   Invoice,
 } from './types';
-import { ConfigLoader, parseError, generateIdempotencyKey, sleep } from './utils';
+import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
+import { createZendFiError, isZendFiError } from './errors';
+import { createInterceptors, type Interceptors, type RequestConfig, type ResponseData } from './interceptors';
 
 /**
  * ZendFi SDK Client.
@@ -32,18 +34,24 @@ import { ConfigLoader, parseError, generateIdempotencyKey, sleep } from './utils
  */
 export class ZendFiClient {
   private config: Required<ZendFiConfig>;
+  public readonly interceptors: Interceptors;
 
   constructor(options?: Partial<ZendFiConfig>) {
     this.config = ConfigLoader.load(options);
     ConfigLoader.validateApiKey(this.config.apiKey);
+    this.interceptors = createInterceptors();
     
     // Log initialization info
-    if (this.config.environment === 'development') {
+    if (this.config.environment === 'development' || this.config.debug) {
       console.log(
         `✓ ZendFi SDK initialized in ${this.config.mode} mode (${
           this.config.mode === 'test' ? 'devnet' : 'mainnet'
         })`
       );
+      
+      if (this.config.debug) {
+        console.log('[ZendFi] Debug mode enabled');
+      }
     }
   }
 
@@ -448,7 +456,7 @@ export class ZendFiClient {
   }
 
   /**
-   * Make an HTTP request with retry logic
+   * Make an HTTP request with retry logic, interceptors, and debug logging
    */
   private async request<T>(
     method: string,
@@ -460,6 +468,8 @@ export class ZendFiClient {
     const idempotencyKey =
       options.idempotencyKey ||
       (this.config.idempotencyEnabled && method !== 'GET' ? generateIdempotencyKey() : undefined);
+
+    const startTime = Date.now();
 
     try {
       const url = `${this.config.baseURL}${endpoint}`;
@@ -473,13 +483,34 @@ export class ZendFiClient {
         headers['Idempotency-Key'] = idempotencyKey;
       }
 
+      // Build request config
+      let requestConfig: RequestConfig = {
+        method,
+        url,
+        headers,
+        body: data,
+      };
+
+      // Run request interceptors
+      if (this.interceptors.request.has()) {
+        requestConfig = await this.interceptors.request.execute(requestConfig);
+      }
+
+      // Debug logging - request
+      if (this.config.debug) {
+        console.log(`[ZendFi] ${method} ${endpoint}`);
+        if (data) {
+          console.log('[ZendFi] Request:', JSON.stringify(data, null, 2));
+        }
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: data ? JSON.stringify(data) : undefined,
+      const response = await fetch(requestConfig.url, {
+        method: requestConfig.method,
+        headers: requestConfig.headers,
+        body: requestConfig.body ? JSON.stringify(requestConfig.body) : undefined,
         signal: controller.signal,
       });
 
@@ -492,11 +523,26 @@ export class ZendFiClient {
         body = null;
       }
 
-      if (!response.ok) {
-        const error = parseError(response, body);
+      const duration = Date.now() - startTime;
 
+      if (!response.ok) {
+        // Create proper error
+        const error = createZendFiError(response.status, body);
+
+        // Debug logging - error
+        if (this.config.debug) {
+          console.error(`[ZendFi] ❌ ${response.status} ${response.statusText} (${duration}ms)`);
+          console.error(`[ZendFi] Error:`, error.toString());
+        }
+
+        // Retry logic for 5xx errors
         if (response.status >= 500 && attempt < this.config.retries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+          
+          if (this.config.debug) {
+            console.log(`[ZendFi] Retrying in ${delay}ms... (attempt ${attempt + 1}/${this.config.retries})`);
+          }
+          
           await sleep(delay);
           return this.request<T>(method, endpoint, data, {
             idempotencyKey,
@@ -504,17 +550,63 @@ export class ZendFiClient {
           });
         }
 
+        // Run error interceptors
+        if (this.interceptors.error.has()) {
+          const interceptedError = await this.interceptors.error.execute(error);
+          throw interceptedError;
+        }
+
         throw error;
       }
 
-      return body as T;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${this.config.timeout}ms`);
+      // Debug logging - success
+      if (this.config.debug) {
+        console.log(`[ZendFi] ✓ ${response.status} ${response.statusText} (${duration}ms)`);
+        if (body) {
+          console.log('[ZendFi] Response:', JSON.stringify(body, null, 2));
+        }
       }
 
-      if (attempt < this.config.retries && error.message?.includes('fetch')) {
+      // Build response data
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      
+      let responseData: ResponseData = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: headersObj,
+        data: body,
+        config: requestConfig,
+      };
+
+      // Run response interceptors
+      if (this.interceptors.response.has()) {
+        responseData = await this.interceptors.response.execute(responseData);
+      }
+
+      return responseData.data as T;
+    } catch (error: any) {
+      // Handle timeout
+      if (error.name === 'AbortError') {
+        const timeoutError = createZendFiError(0, {}, `Request timeout after ${this.config.timeout}ms`);
+        
+        if (this.config.debug) {
+          console.error(`[ZendFi] ❌ Timeout (${this.config.timeout}ms)`);
+        }
+        
+        throw timeoutError;
+      }
+
+      // Handle network errors with retry
+      if (attempt < this.config.retries && (error.message?.includes('fetch') || error.message?.includes('network'))) {
         const delay = Math.pow(2, attempt) * 1000;
+        
+        if (this.config.debug) {
+          console.log(`[ZendFi] Network error, retrying in ${delay}ms... (attempt ${attempt + 1}/${this.config.retries})`);
+        }
+        
         await sleep(delay);
         return this.request<T>(method, endpoint, data, {
           idempotencyKey,
@@ -522,7 +614,19 @@ export class ZendFiClient {
         });
       }
 
-      throw error;
+      // If it's already a ZendFiError, just throw it
+      if (isZendFiError(error)) {
+        throw error;
+      }
+
+      // Wrap unknown errors
+      const wrappedError = createZendFiError(0, {}, error.message || 'An unknown error occurred');
+      
+      if (this.config.debug) {
+        console.error(`[ZendFi] ❌ Unexpected error:`, error);
+      }
+      
+      throw wrappedError;
     }
   }
 }

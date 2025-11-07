@@ -52,6 +52,7 @@ export interface ZendFiConfig {
   timeout?: number;
   retries?: number;
   idempotencyEnabled?: boolean;
+  debug?: boolean; // Enable request/response logging
 }
 
 export interface SplitRecipient {
