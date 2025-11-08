@@ -1,0 +1,83 @@
+// Prisma Schema for Express API
+// This defines the database structure for the Express API template
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String    // Hashed with bcrypt
+  name      String?
+  apiKeys   ApiKey[]
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// API Keys for authentication
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  key         String   @unique // Format: zfi_live_xxx or zfi_test_xxx
+  name        String   // Descriptive name for the key
+  environment String   @default("development") // development, production
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean  @default(true)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([key])
+}
+
+// Payment records
+model Payment {
+  id                    String   @id @default(cuid())
+  userId                String?
+  zendfiPaymentId       String   @unique // Payment ID from ZendFi
+  amount                Float
+  currency              String   @default("USD")
+  token                 String   @default("USDC") // USDC, SOL, USDT
+  description           String
+  status                String   @default("pending") // pending, confirmed, failed, expired
+  checkoutUrl           String
+  transactionSignature  String?
+  metadata              Json?
+  customerEmail         String?
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  confirmedAt           DateTime?
+  expiresAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+  @@index([zendfiPaymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Webhook Events Log
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  eventType       String   // payment.confirmed, payment.failed, etc.
+  paymentId       String?
+  payload         Json
+  processed       Boolean  @default(false)
+  processingError String?
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+
+  @@index([eventType])
+  @@index([processed])
+  @@index([createdAt])
+}

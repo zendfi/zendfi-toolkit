@@ -7,6 +7,7 @@ export interface CreatePaymentRequest {
   currency: string;
   token?: string;
   description: string;
+  customer_email?: string;
   metadata?: Record<string, any>;
 }
 
