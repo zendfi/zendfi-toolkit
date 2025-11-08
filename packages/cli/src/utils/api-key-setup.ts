@@ -201,7 +201,7 @@ async function createNewAccount(): Promise<string | null> {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string; error?: string };
       spinner.fail(chalk.red('Failed to create merchant account'));
       console.log(chalk.yellow('\nError:'), error.message || error.error);
       return null;
