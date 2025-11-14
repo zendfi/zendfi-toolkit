@@ -60,7 +60,7 @@ export const POST = createNextWebhookHandler({
   secret: process.env.ZENDFI_WEBHOOK_SECRET!,
   handlers: {
     'payment.confirmed': async (payment) => {
-      console.log('💰 Payment confirmed:', payment.payment_id);
+      console.log('Payment confirmed:', payment.payment_id);
       
       // TODO: Fulfill order
       // Example:
@@ -110,12 +110,12 @@ export default async function handler${types} {
     // Handle events
     switch (event.type) {
       case 'payment.confirmed':
-        console.log('💰 Payment confirmed:', event.data.payment_id);
+        console.log('Payment confirmed:', event.data.payment_id);
         // TODO: Fulfill order
         break;
         
       case 'payment.failed':
-        console.log('❌ Payment failed:', event.data.payment_id);
+        console.log('Payment failed:', event.data.payment_id);
         // TODO: Handle failed payment
         break;
     }
@@ -167,12 +167,12 @@ router.post('/webhooks/zendfi', async (req${hasTypeScript ? ': Request' : ''}, r
     // Handle events
     switch (event.type) {
       case 'payment.confirmed':
-        console.log('💰 Payment confirmed:', event.data.payment_id);
+        console.log('Payment confirmed:', event.data.payment_id);
         // TODO: Fulfill order
         break;
         
       case 'payment.failed':
-        console.log('❌ Payment failed:', event.data.payment_id);
+        console.log('Payment failed:', event.data.payment_id);
         // TODO: Handle failed payment
         break;
     }

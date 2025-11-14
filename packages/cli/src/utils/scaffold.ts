@@ -4,8 +4,12 @@
 
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import ora from 'ora';
 import type { ProjectConfig } from '../types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function scaffoldProject(config: ProjectConfig): Promise<void> {
   const spinner = ora({
@@ -14,21 +18,21 @@ export async function scaffoldProject(config: ProjectConfig): Promise<void> {
   }).start();
 
   try {
-    const templateDir = path.join(
-      path.dirname(new URL(import.meta.url).pathname),
-      '../../templates',
-      config.template
-    );
+    const templateDir = path.join(__dirname, '../templates', config.template);
 
     if (!await fs.pathExists(templateDir)) {
-      throw new Error(`Template not found: ${config.template}`);
+      throw new Error(`Template not found: ${config.template}
+Looked in: ${templateDir}`);
     }
 
     await fs.copy(templateDir, config.projectPath, {
       filter: (src) => {
-        return !src.includes('node_modules') && 
-               !src.includes('dist') && 
-               !src.includes('.next');
+        const relativePath = path.relative(templateDir, src);
+        
+        const shouldCopy = !relativePath.includes('node_modules') && 
+               !relativePath.includes('dist') && 
+               !relativePath.includes('.next');
+        return shouldCopy;
       },
     });
 

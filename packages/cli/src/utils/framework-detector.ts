@@ -7,13 +7,13 @@ import fs from 'fs-extra';
 import path from 'path';
 
 export type Framework =
-  | 'nextjs-app'      // Next.js 13+ with App Router
-  | 'nextjs-pages'    // Next.js with Pages Router
-  | 'express'         // Express.js
-  | 'react'           // React (CRA, Vite)
-  | 'vue'             // Vue.js
-  | 'svelte'          // SvelteKit
-  | 'node'            // Plain Node.js
+  | 'nextjs-app'
+  | 'nextjs-pages'
+  | 'express'
+  | 'react'
+  | 'vue'
+  | 'svelte'
+  | 'node'
   | 'unknown';
 
 export interface FrameworkInfo {
@@ -37,20 +37,15 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
   const packageJson = await fs.readJson(packageJsonPath);
   const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
-  // Detect package manager
   const packageManager = await detectPackageManager(projectPath);
-
-  // Check for TypeScript
   const hasTypeScript = 
     await fs.pathExists(path.join(projectPath, 'tsconfig.json')) ||
     !!deps.typescript;
 
-  // Detect Next.js
   if (deps.next) {
     const version = deps.next.replace(/[\^~]/, '');
     const majorVersion = parseInt(version.split('.')[0]);
 
-    // Check if using App Router (Next.js 13+)
     const hasAppDir = await fs.pathExists(path.join(projectPath, 'app'));
     const hasPagesDir = await fs.pathExists(path.join(projectPath, 'pages'));
 
@@ -73,7 +68,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     }
   }
 
-  // Detect Express
   if (deps.express) {
     return {
       framework: 'express',
@@ -84,7 +78,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     };
   }
 
-  // Detect React
   if (deps.react && !deps.next) {
     return {
       framework: 'react',
@@ -95,7 +88,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     };
   }
 
-  // Detect Vue
   if (deps.vue) {
     return {
       framework: 'vue',
@@ -106,7 +98,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     };
   }
 
-  // Detect Svelte
   if (deps['@sveltejs/kit']) {
     return {
       framework: 'svelte',
@@ -117,7 +108,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     };
   }
 
-  // Plain Node.js
   return {
     framework: 'node',
     name: 'Node.js',

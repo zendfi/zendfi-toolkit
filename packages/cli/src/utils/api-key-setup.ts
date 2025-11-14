@@ -210,7 +210,6 @@ async function createNewAccount(): Promise<string | null> {
     const data = await response.json() as QuickCreateResponse;
     spinner.succeed(chalk.green('Merchant account created successfully!'));
 
-    // Display account information
     console.log(chalk.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
     console.log(chalk.bold.green('  Your ZendFi Account is Ready!'));
     console.log(chalk.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
@@ -223,7 +222,6 @@ async function createNewAccount(): Promise<string | null> {
       console.log(chalk.bold('Wallet Address:'), data.merchant.wallet_address);
     }
 
-    // Show next steps based on wallet type
     if (data.next_steps?.setup_required) {
       console.log(chalk.yellow('\n  Important: Complete Passkey Setup'));
       console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));

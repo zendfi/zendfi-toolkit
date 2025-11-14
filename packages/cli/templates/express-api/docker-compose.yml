@@ -1,0 +1,79 @@
+# Docker Compose for Express API
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: zendfi-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: zendfi
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zendfi-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/zendfi
+      ZENDFI_API_KEY: ${ZENDFI_API_KEY}
+      ZENDFI_WEBHOOK_SECRET: ${ZENDFI_WEBHOOK_SECRET}
+      ZENDFI_ENVIRONMENT: ${ZENDFI_ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npx prisma db seed &&
+        node dist/index.js
+      "
+
+  # Redis (Optional - for better rate limiting)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: zendfi-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  postgres-data:
+  # redis-data:
+
+networks:
+  default:
+    name: zendfi-network
