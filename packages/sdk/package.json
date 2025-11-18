@@ -46,6 +46,7 @@
     "directory": "packages/sdk"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "cross-fetch": "^4.0.0"
   },
   "devDependencies": {

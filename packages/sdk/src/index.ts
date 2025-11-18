@@ -48,6 +48,21 @@ export {
   InterceptorManager,
 } from './interceptors';
 
+// Device-Bound Session Keys (Non-Custodial)
+export {
+  ZendFiSessionKeyManager,
+  DeviceBoundSessionKey,
+  DeviceFingerprintGenerator,
+  SessionKeyCrypto,
+  RecoveryQRGenerator,
+  type EncryptedSessionKey,
+  type DeviceBoundSessionKeyOptions,
+  type RecoveryQR,
+  type CreateDeviceBoundSessionKeyRequest,
+  type CreateDeviceBoundSessionKeyResponse,
+  type SessionKeyPaymentRequest,
+} from './device-bound-session-keys';
+
 export {
   processWebhook,
   type WebhookHandlers,
