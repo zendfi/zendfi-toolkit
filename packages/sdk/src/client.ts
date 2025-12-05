@@ -23,10 +23,13 @@ import type {
   DisputeEscrowRequest,
   CreateInvoiceRequest,
   Invoice,
+  SmartPaymentRequest,
+  SmartPaymentResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
 import { createInterceptors, type Interceptors, type RequestConfig, type ResponseData } from './interceptors';
+import { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI } from './api';
 
 /**
  * ZendFi SDK Client.
@@ -36,10 +39,124 @@ export class ZendFiClient {
   private config: Required<ZendFiConfig>;
   public readonly interceptors: Interceptors;
 
+  // ============================================
+  // Agentic Intent Protocol APIs
+  // ============================================
+
+  /**
+   * Agent API - Manage agent API keys and sessions
+   * 
+   * @example
+   * ```typescript
+   * // Create an agent API key
+   * const agentKey = await zendfi.agent.createKey({
+   *   name: 'Shopping Assistant',
+   *   agent_id: 'shopping-assistant-v1',
+   *   scopes: ['create_payments'],
+   * });
+   * 
+   * // Create an agent session
+   * const session = await zendfi.agent.createSession({
+   *   agent_id: 'shopping-assistant-v1',
+   *   user_wallet: 'Hx7B...abc',
+   *   limits: { max_per_day: 500 },
+   * });
+   * ```
+   */
+  public readonly agent: AgentAPI;
+
+  /**
+   * Payment Intents API - Two-phase payment flow
+   * 
+   * @example
+   * ```typescript
+   * // Create intent
+   * const intent = await zendfi.intents.create({ amount: 99.99 });
+   * 
+   * // Confirm when ready
+   * await zendfi.intents.confirm(intent.id, {
+   *   client_secret: intent.client_secret,
+   *   customer_wallet: 'Hx7B...abc',
+   * });
+   * ```
+   */
+  public readonly intents: PaymentIntentsAPI;
+
+  /**
+   * Pricing API - PPP and AI-powered pricing
+   * 
+   * @example
+   * ```typescript
+   * // Get PPP factor for Brazil
+   * const factor = await zendfi.pricing.getPPPFactor('BR');
+   * const localPrice = 100 * factor.ppp_factor; // $35 for Brazil
+   * 
+   * // Get AI pricing suggestion
+   * const suggestion = await zendfi.pricing.getSuggestion({
+   *   agent_id: 'my-agent',
+   *   base_price: 100,
+   *   user_profile: { location_country: 'BR' },
+   * });
+   * ```
+   */
+  public readonly pricing: PricingAPI;
+
+  /**
+   * Autonomy API - Enable autonomous agent signing
+   * 
+   * @example
+   * ```typescript
+   * // Enable autonomous mode for a session key
+   * const delegate = await zendfi.autonomy.enable(sessionKeyId, {
+   *   max_amount_usd: 100,
+   *   duration_hours: 24,
+   *   delegation_signature: signature,
+   * });
+   * 
+   * // Check status
+   * const status = await zendfi.autonomy.getStatus(sessionKeyId);
+   * ```
+   */
+  public readonly autonomy: AutonomyAPI;
+
+  /**
+   * Smart Payments API - AI-powered payment routing
+   * 
+   * Create intelligent payments that automatically:
+   * - Apply PPP discounts based on user location
+   * - Use agent sessions when available
+   * - Route to optimal payment paths
+   * 
+   * @example
+   * ```typescript
+   * const payment = await zendfi.smart.create({
+   *   amount_usd: 99.99,
+   *   wallet_address: 'Hx7B...abc',
+   *   merchant_id: 'merch_123',
+   *   country_code: 'BR', // Apply PPP
+   *   enable_ppp: true,
+   * });
+   * 
+   * console.log(`Original: $${payment.original_amount_usd}`);
+   * console.log(`Final: $${payment.final_amount_usd}`);
+   * // Original: $99.99
+   * // Final: $64.99 (35% PPP discount applied)
+   * ```
+   */
+  public readonly smart: SmartPaymentsAPI;
+
   constructor(options?: Partial<ZendFiConfig>) {
     this.config = ConfigLoader.load(options);
     ConfigLoader.validateApiKey(this.config.apiKey);
     this.interceptors = createInterceptors();
+
+    // Initialize namespaced APIs with bound request method
+    const boundRequest = this.request.bind(this);
+    this.agent = new AgentAPI(boundRequest);
+    this.intents = new PaymentIntentsAPI(boundRequest);
+    this.pricing = new PricingAPI(boundRequest);
+    this.autonomy = new AutonomyAPI(boundRequest);
+    this.smart = new SmartPaymentsAPI(boundRequest);
     
     // Log initialization info
     if (this.config.environment === 'development' || this.config.debug) {
@@ -348,6 +465,60 @@ export class ZendFiClient {
       payment_url: string;
       status: string;
     }>('POST', `/api/v1/invoices/${invoiceId}/send`);
+  }
+
+  // ============================================
+  // Agentic Intent Protocol - Smart Payments
+  // ============================================
+
+  /**
+   * Execute an AI-powered smart payment
+   * 
+   * Smart payments combine multiple features:
+   * - Automatic PPP pricing adjustments
+   * - Gasless transaction detection
+   * - Instant settlement options
+   * - Escrow integration
+   * - Receipt generation
+   * 
+   * @param request - Smart payment configuration
+   * @returns Payment result with status and receipt
+   * 
+   * @example
+   * ```typescript
+   * const result = await zendfi.smartPayment({
+   *   agent_id: 'shopping-assistant',
+   *   user_wallet: 'Hx7B...abc',
+   *   amount_usd: 50,
+   *   auto_detect_gasless: true,
+   *   description: 'Premium subscription',
+   * });
+   * 
+   * if (result.requires_signature) {
+   *   // Device-bound flow: user needs to sign
+   *   console.log('Sign and submit:', result.submit_url);
+   * } else {
+   *   // Auto-signed
+   *   console.log('Payment complete:', result.transaction_signature);
+   * }
+   * ```
+   */
+  async smartPayment(request: SmartPaymentRequest): Promise<SmartPaymentResponse> {
+    return this.smart.execute(request);
+  }
+
+  /**
+   * Submit a signed transaction for device-bound smart payment
+   * 
+   * @param paymentId - UUID of the payment
+   * @param signedTransaction - Base64 encoded signed transaction
+   * @returns Updated payment response
+   */
+  async submitSignedPayment(
+    paymentId: string,
+    signedTransaction: string
+  ): Promise<SmartPaymentResponse> {
+    return this.smart.submitSigned(paymentId, signedTransaction);
   }
 
   /**

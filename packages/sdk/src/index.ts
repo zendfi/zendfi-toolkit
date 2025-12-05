@@ -6,12 +6,20 @@
  * ```typescript
  * import { zendfi } from '@zendfi/sdk';
  *
+ * // Simple payment (unchanged)
  * const payment = await zendfi.createPayment({
  *   amount: 50,
  *   description: 'Premium subscription',
  * });
  *
- * console.log(payment.checkout_url);
+ * // Agentic Intent Protocol
+ * const agentKey = await zendfi.agent.createKey({
+ *   name: 'Shopping Assistant',
+ *   agent_id: 'shopping-assistant-v1',
+ * });
+ *
+ * const intent = await zendfi.intents.create({ amount: 99.99 });
+ * const ppp = await zendfi.pricing.getPPPFactor('BR');
  * ```
  */
 
@@ -19,6 +27,9 @@ export { ZendFiClient, zendfi } from './client';
 export * from './types';
 export { ConfigLoader } from './utils';
 export * from './webhooks';
+
+// Agentic Intent Protocol APIs
+export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI } from './api';
 
 // Error handling
 export {

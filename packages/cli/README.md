@@ -332,6 +332,234 @@ zendfi keys rotate key_abc123xyz
 
 ---
 
+## 🤖 Agentic Intent Protocol Commands
+
+### `zendfi agent`
+
+Manage AI agent API keys and sessions for autonomous payments.
+
+#### Agent API Keys
+
+```bash
+# Create an agent API key interactively
+zendfi agent keys create
+
+# With options
+zendfi agent keys create --name "Shopping Bot" --agent-id shopping-v1
+
+# List all agent keys
+zendfi agent keys list
+
+# Revoke an agent key
+zendfi agent keys revoke <key-id>
+```
+
+**Output:**
+```
+🔑 Agent API Key Created!
+
+  Key ID:     ak_abc123...
+  Full Key:   zai_test_xxxx...xxxx (SAVE THIS!)
+  Name:       Shopping Bot
+  Agent ID:   shopping-v1
+  Scopes:     create_payments, read_analytics
+  Rate Limit: 1000/hour
+
+⚠️  The full key will NOT be shown again!
+```
+
+#### Agent Sessions
+
+```bash
+# Create session with spending limits
+zendfi agent sessions create \
+  --agent-id shopping-v1 \
+  --wallet Hx7B...abc \
+  --max-per-day 100 \
+  --max-per-transaction 25 \
+  --duration 24
+
+# List all sessions
+zendfi agent sessions list
+
+# Revoke a session
+zendfi agent sessions revoke <session-id>
+```
+
+#### Agent Analytics
+
+```bash
+# View agent metrics
+zendfi agent analytics
+```
+
+---
+
+### `zendfi intents`
+
+Payment intents for two-phase checkout flows.
+
+```bash
+# Create a payment intent
+zendfi intents create --amount 99.99
+
+# Create with all options
+zendfi intents create \
+  --amount 49.99 \
+  --currency USD \
+  --description "Pro subscription" \
+  --capture manual
+
+# List all intents
+zendfi intents list
+
+# Get intent details
+zendfi intents get <intent-id>
+
+# Confirm an intent
+zendfi intents confirm <intent-id> --wallet Hx7B...abc
+
+# Cancel an intent
+zendfi intents cancel <intent-id>
+```
+
+**Output:**
+```
+💳 Payment Intent Created
+
+  ID:            pi_abc123...
+  Status:        ⏳ REQUIRES PAYMENT
+  Amount:        $99.99 USD
+  Client Secret: cs_xxx...xxx
+  Expires:       in 24h
+
+Next steps:
+  zendfi intents confirm pi_abc123 --wallet <wallet>
+```
+
+---
+
+### `zendfi ppp`
+
+Purchasing Power Parity pricing for global reach.
+
+```bash
+# Get PPP factor for a country
+zendfi ppp check BR
+
+# Check with price calculation
+zendfi ppp check BR --price 99.99
+
+# List all PPP factors
+zendfi ppp factors
+
+# Sort by discount percentage
+zendfi ppp factors --sort discount
+
+# Calculate localized price
+zendfi ppp calculate --price 99.99 --country IN
+```
+
+**Output:**
+```
+🌍 PPP Factor Lookup
+
+  🇧🇷 Brazil (BR)
+
+  PPP Factor:       0.35
+  Discount:         65%
+  Local Currency:   BRL
+
+  Example: $100 → $35.00
+```
+
+---
+
+### `zendfi autonomy`
+
+Enable autonomous spending delegation for AI agents.
+
+```bash
+# Enable autonomy interactively
+zendfi autonomy enable
+
+# With options
+zendfi autonomy enable \
+  --wallet Hx7B...abc \
+  --agent-id shopping-v1 \
+  --max-per-day 100 \
+  --max-per-transaction 25 \
+  --duration 24
+
+# Check autonomy status for a wallet
+zendfi autonomy status <wallet-address>
+
+# List all autonomous delegates
+zendfi autonomy delegates
+
+# Include revoked delegates
+zendfi autonomy delegates --all
+
+# Revoke a delegation
+zendfi autonomy revoke <delegate-id>
+```
+
+**Output:**
+```
+🤖 Enable Autonomous Delegation
+
+  ┌─────────────────────────────────────────┐
+  │  Delegation Summary                      │
+  ├─────────────────────────────────────────┤
+  │  Wallet:      Hx7B...abc                 │
+  │  Agent:       shopping-v1                │
+  │  Max/Day:     $100                       │
+  │  Max/Tx:      $25                        │
+  │  Duration:    24h                        │
+  └─────────────────────────────────────────┘
+
+⚠️  This grants spending authority. Continue? [y/N]
+```
+
+---
+
+### `zendfi smart`
+
+Smart payments with automatic optimizations.
+
+```bash
+# Create a smart payment interactively
+zendfi smart create
+
+# With options
+zendfi smart create \
+  --amount 99.99 \
+  --wallet Hx7B...abc \
+  --country BR \
+  --ppp
+
+# Simulate pricing (no actual payment)
+zendfi smart simulate --amount 99.99 --country BR
+```
+
+**Output:**
+```
+⚡ Create Smart Payment
+
+  ┌───────────────────────────────────────────────┐
+  │  Smart Payment Details                         │
+  ├───────────────────────────────────────────────┤
+  │  ID:             sp_abc123...                  │
+  │  Status:         ● PENDING                     │
+  │  Original:       $99.99                        │
+  │  PPP Discount:   ✓ Applied                     │
+  │  Final Amount:   $64.99                        │
+  │  Savings:        $35.00                        │
+  └───────────────────────────────────────────────┘
+```
+
+---
+
 ## Quick Start Guide
 
 ### 1. Create a New App

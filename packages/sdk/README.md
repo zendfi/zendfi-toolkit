@@ -19,6 +19,9 @@ Accept **SOL, USDC, and USDT** payments in your app with just a few lines of cod
 - **🪝 Webhook Helpers** — Auto-verified handlers for Next.js, Express, and more
 - **⚡ Test Mode** — Free devnet testing with no real money
 - **🌐 Multi-Network** — Automatic routing to devnet or mainnet
+- **🤖 Agentic Intent Protocol** — AI agent payment capabilities with scoped API keys
+- **🌍 PPP Pricing** — Purchasing Power Parity for global reach (27+ countries)
+- **💳 Payment Intents** — Two-phase commit pattern for reliable checkout
 
 ---
 
@@ -126,6 +129,207 @@ This covers:
 - Customer pays: $100 USDC
 - You receive: $99.40 USDC
 - ZendFi fee: $0.60 (covers all network fees + platform)
+
+---
+
+## 🤖 Agentic Intent Protocol
+
+Enable AI agents to make payments autonomously with scoped permissions and spending limits.
+
+### Namespaced APIs
+
+The SDK provides namespaced APIs for agentic capabilities:
+
+```typescript
+import { zendfi } from '@zendfi/sdk';
+
+// Agent API - Manage agent keys and sessions
+zendfi.agent.createKey(...)
+zendfi.agent.createSession(...)
+
+// Payment Intents - Two-phase payment flow
+zendfi.intents.create(...)
+zendfi.intents.confirm(...)
+
+// Pricing - PPP and AI pricing
+zendfi.pricing.getPPPFactor(...)
+zendfi.pricing.getSuggestion(...)
+
+// Autonomy - Autonomous delegation
+zendfi.autonomy.enable(...)
+zendfi.autonomy.getStatus(...)
+
+// Smart Payments - AI-powered routing
+zendfi.smart.execute(...)
+```
+
+### Agent API Keys
+
+Create scoped API keys for AI agents with limited permissions:
+
+```typescript
+// Create an agent API key (prefixed with zai_)
+const agentKey = await zendfi.agent.createKey({
+  name: 'Shopping Assistant',
+  agent_id: 'shopping-assistant-v1',
+  scopes: ['create_payments', 'read_analytics'],
+  rate_limit_per_hour: 500,
+});
+
+// IMPORTANT: Save the full_key now - it won't be shown again!
+console.log(agentKey.full_key); // => "zai_test_abc123..."
+
+// List agent keys
+const keys = await zendfi.agent.listKeys();
+
+// Revoke a key
+await zendfi.agent.revokeKey(keyId);
+```
+
+**Available Scopes:**
+- `create_payments` - Create new payments
+- `read_payments` - View payment status
+- `read_analytics` - Access analytics data
+- `manage_sessions` - Create/revoke sessions
+
+### Agent Sessions
+
+Create sessions with spending limits for user-approved agent actions:
+
+```typescript
+// Create a session with spending limits
+const session = await zendfi.agent.createSession({
+  agent_id: 'shopping-assistant-v1',
+  user_wallet: 'Hx7B...abc',
+  limits: {
+    max_per_transaction: 50,  // $50 max per payment
+    max_per_day: 200,         // $200 daily limit
+    allowed_merchants: ['merchant_123'], // Optional whitelist
+  },
+  duration_hours: 24,
+});
+
+// List active sessions
+const sessions = await zendfi.agent.listSessions();
+
+// Get specific session
+const session = await zendfi.agent.getSession(sessionId);
+
+// Revoke session
+await zendfi.agent.revokeSession(sessionId);
+```
+
+### Payment Intents
+
+Modern two-phase payment flow for reliable checkout:
+
+```typescript
+// Step 1: Create intent when user starts checkout
+const intent = await zendfi.intents.create({
+  amount: 99.99,
+  description: 'Premium subscription',
+  capture_method: 'automatic', // or 'manual' for auth-only
+});
+
+// Step 2: Pass client_secret to frontend for confirmation
+console.log(intent.client_secret); // cs_abc123...
+
+// Step 3: Confirm when user clicks "Pay"
+const confirmed = await zendfi.intents.confirm(intent.id, {
+  client_secret: intent.client_secret,
+  customer_wallet: 'Hx7B...abc',
+});
+
+// Or cancel if user abandons checkout
+await zendfi.intents.cancel(intent.id);
+```
+
+**Intent Statuses:**
+- `requires_payment` - Waiting for confirmation
+- `processing` - Payment in progress
+- `succeeded` - Payment complete
+- `canceled` - Canceled by user/merchant
+- `failed` - Payment failed
+
+### PPP Pricing (Purchasing Power Parity)
+
+Automatically adjust prices based on customer location:
+
+```typescript
+// Get PPP factor for a country
+const factor = await zendfi.pricing.getPPPFactor('BR');
+// {
+//   country_code: 'BR',
+//   country_name: 'Brazil',
+//   ppp_factor: 0.35,
+//   adjustment_percentage: 35.0,
+//   currency_code: 'BRL'
+// }
+
+// Calculate localized price
+const basePrice = 100;
+const localPrice = basePrice * factor.ppp_factor;
+console.log(`$${localPrice} for Brazilian customers`); // $35
+
+// List all supported countries
+const factors = await zendfi.pricing.listFactors();
+
+// Get AI pricing suggestion
+const suggestion = await zendfi.pricing.getSuggestion({
+  agent_id: 'my-agent',
+  base_price: 99.99,
+  user_profile: {
+    location_country: 'BR',
+  },
+});
+```
+
+**Supported Countries (27+):**
+Argentina, Australia, Brazil, Canada, China, Colombia, Egypt, France, Germany, Ghana, Hong Kong, Hungary, India, Indonesia, Israel, Japan, Kenya, Mexico, Nigeria, Philippines, Poland, South Africa, Thailand, Turkey, Ukraine, United Kingdom, Vietnam, and more.
+
+### Autonomous Delegation
+
+Enable agents to make payments without per-transaction approval:
+
+```typescript
+// Enable autonomous mode for a wallet
+const delegate = await zendfi.autonomy.enable({
+  wallet_address: 'Hx7B...abc',
+  agent_id: 'shopping-assistant',
+  max_per_day_usd: 100,
+  max_per_transaction_usd: 25,
+  duration_hours: 24,
+  allowed_categories: ['subscriptions', 'digital_goods'],
+});
+
+// Check autonomy status
+const status = await zendfi.autonomy.getStatus(walletAddress);
+
+// Revoke delegation
+await zendfi.autonomy.revoke(delegateId);
+```
+
+### Smart Payments
+
+AI-powered payments that automatically apply optimizations:
+
+```typescript
+// Create a smart payment with automatic PPP
+const payment = await zendfi.smart.execute({
+  agent_id: 'my-agent',
+  user_wallet: 'Hx7B...abc',
+  amount_usd: 99.99,
+  country_code: 'BR', // Apply PPP automatically
+  auto_detect_gasless: true,
+  description: 'Pro subscription',
+});
+
+// Response includes discount applied
+console.log(`Original: $${payment.original_amount_usd}`);
+console.log(`Final: $${payment.final_amount_usd}`);
+// Original: $99.99
+// Final: $64.99 (35% PPP discount applied)
+```
 
 ---
 
