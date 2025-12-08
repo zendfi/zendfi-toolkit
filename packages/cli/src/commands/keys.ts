@@ -40,7 +40,7 @@ export async function listKeys(): Promise<void> {
   const spinner = ora('Fetching API keys...').start();
 
   try {
-    const response = await fetch(`${ZENDFI_API_BASE}/merchants/me/api-keys`, {
+    const response = await fetch(`${ZENDFI_API_BASE}/keys`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -142,7 +142,7 @@ export async function createKey(options: {
   const spinner = ora('Creating API key...').start();
 
   try {
-    const response = await fetch(`${ZENDFI_API_BASE}/merchants/me/api-keys`, {
+    const response = await fetch(`${ZENDFI_API_BASE}/keys`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -256,7 +256,7 @@ export async function rotateKey(keyId: string): Promise<void> {
   const spinner = ora('Rotating API key...').start();
 
   try {
-    const response = await fetch(`${ZENDFI_API_BASE}/merchants/me/api-keys/${keyId}/rotate`, {
+    const response = await fetch(`${ZENDFI_API_BASE}/keys/${keyId}/rotate`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

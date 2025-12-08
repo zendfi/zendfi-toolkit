@@ -516,6 +516,10 @@ export interface AgentSession {
   remaining_this_week: number;
   /** Remaining monthly spending allowance */
   remaining_this_month: number;
+  /** Whether a PKP was minted for on-chain session identity */
+  mint_pkp?: boolean;
+  /** PKP Ethereum address (if mint_pkp was true) */
+  pkp_address?: string;
 }
 
 /**
@@ -534,6 +538,12 @@ export interface CreateAgentSessionRequest {
   allowed_merchants?: string[];
   /** Session duration in hours (default: 24, max: 168) */
   duration_hours?: number;
+  /** 
+   * Mint a PKP for on-chain session identity (audit trail).
+   * Creates a blockchain-verified session identity via Lit Protocol.
+   * Note: Spending limits are enforced server-side.
+   */
+  mint_pkp?: boolean;
   /** Additional metadata */
   metadata?: Record<string, unknown>;
 }

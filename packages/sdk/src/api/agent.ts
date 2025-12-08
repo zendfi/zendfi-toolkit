@@ -159,6 +159,7 @@ export class AgentAPI {
       },
       allowed_merchants: request.allowed_merchants,
       duration_hours: request.duration_hours || 24,
+      mint_pkp: request.mint_pkp,
       metadata: request.metadata,
     });
   }

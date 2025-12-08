@@ -49,8 +49,27 @@
     "@solana/web3.js": "^1.98.4",
     "cross-fetch": "^4.0.0"
   },
+  "peerDependencies": {
+    "@lit-protocol/lit-node-client": "^6.0.0",
+    "@lit-protocol/auth-helpers": "^6.0.0",
+    "ethers": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@lit-protocol/lit-node-client": {
+      "optional": true
+    },
+    "@lit-protocol/auth-helpers": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@lit-protocol/lit-node-client": "^6.11.0",
+    "@lit-protocol/auth-helpers": "^6.11.0",
     "@types/node": "^20.11.19",
+    "ethers": "^6.13.4",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",
     "vitest": "^1.3.1"

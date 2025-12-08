@@ -81,3 +81,17 @@ export {
   type WebhookResult,
   type WebhookEventHandler,
 } from './webhook-handler';
+
+// Lit Protocol PKP Session Identity (for mint_pkp sessions)
+// Note: PKP provides audit trail, not signing (ECDSA vs Ed25519 incompatibility)
+export {
+  LitCryptoSigner,
+  SPENDING_LIMIT_ACTION_CID,
+  requiresLitSigning,
+  encodeTransactionForLit,
+  decodeSignatureFromLit,
+  type LitNetwork,
+  type LitCryptoSignerConfig,
+  type SignPaymentParams,
+  type SignPaymentResult,
+} from './lit-crypto-signer';
