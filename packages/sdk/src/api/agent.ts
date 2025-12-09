@@ -34,6 +34,18 @@ import type {
 
 export type RequestFn = <T>(method: string, endpoint: string, data?: any) => Promise<T>;
 
+/**
+ * Normalize API response to consistent array format
+ * Backend may return { [key]: [...] } or [...] directly
+ * This ensures SDK always returns a clean array
+ */
+function normalizeArrayResponse<T>(response: { [key: string]: T[] } | T[], key: string): T[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+  return (response as { [k: string]: T[] })[key] || [];
+}
+
 export class AgentAPI {
   constructor(private request: RequestFn) {}
 
@@ -92,8 +104,9 @@ export class AgentAPI {
       'GET',
       '/api/v1/agent-keys'
     );
-    // Handle both array and object response formats
-    return Array.isArray(response) ? response : response.keys;
+    // Normalize response: backend may return { keys: [...] } or [...] directly
+    // This ensures consistent array output regardless of backend format
+    return normalizeArrayResponse(response, 'keys');
   }
 
   /**
@@ -181,7 +194,8 @@ export class AgentAPI {
       'GET',
       '/api/v1/ai/sessions'
     );
-    return Array.isArray(response) ? response : response.sessions;
+    // Normalize response: backend may return { sessions: [...] } or [...] directly
+    return normalizeArrayResponse(response, 'sessions');
   }
 
   /**

@@ -1,14 +1,34 @@
 /**
  * Lit Protocol PKP Session Identity Module
  * 
+ * ⚠️ STATUS: EXPERIMENTAL / AUDIT TRAIL ONLY
+ * 
  * This module provides client-side integration with Lit Protocol for
  * on-chain session identity. When a session has `mint_pkp: true`,
  * a PKP (Programmable Key Pair) is minted to create a blockchain-verified
  * session identity for audit and compliance purposes.
  * 
- * **Important**: Spending limits are enforced server-side, not via the PKP.
- * The PKP cannot sign Solana transactions (ECDSA vs Ed25519 incompatibility).
- * It serves as an identity anchor and audit trail, not a signing key.
+ * ## Current Limitations
+ * 
+ * **PKP Cannot Sign Solana Transactions**: Due to ECDSA vs Ed25519 
+ * incompatibility, PKPs cannot directly sign Solana transactions.
+ * The PKP serves as an IDENTITY ANCHOR and AUDIT TRAIL only.
+ * 
+ * **Spending Limits Are Server-Side**: All spending limit enforcement
+ * happens in the backend via `validate_session_and_check_limits()`.
+ * The PKP does NOT enforce spending limits cryptographically.
+ * 
+ * ## What PKP Provides
+ * 
+ * 1. **On-chain Identity**: Verifiable session identity on Lit Protocol
+ * 2. **Audit Trail**: Immutable record of session creation
+ * 3. **Future Extensibility**: Foundation for cross-chain identity
+ * 
+ * ## Future Roadmap
+ * 
+ * - Cross-chain identity verification
+ * - Solana Ed25519 support in Lit Actions (pending Lit Protocol update)
+ * - Decentralized spending limit enforcement
  * 
  * @example
  * ```typescript
@@ -17,11 +37,15 @@
  * // Check if session has PKP identity
  * if (session.mint_pkp) {
  *   console.log('Session has on-chain identity:', session.pkp_address);
+ *   // Note: This is for audit purposes only, not for signing
  * }
  * 
- * // Note: This module is primarily for future extensibility
- * // Current spending enforcement is server-side
+ * // Spending limits are enforced server-side automatically
+ * // No client-side PKP interaction needed for payments
  * ```
+ * 
+ * @module lit-crypto-signer
+ * @experimental
  */
 
 // The IPFS CID of our spending limit Lit Action

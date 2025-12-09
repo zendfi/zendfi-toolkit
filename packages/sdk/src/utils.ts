@@ -226,3 +226,101 @@ export function generateIdempotencyKey(): string {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+// ============================================
+// Client-Side Rate Limiter
+// ============================================
+
+/**
+ * Client-side rate limiter to prevent hitting API rate limits
+ * 
+ * @example
+ * ```typescript
+ * const limiter = new RateLimiter({
+ *   maxRequests: 100,
+ *   windowMs: 60000, // 100 requests per minute
+ * });
+ * 
+ * if (limiter.canMakeRequest()) {
+ *   limiter.recordRequest();
+ *   await zendfi.createPayment({ amount: 50 });
+ * } else {
+ *   const waitTime = limiter.getTimeUntilReset();
+ *   console.log(`Rate limited. Try again in ${waitTime}ms`);
+ * }
+ * ```
+ */
+export class RateLimiter {
+  private requests: number[] = [];
+  private maxRequests: number;
+  private windowMs: number;
+
+  constructor(options: { maxRequests?: number; windowMs?: number } = {}) {
+    this.maxRequests = options.maxRequests ?? 100;
+    this.windowMs = options.windowMs ?? 60000; // 1 minute default
+  }
+
+  /**
+   * Check if a request can be made without exceeding rate limit
+   */
+  canMakeRequest(): boolean {
+    this.pruneOldRequests();
+    return this.requests.length < this.maxRequests;
+  }
+
+  /**
+   * Record a request timestamp
+   */
+  recordRequest(): void {
+    this.requests.push(Date.now());
+  }
+
+  /**
+   * Get remaining requests in current window
+   */
+  getRemainingRequests(): number {
+    this.pruneOldRequests();
+    return Math.max(0, this.maxRequests - this.requests.length);
+  }
+
+  /**
+   * Get time in ms until the rate limit window resets
+   */
+  getTimeUntilReset(): number {
+    if (this.requests.length === 0) return 0;
+    
+    const oldestRequest = Math.min(...this.requests);
+    const resetTime = oldestRequest + this.windowMs;
+    return Math.max(0, resetTime - Date.now());
+  }
+
+  /**
+   * Get current rate limit status
+   */
+  getStatus(): {
+    remaining: number;
+    limit: number;
+    resetInMs: number;
+    isLimited: boolean;
+  } {
+    this.pruneOldRequests();
+    return {
+      remaining: this.getRemainingRequests(),
+      limit: this.maxRequests,
+      resetInMs: this.getTimeUntilReset(),
+      isLimited: !this.canMakeRequest(),
+    };
+  }
+
+  /**
+   * Reset the rate limiter (useful for testing)
+   */
+  reset(): void {
+    this.requests = [];
+  }
+
+  private pruneOldRequests(): void {
+    const cutoff = Date.now() - this.windowMs;
+    this.requests = this.requests.filter(t => t > cutoff);
+  }
+}

@@ -3,6 +3,60 @@
  * Complete type definitions for the ZendFi API
  */
 
+// ============================================
+// Branded Types for Type-Safe IDs
+// Prevents accidentally mixing up different ID types
+// ============================================
+
+/** Branded type for type-safe IDs - prevents mixing different ID types */
+export type Brand<T, B> = T & { __brand: B };
+
+/** Payment ID (e.g., 'pay_abc123') */
+export type PaymentId = Brand<string, 'PaymentId'>;
+
+/** Session ID (e.g., 'sess_abc123') */
+export type SessionId = Brand<string, 'SessionId'>;
+
+/** Agent Key ID (e.g., 'ak_abc123') */
+export type AgentKeyId = Brand<string, 'AgentKeyId'>;
+
+/** Merchant ID (e.g., 'merch_abc123') */
+export type MerchantId = Brand<string, 'MerchantId'>;
+
+/** Invoice ID (e.g., 'inv_abc123') */
+export type InvoiceId = Brand<string, 'InvoiceId'>;
+
+/** Subscription ID (e.g., 'sub_abc123') */
+export type SubscriptionId = Brand<string, 'SubscriptionId'>;
+
+/** Escrow ID (e.g., 'esc_abc123') */
+export type EscrowId = Brand<string, 'EscrowId'>;
+
+/** Installment Plan ID (e.g., 'inst_abc123') */
+export type InstallmentPlanId = Brand<string, 'InstallmentPlanId'>;
+
+/** Payment Link Code (e.g., 'link_abc123') */
+export type PaymentLinkCode = Brand<string, 'PaymentLinkCode'>;
+
+/** Intent ID (e.g., 'pi_abc123') */
+export type IntentId = Brand<string, 'IntentId'>;
+
+// Helper to create branded IDs (use in tests or when receiving from API)
+export const asPaymentId = (id: string): PaymentId => id as PaymentId;
+export const asSessionId = (id: string): SessionId => id as SessionId;
+export const asAgentKeyId = (id: string): AgentKeyId => id as AgentKeyId;
+export const asMerchantId = (id: string): MerchantId => id as MerchantId;
+export const asInvoiceId = (id: string): InvoiceId => id as InvoiceId;
+export const asSubscriptionId = (id: string): SubscriptionId => id as SubscriptionId;
+export const asEscrowId = (id: string): EscrowId => id as EscrowId;
+export const asInstallmentPlanId = (id: string): InstallmentPlanId => id as InstallmentPlanId;
+export const asPaymentLinkCode = (id: string): PaymentLinkCode => id as PaymentLinkCode;
+export const asIntentId = (id: string): IntentId => id as IntentId;
+
+// ============================================
+// Core Types
+// ============================================
+
 export type Environment = 'development' | 'staging' | 'production';
 
 export type ApiKeyMode = 'test' | 'live';

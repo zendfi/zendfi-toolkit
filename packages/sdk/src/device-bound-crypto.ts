@@ -147,16 +147,69 @@ export class DeviceFingerprintGenerator {
     } catch (error) {
       console.warn('Device fingerprinting failed, using fallback', error);
       
-      // Fallback to basic fingerprint
-      const fallback = `${navigator.userAgent}|${screen.width}|${screen.height}`;
-      const fingerprint = await this.sha256(fallback);
-
-      return {
-        fingerprint,
-        generatedAt: Date.now(),
-        components: { platform: navigator.platform },
-      };
+      // Graceful fallback for various environments
+      return this.generateFallbackFingerprint();
     }
+  }
+
+  /**
+   * Graceful fallback fingerprint generation
+   * Works in headless browsers, SSR, and restricted environments
+   */
+  private static async generateFallbackFingerprint(): Promise<DeviceFingerprint> {
+    const components: DeviceFingerprint['components'] = {};
+    
+    // Try to gather whatever information is available
+    try {
+      // These should work in most environments
+      if (typeof navigator !== 'undefined') {
+        components.platform = navigator.platform || 'unknown';
+        components.languages = navigator.languages?.join(',') || navigator.language || 'unknown';
+        components.hardwareConcurrency = navigator.hardwareConcurrency?.toString() || 'unknown';
+      }
+      
+      if (typeof screen !== 'undefined') {
+        components.screen = `${screen.width || 0}x${screen.height || 0}x${screen.colorDepth || 0}`;
+      }
+      
+      if (typeof Intl !== 'undefined') {
+        try {
+          components.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch {
+          components.timezone = 'unknown';
+        }
+      }
+    } catch {
+      // If all else fails, use timestamp-based entropy
+      components.platform = 'fallback';
+    }
+    
+    // Add entropy from crypto random if available
+    let randomEntropy = '';
+    try {
+      if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+        const arr = new Uint8Array(16);
+        window.crypto.getRandomValues(arr);
+        randomEntropy = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+      } else if (typeof crypto !== 'undefined' && crypto.randomBytes) {
+        randomEntropy = crypto.randomBytes(16).toString('hex');
+      }
+    } catch {
+      randomEntropy = Date.now().toString(36) + Math.random().toString(36);
+    }
+    
+    const combined = Object.entries(components)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|') + '|entropy:' + randomEntropy;
+    
+    const fingerprint = await this.sha256(combined);
+    
+    return {
+      fingerprint,
+      generatedAt: Date.now(),
+      components,
+    };
   }
 
   private static async getCanvasFingerprint(): Promise<string> {

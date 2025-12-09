@@ -25,7 +25,7 @@
 
 export { ZendFiClient, zendfi } from './client';
 export * from './types';
-export { ConfigLoader } from './utils';
+export { ConfigLoader, RateLimiter, generateIdempotencyKey, sleep } from './utils';
 export * from './webhooks';
 
 // Agentic Intent Protocol APIs
