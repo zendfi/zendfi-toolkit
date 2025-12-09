@@ -1,6 +1,6 @@
 # @zendfi/sdk
 
-> 🚀 Zero-config TypeScript SDK for accepting crypto payments with ZendFi
+> Zero-config TypeScript SDK for accepting crypto payments with ZendFi
 
 [![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,23 +9,23 @@ Accept **SOL, USDC, and USDT** payments in your app with just a few lines of cod
 
 ---
 
-## ✨ Features
+## Features
 
-- **💸 All-Inclusive Pricing** — 0.6% platform fee covers everything (network fees included!)
-- **🔐 Zero Configuration** — Auto-detects environment from your API key
-- **📝 Type-Safe** — Full TypeScript support with auto-completion
-- **🔄 Auto-Retry** — Built-in exponential backoff for network errors
-- **🎯 Idempotency** — Automatic duplicate prevention for safe retries
-- **🪝 Webhook Helpers** — Auto-verified handlers for Next.js, Express, and more
-- **⚡ Test Mode** — Free devnet testing with no real money
-- **🌐 Multi-Network** — Automatic routing to devnet or mainnet
-- **🤖 Agentic Intent Protocol** — AI agent payment capabilities with scoped API keys
-- **🌍 PPP Pricing** — Purchasing Power Parity for global reach (27+ countries)
-- **💳 Payment Intents** — Two-phase commit pattern for reliable checkout
+- **All-Inclusive Pricing** — 0.6% platform fee covers everything (network fees included!)
+- **Zero Configuration** — Auto-detects environment from your API key
+- **Type-Safe** — Full TypeScript support with auto-completion
+- **Auto-Retry** — Built-in exponential backoff for network errors
+- **Idempotency** — Automatic duplicate prevention for safe retries
+- **Webhook Helpers** — Auto-verified handlers for Next.js, Express, and more
+- **Test Mode** — Free devnet testing with no real money
+- **Multi-Network** — Automatic routing to devnet or mainnet
+- **Agentic Intent Protocol** — AI agent payment capabilities with scoped API keys
+- **PPP Pricing** — Purchasing Power Parity for global reach (27+ countries)
+- **Payment Intents** — Two-phase commit pattern for reliable checkout
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @zendfi/sdk
@@ -37,7 +37,7 @@ yarn add @zendfi/sdk
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Get your API key
 
@@ -88,7 +88,7 @@ console.log(payment.payment_url);
 
 ---
 
-## 🎯 API Key Modes
+## API Key Modes
 
 ZendFi uses **smart API keys** that automatically route to the correct network:
 
@@ -97,7 +97,7 @@ ZendFi uses **smart API keys** that automatically route to the correct network:
 | **Test** | `zfi_test_` | Solana Devnet | Free | Development & testing |
 | **Live** | `zfi_live_` | Solana Mainnet | ~$0.0001 | Production |
 
-> **💡 Pro Tip:** The SDK auto-detects the mode from your API key prefix. No configuration needed!
+> **Pro Tip:** The SDK auto-detects the mode from your API key prefix. No configuration needed!
 
 ### Getting Test SOL
 
@@ -114,16 +114,16 @@ When ready for production:
 
 ---
 
-## 💰 Pricing (The Good News!)
+## Pricing (The Good News!)
 
 **Platform Fee: 0.6%** (all-inclusive)
 
 This covers:
-- ✅ Network transaction fees (~$0.0001 per transaction)
-- ✅ Payment processing
-- ✅ Automatic settlements
-- ✅ Webhook delivery
-- ✅ No hidden costs
+- Network transaction fees (~$0.0001 per transaction)
+- Payment processing
+- Automatic settlements
+- Webhook delivery
+- No hidden costs
 
 **Example:**
 - Customer pays: $100 USDC
@@ -132,7 +132,7 @@ This covers:
 
 ---
 
-## 🤖 Agentic Intent Protocol
+## Agentic Intent Protocol
 
 Enable AI agents to make payments autonomously with scoped permissions and spending limits.
 
@@ -333,9 +333,9 @@ console.log(`Final: $${payment.final_amount_usd}`);
 
 ---
 
-## 📖 Complete API Reference
+## Complete API Reference
 
-### 💸 Payments
+### Payments
 
 #### Create Payment
 
@@ -386,7 +386,7 @@ payments.data.forEach(payment => {
 
 ---
 
-### 🔗 Payment Links
+### Payment Links
 
 Create shareable checkout URLs that can be reused multiple times.
 
@@ -429,7 +429,7 @@ links.forEach(link => {
 
 ---
 
-### 🔄 Subscriptions
+### Subscriptions
 
 Recurring crypto payments made easy.
 
@@ -473,7 +473,7 @@ console.log(`Cancelled. Active until ${cancelled.current_period_end}`);
 
 ---
 
-### 📅 Installment Plans
+### Installment Plans
 
 Split large purchases into scheduled payments.
 
@@ -515,60 +515,6 @@ const customerPlans = await zendfi.listCustomerInstallmentPlans(
 
 ```typescript
 await zendfi.cancelInstallmentPlan(plan.id);
-```
-
----
-
-### 🔒 Escrows
-
-Hold funds securely until conditions are met (perfect for marketplaces).
-
-#### Create Escrow
-
-```typescript
-const escrow = await zendfi.createEscrow({
-  amount: 1000,
-  buyer_email: 'buyer@example.com',
-  seller_email: 'seller@example.com',
-  buyer_wallet: '6DSVnyAQrd9jUWGivzT18kvW5T2nsokmaBtEum63jovN',
-  seller_wallet: '9xBfT3pqrLmU8hNv4RwK7JsYd2QeXcVgH1PmW6kZnFjA',
-  description: 'Website development project',
-  metadata: {
-    project_id: 'proj-123',
-    milestone: '1-design-complete',
-  },
-});
-
-// Customer pays to escrow
-console.log(escrow.payment_url);
-```
-
-#### Approve Release (to Seller)
-
-```typescript
-await zendfi.approveEscrow(escrow.id, {
-  approved_by: 'buyer@example.com', // Buyer approves
-});
-// Funds released to seller automatically
-```
-
-#### Refund Escrow (to Buyer)
-
-```typescript
-await zendfi.refundEscrow(escrow.id, {
-  refund_reason: 'Project cancelled',
-  refunded_by: 'seller@example.com', // Seller initiates refund
-});
-```
-
-#### Dispute Escrow
-
-```typescript
-await zendfi.disputeEscrow(escrow.id, {
-  dispute_reason: 'Work not completed as agreed',
-  raised_by: 'buyer@example.com',
-});
-// ZendFi team reviews and resolves
 ```
 
 ---
@@ -624,7 +570,7 @@ invoices.forEach(inv => {
 
 ---
 
-## 🪝 Webhooks
+## Webhooks
 
 Get notified when payments are confirmed, subscriptions renew, etc.
 
@@ -799,7 +745,7 @@ export async function POST(request: Request) {
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -854,7 +800,7 @@ const client = process.env.NODE_ENV === 'production' ? liveClient : testClient;
 
 ---
 
-## 🔧 Error Handling
+## Error Handling
 
 The SDK throws typed errors that you can catch and handle appropriately:
 
@@ -910,7 +856,7 @@ try {
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Using Test Mode
 
@@ -959,7 +905,7 @@ console.log('Status:', updated.status); // "Confirmed"
 
 ---
 
-## 📚 Examples
+## Examples
 
 ### E-commerce Checkout
 
@@ -1058,7 +1004,7 @@ await zendfi.disputeEscrow(escrow.id, {
 
 ---
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### "Authentication failed" error
 
@@ -1140,7 +1086,7 @@ console.log('Expires:', payment.expires_at);
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here's how to get started:
 
@@ -1164,7 +1110,7 @@ pnpm test
 
 ---
 
-## 📖 Resources
+## Resources
 
 - **Documentation:** [docs.zendfi.tech](https://docs.zendfi.tech)
 - **API Reference:** [docs.zendfi.tech/api](https://docs.zendfi.tech/api)
@@ -1175,20 +1121,20 @@ pnpm test
 
 ---
 
-## 📄 License
+## License
 
 MIT © ZendFi
 
 ---
 
-## 🙏 Support
+## Support
 
 Need help? We're here for you!
 
-- 💬 **Discord:** [discord.gg/zendfi](https://discord.gg/zendfi)
-- 📧 **Email:** dev@zendfi.tech  
-- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/zendfi/zendfi-toolkit/issues)
-- 📖 **Docs:** [docs.zendfi.tech](https://docs.zendfi.tech)
+- **Discord:** [discord.gg/zendfi](https://discord.gg/zendfi)
+- **Email:** dev@zendfi.tech  
+- **Bug Reports:** [GitHub Issues](https://github.com/zendfi/zendfi-toolkit/issues)
+- **Docs:** [docs.zendfi.tech](https://docs.zendfi.tech)
 
 ---
 
