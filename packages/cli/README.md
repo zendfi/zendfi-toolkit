@@ -571,7 +571,7 @@ cd my-store
 
 ### 2. Get Your API Keys
 
-Visit [api.zendfi.tech/dashboard](https://api.zendfi.tech/dashboard) and copy your API keys.
+Visit [dashboard.zendfi.tech](https://dashboard.zendfi.tech) and copy your API keys.
 
 ### 3. Configure Environment
 
@@ -676,7 +676,7 @@ ZENDFI_API_KEY=zfi_live_...  # Don't use live keys in dev!
 - **SDK Reference:** [docs.zendfi.tech/sdk](https://docs.zendfi.tech/sdk)
 - **API Reference:** [docs.zendfi.tech/api](https://docs.zendfi.tech/api)
 - **Webhook Events:** [docs.zendfi.tech/webhooks](https://docs.zendfi.tech/webhooks)
-- **Dashboard:** [api.zendfi.tech/dashboard](https://api.zendfi.tech/dashboard)
+- **Dashboard:** [dashboard.zendfi.tech](https://dashboard.zendfi.tech)
 
 ---
 

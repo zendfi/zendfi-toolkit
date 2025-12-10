@@ -161,6 +161,7 @@ zendfi.autonomy.getStatus(...)
 
 // Smart Payments - AI-powered routing
 zendfi.smart.execute(...)
+zendfi.smart.submitSigned(...)  // For device-bound flows
 ```
 
 ### Agent API Keys
@@ -330,6 +331,23 @@ console.log(`Final: $${payment.final_amount_usd}`);
 // Original: $99.99
 // Final: $64.99 (35% PPP discount applied)
 ```
+
+#### Device-Bound Flow
+
+For payments requiring user signatures:
+
+```typescript
+// After user signs the transaction locally
+const result = await zendfi.smart.submitSigned(
+  'pay_123...',
+  signedTransactionBase64
+);
+
+console.log(result.status);  // "confirmed"
+console.log(result.transaction_signature);
+```
+
+> **Tip:** `zendfi.smartPayment()` is also available as an alias for `zendfi.smart.execute()`.
 
 ---
 

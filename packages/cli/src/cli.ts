@@ -606,7 +606,7 @@ program.on('--help', () => {
   console.log(chalk.gray('  # Simulate pricing'));
   console.log(chalk.cyan('  $ zendfi smart simulate --amount 99.99 --country IN'));
   console.log('');
-  console.log(chalk.gray('Documentation:'), chalk.blue.underline('https://docs.zendfi.com'));
+  console.log(chalk.gray('Documentation:'), chalk.blue.underline('https://docs.zendfi.tech'));
   console.log('');
 });
 
