@@ -685,6 +685,8 @@ export interface ConfirmPaymentIntentRequest {
   auto_gasless?: boolean;
   /** Additional metadata */
   metadata?: Record<string, unknown>;
+  /** Session token for spending limit enforcement (optional) */
+  session_token?: string;
 }
 
 /**

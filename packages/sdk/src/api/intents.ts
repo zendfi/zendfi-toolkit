@@ -160,6 +160,7 @@ export class PaymentIntentsAPI {
       payment_type: request.payment_type,
       auto_gasless: request.auto_gasless,
       metadata: request.metadata,
+      session_token: request.session_token,
     });
   }
 
