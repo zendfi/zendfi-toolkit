@@ -30,6 +30,7 @@ import {
   revokeAgentKey,
   createAgentSession,
   listAgentSessions,
+  getAgentSession,
   revokeAgentSession,
   showAgentAnalytics,
 } from './commands/agent.js';
@@ -278,6 +279,18 @@ agentSessionsCmd
   .action(async () => {
     try {
       await listAgentSessions();
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+agentSessionsCmd
+  .command('get <session-id>')
+  .description('Get details of a specific agent session')
+  .action(async (sessionId) => {
+    try {
+      await getAgentSession(sessionId);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);

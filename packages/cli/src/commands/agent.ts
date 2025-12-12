@@ -499,8 +499,17 @@ export async function listAgentSessions(): Promise<void> {
 
     console.log('');
     sessions.forEach((session: AgentSession, index: number) => {
+      const isExpired = new Date(session.expires_at) < new Date();
       const isActive = session.is_active;
-      const statusBadge = isActive ? chalk.green('● ACTIVE') : chalk.gray('○ EXPIRED');
+      
+      let statusBadge: string;
+      if (isActive) {
+        statusBadge = chalk.green('● ACTIVE');
+      } else if (isExpired) {
+        statusBadge = chalk.gray('○ EXPIRED');
+      } else {
+        statusBadge = chalk.red('○ REVOKED');
+      }
 
       console.log(chalk.bold(`${index + 1}. ${session.agent_id} ${statusBadge}`));
       console.log(chalk.gray('   ID:          ') + chalk.white(session.id));
@@ -511,6 +520,96 @@ export async function listAgentSessions(): Promise<void> {
     });
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch agent sessions'));
+    console.error(chalk.gray('\nError:'), error instanceof Error ? error.message : error);
+  }
+}
+
+/**
+ * Get a specific agent session by ID
+ */
+export async function getAgentSession(sessionId: string): Promise<void> {
+  console.log(chalk.cyan.bold('\n🔐 Agent Session Details\n'));
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.log(chalk.red('❌ No API key found!'));
+    return;
+  }
+
+  const spinner = ora('Fetching session...').start();
+
+  try {
+    const response = await fetch(`${ZENDFI_API_BASE}/ai/sessions/${sessionId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Session not found');
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const session = await response.json() as AgentSession;
+    spinner.succeed(chalk.green('Session found'));
+
+    const isExpired = new Date(session.expires_at) < new Date();
+    const isActive = session.is_active;
+    
+    let statusBadge: string;
+    if (isActive) {
+      statusBadge = chalk.green('● ACTIVE');
+    } else if (isExpired) {
+      statusBadge = chalk.gray('○ EXPIRED');
+    } else {
+      statusBadge = chalk.red('○ REVOKED');
+    }
+
+    console.log('');
+    console.log(chalk.bold(`${session.agent_id} ${statusBadge}`));
+    console.log('');
+    console.log(chalk.gray('ID:              ') + chalk.white(session.id));
+    if (session.session_token) {
+      console.log(chalk.gray('Session Token:   ') + chalk.white(session.session_token.slice(0, 20) + '...'));
+    }
+    console.log(chalk.gray('Agent ID:        ') + chalk.white(session.agent_id));
+    if (session.agent_name) {
+      console.log(chalk.gray('Agent Name:      ') + chalk.white(session.agent_name));
+    }
+    console.log(chalk.gray('User Wallet:     ') + chalk.white(session.user_wallet));
+    console.log('');
+    console.log(chalk.bold('Spending Limits:'));
+    if (session.limits.max_per_transaction) {
+      console.log(chalk.gray('  Per Transaction: ') + chalk.white(formatCurrency(session.limits.max_per_transaction)));
+    }
+    if (session.limits.max_per_day) {
+      console.log(chalk.gray('  Per Day:         ') + chalk.white(formatCurrency(session.limits.max_per_day)));
+    }
+    if (session.limits.max_per_week) {
+      console.log(chalk.gray('  Per Week:        ') + chalk.white(formatCurrency(session.limits.max_per_week)));
+    }
+    if (session.limits.max_per_month) {
+      console.log(chalk.gray('  Per Month:       ') + chalk.white(formatCurrency(session.limits.max_per_month)));
+    }
+    console.log('');
+    console.log(chalk.bold('Remaining Budget:'));
+    console.log(chalk.gray('  Today:           ') + chalk.white(formatCurrency(session.remaining_today)));
+    if (session.remaining_this_week < 1e300) {
+      console.log(chalk.gray('  This Week:       ') + chalk.white(formatCurrency(session.remaining_this_week)));
+    }
+    if (session.remaining_this_month < 1e300) {
+      console.log(chalk.gray('  This Month:      ') + chalk.white(formatCurrency(session.remaining_this_month)));
+    }
+    console.log('');
+    console.log(chalk.gray('Created:         ') + chalk.white(formatDate(session.created_at)));
+    console.log(chalk.gray('Expires:         ') + chalk.white(formatDate(session.expires_at)));
+    console.log('');
+  } catch (error) {
+    spinner.fail(chalk.red('Failed to fetch session'));
     console.error(chalk.gray('\nError:'), error instanceof Error ? error.message : error);
   }
 }
