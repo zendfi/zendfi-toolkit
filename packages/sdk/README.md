@@ -188,10 +188,13 @@ await zendfi.agent.revokeKey(keyId);
 ```
 
 **Available Scopes:**
+- `full` - Full access to all APIs
+- `read_only` - Read-only access
 - `create_payments` - Create new payments
-- `read_payments` - View payment status
+- `create_subscriptions` - Create subscriptions
+- `manage_escrow` - Manage escrow transactions
+- `manage_installments` - Manage installment plans
 - `read_analytics` - Access analytics data
-- `manage_sessions` - Create/revoke sessions
 
 ### Agent Sessions
 
