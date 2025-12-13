@@ -1011,6 +1011,16 @@ export interface CreateSessionKeyRequest {
   duration_days?: number;
   /** Device fingerprint for security */
   device_fingerprint: string;
+  /** 
+   * Optional: Link to an existing AI session for policy enforcement.
+   * When linked, payments will check both session key balance AND session limits.
+   */
+  link_session_id?: string;
+  /**
+   * Optional: Link to a session by token instead of ID.
+   * Mutually exclusive with link_session_id.
+   */
+  link_session_token?: string;
 }
 
 /**
@@ -1116,6 +1126,30 @@ export interface SessionKeyStatus {
   days_until_expiry: number;
   /** Security status */
   security_status: SecurityStatus;
+  /** Linked AI session info (if linked) */
+  linked_session?: LinkedSessionInfo;
+}
+
+/**
+ * Information about a linked AI session (for policy enforcement)
+ */
+export interface LinkedSessionInfo {
+  /** Session ID */
+  session_id: string;
+  /** Agent ID */
+  agent_id: string;
+  /** Whether the linked session is active */
+  is_active: boolean;
+  /** Per-transaction limit */
+  max_per_transaction?: number;
+  /** Daily remaining */
+  remaining_today: number;
+  /** Weekly remaining */
+  remaining_this_week: number;
+  /** Monthly remaining */
+  remaining_this_month: number;
+  /** Effective limit (minimum of session key balance and session limits) */
+  effective_limit: number;
 }
 
 export interface SecurityStatus {

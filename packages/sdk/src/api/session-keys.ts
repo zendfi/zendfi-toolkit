@@ -65,11 +65,21 @@ export class SessionKeysAPI {
    * 
    * @example
    * ```typescript
+   * // Basic creation
    * const result = await zendfi.sessionKeys.create({
    *   user_wallet: 'Hx7B...abc',
    *   limit_usdc: 100,
    *   duration_days: 7,
    *   device_fingerprint: deviceFingerprint,
+   * });
+   * 
+   * // Create with linked session for policy enforcement
+   * const result = await zendfi.sessionKeys.create({
+   *   user_wallet: 'Hx7B...abc',
+   *   limit_usdc: 500,
+   *   duration_days: 7,
+   *   device_fingerprint: deviceFingerprint,
+   *   link_session_id: session.id,  // Links to existing session
    * });
    * 
    * console.log(`Session key: ${result.session_key_id}`);
@@ -82,6 +92,8 @@ export class SessionKeysAPI {
       limit_usdc: request.limit_usdc,
       duration_days: request.duration_days ?? 7,
       device_fingerprint: request.device_fingerprint,
+      link_session_id: request.link_session_id,
+      link_session_token: request.link_session_token,
     });
   }
 
@@ -342,6 +354,121 @@ export class SessionKeysAPI {
   }> {
     return this.request('POST', '/api/v1/ai/session-keys/revoke', {
       session_key_id: sessionKeyId,
+    });
+  }
+
+  // ============================================
+  // Session Linking
+  // ============================================
+
+  /**
+   * Link a session key to an AI session for policy enforcement
+   * 
+   * When linked, payments through this session key will check both:
+   * 1. Session key balance (hard cap)
+   * 2. AI session limits (per-tx, daily, weekly, monthly)
+   * 
+   * This provides defense-in-depth: the session key provides signing
+   * capability while the session enforces granular spending policies.
+   * 
+   * @param sessionKeyId - UUID of the session key
+   * @param sessionId - UUID of the AI session to link
+   * @returns Updated session key status
+   * 
+   * @example
+   * ```typescript
+   * // Create a session with limits
+   * const session = await zendfi.agent.createSession({
+   *   agent_id: 'shopping-bot',
+   *   user_wallet: userWallet,
+   *   limits: {
+   *     max_per_transaction: 25,
+   *     max_per_day: 100,
+   *   },
+   *   duration_hours: 24,
+   * });
+   * 
+   * // Create and fund a session key
+   * const key = await zendfi.sessionKeys.create({
+   *   user_wallet: userWallet,
+   *   limit_usdc: 500,  // Fund with $500
+   *   duration_days: 7,
+   *   device_fingerprint: fp,
+   * });
+   * 
+   * // Link them together
+   * await zendfi.sessionKeys.linkSession(key.session_key_id, session.id);
+   * 
+   * // Now payments will:
+   * // - Be limited to $25 per transaction (session policy)
+   * // - Be limited to $100 per day (session policy)
+   * // - Never exceed $500 total (session key balance)
+   * ```
+   */
+  async linkSession(
+    sessionKeyId: string,
+    sessionId: string
+  ): Promise<{
+    success: boolean;
+    session_key_id: string;
+    linked_session_id: string;
+    message: string;
+  }> {
+    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/link-session`, {
+      session_id: sessionId,
+    });
+  }
+
+  /**
+   * Unlink a session key from its AI session
+   * 
+   * After unlinking, the session key will only be limited by its funded balance.
+   * 
+   * @param sessionKeyId - UUID of the session key
+   * @returns Result of the unlink operation
+   */
+  async unlinkSession(sessionKeyId: string): Promise<{
+    success: boolean;
+    session_key_id: string;
+    message: string;
+  }> {
+    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/unlink-session`, {});
+  }
+
+  /**
+   * Check if a payment amount is allowed
+   * 
+   * Checks both session key balance and linked session limits (if any).
+   * Useful for pre-validating payments before attempting them.
+   * 
+   * @param sessionKeyId - UUID of the session key
+   * @param amount - Amount in USD to check
+   * @returns Whether the payment is allowed and the effective limit
+   * 
+   * @example
+   * ```typescript
+   * const check = await zendfi.sessionKeys.canAfford(keyId, 50);
+   * 
+   * if (check.allowed) {
+   *   await zendfi.smart.execute({ ... });
+   * } else {
+   *   console.log(`Cannot afford: ${check.reason}`);
+   *   console.log(`Effective limit: $${check.effective_limit}`);
+   * }
+   * ```
+   */
+  async canAfford(
+    sessionKeyId: string,
+    amount: number
+  ): Promise<{
+    allowed: boolean;
+    reason?: string;
+    effective_limit: number;
+    session_key_remaining: number;
+    session_remaining_today?: number;
+  }> {
+    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/check-payment`, {
+      amount,
     });
   }
 }
