@@ -1,6 +1,6 @@
 {
   "name": "create-zendfi-app",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Create a ZendFi-powered app in seconds",
   "type": "module",
   "bin": {

@@ -993,3 +993,251 @@ export interface AgentAnalytics {
     volume_usd: number;
   }>;
 }
+
+// ============================================
+// Session Keys (On-Chain Funded Wallets)
+// ============================================
+
+/**
+ * Session key creation request (custodial mode)
+ * Backend generates and stores the keypair
+ */
+export interface CreateSessionKeyRequest {
+  /** User's main wallet address */
+  user_wallet: string;
+  /** Spending limit in USDC */
+  limit_usdc: number;
+  /** Duration in days (1-30) */
+  duration_days?: number;
+  /** Device fingerprint for security */
+  device_fingerprint: string;
+}
+
+/**
+ * Session key creation response (custodial mode)
+ */
+export interface CreateSessionKeyResponse {
+  /** UUID of the created session key */
+  session_key_id: string;
+  /** User's main wallet address */
+  user_wallet: string;
+  /** Spending limit in USDC */
+  limit_usdc: number;
+  /** Expiration timestamp */
+  expires_at: string;
+  /** Whether user needs to sign approval transaction */
+  requires_approval: boolean;
+  /** Base64 encoded approval transaction (user must sign) */
+  approval_transaction: string;
+  /** Setup instructions */
+  instructions: SessionKeyInstructions;
+}
+
+export interface SessionKeyInstructions {
+  step_1: string;
+  step_2: string;
+  step_3: string;
+  wallet_support: string[];
+}
+
+/**
+ * Device-bound session key creation request (non-custodial mode)
+ * Client generates keypair and encrypts it before sending
+ */
+export interface CreateDeviceBoundSessionKeyRequest {
+  /** User's main wallet address */
+  user_wallet: string;
+  /** Spending limit in USDC */
+  limit_usdc: number;
+  /** Duration in days (1-30) */
+  duration_days: number;
+  /** Client-encrypted session keypair (base64) */
+  encrypted_session_key: string;
+  /** Encryption nonce (base64, 12 bytes) */
+  nonce: string;
+  /** Public key of the session keypair */
+  session_public_key: string;
+  /** Device fingerprint (SHA-256 hex, 64 chars) */
+  device_fingerprint: string;
+  /** Optional recovery QR data */
+  recovery_qr_data?: string;
+}
+
+/**
+ * Device-bound session key creation response
+ */
+export interface CreateDeviceBoundSessionKeyResponse {
+  /** UUID of the created session key */
+  session_key_id: string;
+  /** Always "device_bound" */
+  mode: string;
+  /** Always false for device-bound */
+  is_custodial: boolean;
+  /** User's main wallet address */
+  user_wallet: string;
+  /** Session wallet public key */
+  session_wallet: string;
+  /** Spending limit in USDC */
+  limit_usdc: number;
+  /** Expiration timestamp */
+  expires_at: string;
+  /** Always true for device-bound */
+  requires_client_signing: boolean;
+  /** Security details */
+  security_info: SessionKeySecurityInfo;
+}
+
+export interface SessionKeySecurityInfo {
+  encryption_type: string;
+  device_bound: boolean;
+  backend_can_decrypt: boolean;
+  recovery_qr_saved: boolean;
+}
+
+/**
+ * Session key status response
+ */
+export interface SessionKeyStatus {
+  /** UUID of the session key */
+  session_key_id: string;
+  /** Whether the key is currently active */
+  is_active: boolean;
+  /** Whether the approval transaction was confirmed */
+  is_approved: boolean;
+  /** Total spending limit in USDC */
+  limit_usdc: number;
+  /** Amount already spent in USDC */
+  used_amount_usdc: number;
+  /** Remaining balance in USDC */
+  remaining_usdc: number;
+  /** Expiration timestamp */
+  expires_at: string;
+  /** Days until expiry */
+  days_until_expiry: number;
+  /** Security status */
+  security_status: SecurityStatus;
+}
+
+export interface SecurityStatus {
+  device_fingerprint_matched: boolean;
+  recent_security_events: number;
+  last_used_at: string | null;
+}
+
+/**
+ * Top-up request for adding funds to a session key
+ */
+export interface TopUpSessionKeyRequest {
+  /** User's main wallet address */
+  user_wallet: string;
+  /** Amount to add in USDC */
+  amount_usdc: number;
+  /** Device fingerprint for security */
+  device_fingerprint: string;
+}
+
+/**
+ * Top-up response with unsigned transaction
+ */
+export interface TopUpSessionKeyResponse {
+  /** UUID of the session key */
+  session_key_id: string;
+  /** Previous limit before top-up */
+  previous_limit: number;
+  /** New limit after top-up */
+  new_limit: number;
+  /** Amount being added */
+  added_amount: number;
+  /** Base64 encoded top-up transaction (user must sign) */
+  top_up_transaction: string;
+  /** Block height for transaction validity */
+  last_valid_block_height: number;
+  /** Instructions for the user */
+  instructions: string;
+}
+
+/**
+ * Submit signed transaction request
+ */
+export interface SubmitSignedTransactionRequest {
+  /** Base64 encoded signed transaction */
+  signed_transaction: string;
+  /** Optional session key ID (for some endpoints) */
+  session_key_id?: string;
+}
+
+/**
+ * Submit transaction response
+ */
+export interface SubmitTransactionResponse {
+  success: boolean;
+  signature: string;
+  message: string;
+  /** For top-up submissions */
+  new_limit?: number;
+}
+
+/**
+ * Session key list response
+ */
+export interface SessionKeyListResponse {
+  session_keys: SessionKeyStatus[];
+  stats: SessionKeyStats;
+  merchant_id: string;
+}
+
+export interface SessionKeyStats {
+  total_keys: number;
+  active_keys: number;
+  total_limit_usdc: number;
+  total_used_usdc: number;
+}
+
+/**
+ * Agent payment request - simplified payment via session
+ */
+export interface AgentPaymentRequest {
+  /** Session token for spending limit enforcement */
+  session_token: string;
+  /** Amount in USD */
+  amount: number;
+  /** Payment description */
+  description?: string;
+  /** Recipient merchant ID (optional if paying to session owner) */
+  recipient_merchant_id?: string;
+  /** Token to use (default: USDC) */
+  token?: PaymentToken;
+  /** Auto-detect if gasless is needed */
+  auto_gasless?: boolean;
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Agent payment response
+ */
+export interface AgentPaymentResponse {
+  /** UUID of the created payment */
+  payment_id: string;
+  /** Payment status */
+  status: 'pending' | 'processing' | 'confirmed' | 'failed' | 'awaiting_signature';
+  /** Amount in USD */
+  amount_usd: number;
+  /** Whether gasless mode was used */
+  gasless_used: boolean;
+  /** Transaction signature (if confirmed) */
+  transaction_signature?: string;
+  /** Confirmation time in milliseconds */
+  confirmed_in_ms?: number;
+  /** Receipt URL */
+  receipt_url?: string;
+  /** If true, client must sign the transaction */
+  requires_signature: boolean;
+  /** Base64 encoded unsigned transaction (if requires_signature) */
+  unsigned_transaction?: string;
+  /** URL to submit signed transaction */
+  submit_url?: string;
+  /** Next steps for the client */
+  next_steps: string;
+}
+

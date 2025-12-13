@@ -29,7 +29,7 @@ import type {
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
 import { createInterceptors, type Interceptors, type RequestConfig, type ResponseData } from './interceptors';
-import { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI } from './api';
+import { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './api';
 
 /**
  * ZendFi SDK Client.
@@ -145,6 +145,39 @@ export class ZendFiClient {
    */
   public readonly smart: SmartPaymentsAPI;
 
+  /**
+   * Session Keys API - On-chain funded session keys with PKP identity
+   * 
+   * Session keys are pre-funded wallets with spending limits that enable
+   * AI agents to make autonomous payments without user signatures.
+   * 
+   * The flow:
+   * 1. Create a session key (user approves spending limit)
+   * 2. User signs the approval transaction (one-time)
+   * 3. Agent can now make payments up to the limit
+   * 
+   * @example
+   * ```typescript
+   * // Create session key
+   * const key = await zendfi.sessionKeys.create({
+   *   agent_id: 'shopping-bot',
+   *   user_wallet: 'Hx7B...abc',
+   *   max_amount: 100,
+   *   expiry_hours: 24,
+   * });
+   * 
+   * // User signs the approval
+   * await zendfi.sessionKeys.submitApproval(key.session_key_id, {
+   *   signed_transaction: signedTx,
+   * });
+   * 
+   * // Check status
+   * const status = await zendfi.sessionKeys.getStatus(key.session_key_id);
+   * console.log(`Remaining: $${status.remaining_amount}`);
+   * ```
+   */
+  public readonly sessionKeys: SessionKeysAPI;
+
   constructor(options?: Partial<ZendFiConfig>) {
     this.config = ConfigLoader.load(options);
     ConfigLoader.validateApiKey(this.config.apiKey);
@@ -157,6 +190,7 @@ export class ZendFiClient {
     this.pricing = new PricingAPI(boundRequest);
     this.autonomy = new AutonomyAPI(boundRequest);
     this.smart = new SmartPaymentsAPI(boundRequest);
+    this.sessionKeys = new SessionKeysAPI(boundRequest);
     
     // Log initialization info
     if (this.config.environment === 'development' || this.config.debug) {

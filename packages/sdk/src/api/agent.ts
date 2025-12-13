@@ -30,6 +30,8 @@ import type {
   AgentSession,
   CreateAgentSessionRequest,
   AgentAnalytics,
+  AgentPaymentRequest,
+  AgentPaymentResponse,
 } from '../types';
 
 export type RequestFn = <T>(method: string, endpoint: string, data?: any) => Promise<T>;
@@ -231,6 +233,70 @@ export class AgentAPI {
    */
   async revokeSession(sessionId: string): Promise<void> {
     await this.request<{ success: boolean }>('POST', `/api/v1/ai/sessions/${sessionId}/revoke`);
+  }
+
+  // ============================================
+  // Agent Payments
+  // ============================================
+
+  /**
+   * Execute a payment using an agent session
+   * 
+   * This is the primary method for AI agents to make payments. It uses the
+   * session token to enforce spending limits and automatically routes the
+   * payment through the optimal path.
+   * 
+   * The session token comes from `createSession()` and enforces:
+   * - Per-transaction limits
+   * - Daily limits
+   * - Weekly limits
+   * - Monthly limits
+   * 
+   * @param request - Payment request with session token
+   * @returns Payment result with status and receipt
+   * 
+   * @example
+   * ```typescript
+   * // Create a session first
+   * const session = await zendfi.agent.createSession({
+   *   agent_id: 'shopping-bot',
+   *   user_wallet: 'Hx7B...abc',
+   *   limits: {
+   *     max_per_transaction: 50,
+   *     max_per_day: 200,
+   *   },
+   *   duration_hours: 24,
+   * });
+   * 
+   * // Make payments within the session limits
+   * const payment = await zendfi.agent.pay({
+   *   session_token: session.session_token,
+   *   amount: 29.99,
+   *   description: 'Premium widget',
+   *   auto_gasless: true,
+   * });
+   * 
+   * if (payment.requires_signature) {
+   *   // Device-bound: user must sign
+   *   console.log('Sign and submit to:', payment.submit_url);
+   * } else {
+   *   // Auto-signed: payment complete
+   *   console.log('Payment confirmed:', payment.transaction_signature);
+   * }
+   * ```
+   */
+  async pay(request: AgentPaymentRequest): Promise<AgentPaymentResponse> {
+    return this.request<AgentPaymentResponse>('POST', '/api/v1/ai/smart-payment', {
+      session_token: request.session_token,
+      agent_id: 'session', // Session already has agent_id bound
+      user_wallet: '', // Will be extracted from session
+      amount_usd: request.amount,
+      merchant_id: request.recipient_merchant_id,
+      token: request.token || 'USDC',
+      auto_detect_gasless: request.auto_gasless,
+      description: request.description,
+      metadata: request.metadata,
+    });
   }
 
   // ============================================

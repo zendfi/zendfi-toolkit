@@ -29,7 +29,7 @@ export { ConfigLoader, RateLimiter, generateIdempotencyKey, sleep } from './util
 export * from './webhooks';
 
 // Agentic Intent Protocol APIs
-export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI } from './api';
+export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './api';
 
 // Error handling
 export {
