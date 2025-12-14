@@ -219,4 +219,75 @@ export class AutonomyAPI {
       throw new Error('delegation_signature must be base64 encoded');
     }
   }
+
+  /**
+   * Get spending attestations for a delegate (audit trail)
+   * 
+   * Returns all cryptographically signed attestations ZendFi created for
+   * this delegate. Each attestation contains:
+   * - The spending state at the time of payment
+   * - ZendFi's Ed25519 signature
+   * - Timestamp and nonce (for replay protection)
+   * 
+   * These attestations can be independently verified using ZendFi's public key
+   * to confirm spending limit enforcement was applied correctly.
+   * 
+   * @param delegateId - UUID of the autonomous delegate
+   * @returns Attestation audit response with all signed attestations
+   * 
+   * @example
+   * ```typescript
+   * const audit = await zendfi.autonomy.getAttestations('delegate_123...');
+   * 
+   * console.log(`Found ${audit.attestation_count} attestations`);
+   * console.log(`ZendFi public key: ${audit.zendfi_attestation_public_key}`);
+   * 
+   * // Verify each attestation independently
+   * for (const signed of audit.attestations) {
+   *   console.log(`Payment ${signed.attestation.payment_id}:`);
+   *   console.log(`  Requested: $${signed.attestation.requested_usd}`);
+   *   console.log(`  Remaining after: $${signed.attestation.remaining_after_usd}`);
+   *   // Verify signature with nacl.sign.detached.verify()
+   * }
+   * ```
+   */
+  async getAttestations(delegateId: string): Promise<AttestationAuditResponse> {
+    return this.request<AttestationAuditResponse>(
+      'GET',
+      `/api/v1/ai/delegates/${delegateId}/attestations`
+    );
+  }
+}
+
+/** Spending attestation - ZendFi's signed commitment to spending state */
+export interface SpendingAttestation {
+  delegate_id: string;
+  session_key_id: string;
+  merchant_id: string;
+  spent_usd: number;
+  limit_usd: number;
+  requested_usd: number;
+  remaining_after_usd: number;
+  timestamp_ms: number;
+  nonce: string;
+  payment_id: string;
+  version: number;
+}
+
+/** Signed attestation with ZendFi's cryptographic signature */
+export interface SignedSpendingAttestation {
+  attestation: SpendingAttestation;
+  /** Base64-encoded Ed25519 signature */
+  signature: string;
+  /** Base58-encoded ZendFi public key */
+  signer_public_key: string;
+}
+
+/** Response from the attestation audit endpoint */
+export interface AttestationAuditResponse {
+  delegate_id: string;
+  attestation_count: number;
+  attestations: SignedSpendingAttestation[];
+  /** ZendFi's attestation public key for independent verification */
+  zendfi_attestation_public_key: string | null;
 }
