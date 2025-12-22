@@ -1,28 +1,64 @@
 # @zendfi/sdk
 
-> Zero-config TypeScript SDK for accepting crypto payments with ZendFi
+> The only crypto payment API built for the AI era
 
 [![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Accept **SOL, USDC, and USDT** payments in your app with just a few lines of code. Built for developers who want to integrate crypto payments without the complexity.
+Accept **SOL, USDC, and USDT** payments in 7 lines of code. Built for e-commerce. Ready for AI agents.
+
+```typescript
+import { zendfi } from '@zendfi/sdk';
+
+const payment = await zendfi.createPayment({
+  amount: 50,
+  description: 'Premium subscription',
+});
+
+console.log(payment.payment_url); // Send customer here
+```
+
+**That's it.** Works for traditional payments AND AI agents. Same API.
+
+---
+
+## Why ZendFi?
+
+| Feature | Stripe | PayPal | **ZendFi** |
+|---------|--------|--------|------------|
+| **Fees** | 2.9% + $0.30 | 3.5% + $0.49 | **0.6% flat** ✨ |
+| **Settlement** | 7 days | 3-5 days | **Instant** ✨ |
+| **Crypto Native** | Via 3rd party | Via 3rd party | **Built-in** ✨ |
+| **AI Agent Ready** | ❌ | ❌ | **✅ Native** ✨ |
+| **Setup Time** | 30 min | 30 min | **5 min** ✨ |
+
+**Save 81% on fees.** Get paid instantly. Scale to AI when ready.
 
 ---
 
 ## Features
 
-- **All-Inclusive Pricing** — 0.6% platform fee covers everything (network fees included!)
-- **Zero Configuration** — Auto-detects environment from your API key
-- **Type-Safe** — Full TypeScript support with auto-completion
-- **Auto-Retry** — Built-in exponential backoff for network errors
-- **Idempotency** — Automatic duplicate prevention for safe retries
-- **Webhook Helpers** — Auto-verified handlers for Next.js, Express, and more
+### 🚀 **Core Payments** (Start Here)
+- **Simple Payments** — QR codes, payment links, instant settlements
+- **Payment Links** — Reusable checkout pages for social/email
+- **Webhooks** — Real-time notifications with auto-verification
 - **Test Mode** — Free devnet testing with no real money
-- **Multi-Network** — Automatic routing to devnet or mainnet
-- **Agentic Intent Protocol** — AI agent payment capabilities with scoped API keys
-- **Session Keys** — On-chain funded wallets for autonomous agent payments
-- **PPP Pricing** — Purchasing Power Parity for global reach (27+ countries)
-- **Payment Intents** — Two-phase commit pattern for reliable checkout
+- **Type-Safe** — Full TypeScript support with auto-completion
+
+### 💼 **Scale Up** (When You Grow)
+- **Subscriptions** — Recurring billing with trials
+- **Installments** — Buy now, pay later flows
+- **Invoices** — Professional invoicing with email
+- **Payment Splits** — Revenue sharing for marketplaces
+
+### 🤖 **AI-Ready** (Optional Advanced)
+- **Agent Keys** — Scoped API keys for AI with spending limits
+- **Session Keys** — Pre-funded wallets for autonomous payments
+- **Payment Intents** — Two-phase commit for reliable checkout
+- **PPP Pricing** — Auto-adjust prices for 27+ countries
+- **Smart Payments** — AI-optimized payment routing
+
+Don't need AI features? **Ignore them.** The SDK works perfectly for traditional payments.
 
 ---
 
@@ -42,7 +78,7 @@ yarn add @zendfi/sdk
 
 ### 1. Get your API key
 
-Sign up at [zendfi.tech](https://zendfi.tech) and grab your API keys from the dashboard.
+Sign up at [zendfi.tech](https://zendfi.tech) to get your API keys.
 
 ### 2. Set environment variables
 
@@ -106,6 +142,9 @@ For devnet testing:
 1. Use your `zfi_test_` API key
 2. Get free SOL from [sol-faucet.com](https://www.sol-faucet.com/)
 3. All transactions use test tokens (zero value)
+4. Devnet SOL is NOT real SOL (zero value)
+6. Use devnet-compatible wallets (Phantom, Solflare support devnet)
+7. Switch network in wallet: Settings → Developer Settings → Change Network → Devnet
 
 ### Going Live
 
@@ -133,47 +172,90 @@ This covers:
 
 ---
 
-## Agentic Intent Protocol
+## 🤖 AI-Ready Features (Optional Advanced)
 
-Enable AI agents to make payments autonomously with scoped permissions and spending limits.
+Building AI agents? ZendFi has native support for autonomous payments with cryptographic security and spending limits.
 
-### Namespaced APIs
+### When Do I Need This?
 
-The SDK provides namespaced APIs for agentic capabilities:
+**Use traditional payments if:**
+- Building e-commerce, SaaS, or creator tools
+- User clicks "Pay" button for each transaction
+- Standard checkout flow
+
+**Use AI features if:**
+- Building AI agents that make purchases
+- Need autonomous payments without per-transaction approval
+- Want spending limits and scoped permissions
+
+### Quick Example: AI Agent Payment
 
 ```typescript
 import { zendfi } from '@zendfi/sdk';
 
-// Agent API - Manage agent keys and sessions
-zendfi.agent.createKey(...)
-zendfi.agent.createSession(...)
-zendfi.agent.pay(...)         // Make payments via sessions
+// 1. Create agent key with limited permissions
+const agentKey = await zendfi.agent.createKey({
+  name: 'Shopping Assistant',
+  agent_id: 'shopping-assistant-v1',
+  scopes: ['create_payments'],
+  rate_limit_per_hour: 100,
+});
 
-// Payment Intents - Two-phase payment flow
-zendfi.intents.create(...)
-zendfi.intents.confirm(...)
+// 2. User approves spending session (one-time)
+const session = await zendfi.agent.createSession({
+  agent_id: 'shopping-assistant-v1',
+  user_wallet: 'Hx7B...abc',
+  limits: {
+    max_per_transaction: 50,  // $50 max per payment
+    max_per_day: 200,         // $200 daily cap
+  },
+  duration_hours: 24,
+});
 
-// Pricing - PPP and AI pricing
-zendfi.pricing.getPPPFactor(...)
-zendfi.pricing.getSuggestion(...)
+// 3. AI agent makes payments autonomously (within limits)
+const payment = await zendfi.agent.pay({
+  session_token: session.session_token,
+  amount: 25.00,
+  description: 'Coffee order',
+});
 
-// Autonomy - Autonomous delegation
-zendfi.autonomy.enable(...)
-zendfi.autonomy.getStatus(...)
-
-// Smart Payments - AI-powered routing
-zendfi.smart.execute(...)
-zendfi.smart.submitSigned(...)  // For device-bound flows
-
-// Session Keys - On-chain funded wallets with PKP identity
-zendfi.sessionKeys.create(...)
-zendfi.sessionKeys.submitApproval(...)
-zendfi.sessionKeys.getStatus(...)
-zendfi.sessionKeys.topUp(...)
-zendfi.sessionKeys.revoke(...)
+// Done! User approved once, AI pays within limits
 ```
 
-### Agent API Keys
+**Learn more:** [AI Payments Documentation](https://docs.zendfi.tech/agentic)
+
+---
+
+## 📚 Core API Reference
+
+### Namespaced APIs
+
+```typescript
+import { zendfi } from '@zendfi/sdk';
+
+// Traditional Payments (Most Common)
+zendfi.createPayment(...)
+zendfi.getPayment(...)
+zendfi.listPayments(...)
+
+// Payment Links
+zendfi.createPaymentLink(...)
+
+// Subscriptions
+zendfi.createSubscription(...)
+zendfi.cancelSubscription(...)
+
+// AI Features (Optional)
+zendfi.agent.createKey(...)           // Scoped API keys
+zendfi.agent.createSession(...)       // Spending limits
+zendfi.agent.pay(...)                 // Autonomous payments
+zendfi.intents.create(...)            // Two-phase checkout
+zendfi.sessionKeys.create(...)        // Pre-funded wallets
+zendfi.autonomy.enable(...)           // User-granted delegation
+zendfi.pricing.getPPPFactor(...)      // Global pricing
+```
+
+### Core Payments
 
 Create scoped API keys for AI agents with limited permissions:
 
@@ -323,13 +405,10 @@ Enable agents to make payments without per-transaction approval:
 
 ```typescript
 // Enable autonomous mode for a wallet
-const delegate = await zendfi.autonomy.enable({
-  wallet_address: 'Hx7B...abc',
-  agent_id: 'shopping-assistant',
-  max_per_day_usd: 100,
-  max_per_transaction_usd: 25,
-  duration_hours: 24,
-  allowed_categories: ['subscriptions', 'digital_goods'],
+await zendfi.autonomy.enable(sessionKeyId, { 
+  max_amount_usd: 100,          // Total amount, not per-day
+  duration_hours: 24,           // Duration
+  delegation_signature: sig,    // Required signature
 });
 
 // Check autonomy status
@@ -352,17 +431,16 @@ Session keys are pre-funded wallets with spending limits that enable AI agents t
 ```typescript
 // Step 1: Create a session key
 const key = await zendfi.sessionKeys.create({
-  agent_id: 'shopping-assistant',
   user_wallet: 'Hx7B...abc',
-  max_amount: 100,       // $100 spending limit
-  expiry_hours: 24,      // Valid for 24 hours
-  token: 'USDC',
+  limit_usdc: 100,
+  duration_days: 7,
+  device_fingerprint: await generateFingerprint(),
 });
 
 // key.session_key_id - Unique identifier
 // key.approval_transaction - Transaction for user to sign
-// key.session_key_address - The funded wallet address
-// key.pkp_public_key - Lit Protocol PKP public key
+// key.session_wallet - The funded wallet address
+// key.pkp_public_key - Lit Protocol PKP public key NB: This only exists if mint_pkp is set to true in sessions
 
 // Step 2: User signs the approval transaction (one-time)
 const signedTx = await wallet.signTransaction(key.approval_transaction);
@@ -373,8 +451,8 @@ await zendfi.sessionKeys.submitApproval(key.session_key_id, {
 // Step 3: Check status and make payments
 const status = await zendfi.sessionKeys.getStatus(key.session_key_id);
 console.log(`Status: ${status.status}`);           // "active"
-console.log(`Remaining: $${status.remaining_amount}`);
-console.log(`Spent: $${status.spent_amount}`);
+console.log(`Remaining: $${status.remaining_usdc}`);
+console.log(`Spent: $${status.used_amount_usdc}`);
 console.log(`Transactions: ${status.transaction_count}`);
 
 // Step 4: Top-up if needed

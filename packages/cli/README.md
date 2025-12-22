@@ -1,6 +1,6 @@
 # create-zendfi-app
 
-> Create a ZendFi-powered crypto payment app in seconds
+> Payments in 7 lines of code. Built for e-commerce. Ready for AI.
 
 [![npm version](https://img.shields.io/npm/v/create-zendfi-app.svg)](https://www.npmjs.com/package/create-zendfi-app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,7 +8,13 @@
 This package includes **two powerful tools**:
 
 1. **`create-zendfi-app`** - Scaffold new crypto payment apps
-2. **`zendfi`** - CLI for managing payments, webhooks, and API keys
+2. **`zendfi`** - CLI for payments, webhooks, and testing
+
+**Why ZendFi?**
+- 0.6% flat fee (vs. Stripe's 2.9% + 30¢) = 81% savings
+- Accept SOL, USDC, USDT on Solana
+- Production-ready templates with Next.js & Express
+- Optional: AI-ready with autonomous agent payments
 
 ---
 
@@ -120,19 +126,21 @@ Options:
 
 ## zendfi CLI
 
-Manage your ZendFi integration with powerful CLI commands.
+Manage your ZendFi integration from the command line.
 
-### Quick Start
+### Installation
 
 ```bash
-# Install globally (if not already installed)
+# Install globally
 npm install -g create-zendfi-app
 
-# Now use zendfi commands
-zendfi --help
+# Or use npx (no installation needed)
+npx zendfi --help
 ```
 
-### Commands
+### Core Commands
+
+These are the commands you'll use for most payment integrations.
 
 #### `zendfi init`
 
@@ -147,78 +155,53 @@ zendfi init --framework nextjs
 
 # Skip dependency installation
 zendfi init --skip-install
-
-# Auto-confirm all prompts
-zendfi init -y
 ```
 
 **What it does:**
 - Installs `@zendfi/sdk`
-- Creates `.env` file with ZendFi configuration
+- Creates `.env` file with configuration
 - Adds example webhook handler
-- Creates sample payment integration code
-- Updates your package.json scripts
+- Creates sample payment code
 
-**Supported frameworks:**
-- Next.js (App Router & Pages Router)
-- Express
-- React
-- Vue (coming soon)
+**Supported frameworks:** Next.js, Express, React
 
 ---
 
-#### `zendfi test payment`
+#### `zendfi payment create`
 
 Create test payments for development
 
 ```bash
 # Interactive mode
-zendfi test payment
+zendfi payment create
 
 # Quick test payment
-zendfi test payment --amount 50
+zendfi payment create --amount 50 --open
 
 # Full options
-zendfi test payment \
+zendfi payment create \
   --amount 100 \
   --description "Premium subscription" \
   --email customer@example.com \
   --open \
   --watch
-
-# Create and open in browser
-zendfi test payment --amount 25 --open
 ```
 
 **Options:**
 - `--amount <number>` - Payment amount in USD
 - `--description <text>` - Payment description
 - `--email <email>` - Customer email
-- `--open` - Open payment URL in browser automatically
+- `--open` - Open payment URL in browser
 - `--watch` - Watch payment status in real-time
-
-**Output:**
-```
-✔ Test payment created!
-
-Payment ID: pay_test_abc123xyz
-Amount: $50.00 USD
-Status: Pending
-Payment URL: https://pay.zendfi.tech/abc123
-QR Code: [QR code displayed in terminal]
-
-Mode: test (Solana Devnet)
-Network fees: Free (devnet)
-```
 
 ---
 
-#### `zendfi status <payment-id>`
+#### `zendfi payment status <payment-id>`
 
 Check payment status in real-time
 
 ```bash
-zendfi status pay_test_abc123xyz
+zendfi payment status pay_test_abc123xyz
 ```
 
 **Output:**
@@ -236,10 +219,6 @@ Transaction:
   Signature: 5x7yZ9...abc123
   Block: 12345678
   Network: Solana Devnet
-
-Metadata:
-  order_id: ORD-789
-  user_id: usr_456
 ```
 
 ---
@@ -332,132 +311,73 @@ zendfi keys rotate key_abc123xyz
 
 ---
 
-## 🤖 Agentic Intent Protocol Commands
+## 🤖 AI Features (Optional)
 
-### `zendfi agent`
+**Not building an AI agent? Skip this section!** These commands are for autonomous agent payments - most users won't need them.
 
-Manage AI agent API keys and sessions for autonomous payments.
+### `zendfi ai`
 
-#### Agent API Keys
+Manage AI agent payments for autonomous spending.
+
+#### AI Agent Keys
 
 ```bash
-# Create an agent API key interactively
-zendfi agent keys create
+# Create an AI agent API key
+zendfi ai keys create --name "Shopping Bot"
 
-# With options
-zendfi agent keys create --name "Shopping Bot" --agent-id shopping-v1
-
-# List all agent keys
-zendfi agent keys list
+# List all AI agent keys
+zendfi ai keys list
 
 # Revoke an agent key
-zendfi agent keys revoke <key-id>
+zendfi ai keys revoke <key-id>
 ```
 
-**Output:**
-```
-🔑 Agent API Key Created!
-
-  Key ID:     ak_abc123...
-  Full Key:   zai_test_xxxx...xxxx (SAVE THIS!)
-  Name:       Shopping Bot
-  Agent ID:   shopping-v1
-  Scopes:     create_payments, read_analytics
-  Rate Limit: 1000/hour
-
-⚠️  The full key will NOT be shown again!
-```
-
-#### Agent Sessions
+#### AI Sessions
 
 ```bash
 # Create session with spending limits
-zendfi agent sessions create \
-  --agent-id shopping-v1 \
+zendfi ai sessions create \
   --wallet Hx7B...abc \
   --max-per-day 100 \
   --max-per-transaction 25 \
   --duration 24
 
 # List all sessions
-zendfi agent sessions list
+zendfi ai sessions list
 
 # Revoke a session
-zendfi agent sessions revoke <session-id>
-```
-
-#### Agent Analytics
-
-```bash
-# View agent metrics
-zendfi agent analytics
+zendfi ai sessions revoke <session-id>
 ```
 
 ---
 
-### `zendfi intents`
+### `zendfi ai intents`
 
-Payment intents for two-phase checkout flows.
+Payment intents for two-phase AI checkout flows.
 
 ```bash
 # Create a payment intent
-zendfi intents create --amount 99.99
-
-# Create with all options
-zendfi intents create \
-  --amount 49.99 \
-  --currency USD \
-  --description "Pro subscription" \
-  --capture manual
-
-# List all intents
-zendfi intents list
-
-# Get intent details
-zendfi intents get <intent-id>
+zendfi ai intents create --amount 99.99
 
 # Confirm an intent
-zendfi intents confirm <intent-id> --wallet Hx7B...abc
+zendfi ai intents confirm <intent-id> --wallet Hx7B...abc
 
-# Cancel an intent
-zendfi intents cancel <intent-id>
-```
-
-**Output:**
-```
-💳 Payment Intent Created
-
-  ID:            pi_abc123...
-  Status:        ⏳ REQUIRES PAYMENT
-  Amount:        $99.99 USD
-  Client Secret: cs_xxx...xxx
-  Expires:       in 24h
-
-Next steps:
-  zendfi intents confirm pi_abc123 --wallet <wallet>
+# List all intents
+zendfi ai intents list
 ```
 
 ---
 
-### `zendfi ppp`
+### `zendfi ai ppp`
 
 Purchasing Power Parity pricing for global reach.
 
 ```bash
 # Get PPP factor for a country
-zendfi ppp check BR
-
-# Check with price calculation
-zendfi ppp check BR --price 99.99
+zendfi ai ppp check BR --price 99.99
 
 # List all PPP factors
-zendfi ppp factors
-
-# Sort by discount percentage
-zendfi ppp factors --sort discount
-
-# Calculate localized price
-zendfi ppp calculate --price 99.99 --country IN
+zendfi ai ppp factors
 ```
 
 **Output:**
@@ -465,98 +385,33 @@ zendfi ppp calculate --price 99.99 --country IN
 🌍 PPP Factor Lookup
 
   🇧🇷 Brazil (BR)
-
-  PPP Factor:       0.35
-  Discount:         65%
-  Local Currency:   BRL
-
+  PPP Factor: 0.35
+  Discount: 65%
+  
   Example: $100 → $35.00
 ```
 
 ---
 
-### `zendfi autonomy`
+### `zendfi ai autonomy`
 
 Enable autonomous spending delegation for AI agents.
 
 ```bash
-# Enable autonomy interactively
-zendfi autonomy enable
-
-# With options
-zendfi autonomy enable \
+# Enable autonomy
+zendfi ai autonomy enable \
   --wallet Hx7B...abc \
-  --agent-id shopping-v1 \
   --max-per-day 100 \
-  --max-per-transaction 25 \
-  --duration 24
+  --max-per-transaction 25
 
-# Check autonomy status for a wallet
-zendfi autonomy status <wallet-address>
+# Check status
+zendfi ai autonomy status <wallet-address>
 
-# List all autonomous delegates
-zendfi autonomy delegates
-
-# Include revoked delegates
-zendfi autonomy delegates --all
-
-# Revoke a delegation
-zendfi autonomy revoke <delegate-id>
+# Revoke delegation
+zendfi ai autonomy revoke <delegate-id>
 ```
 
-**Output:**
-```
-🤖 Enable Autonomous Delegation
-
-  ┌─────────────────────────────────────────┐
-  │  Delegation Summary                      │
-  ├─────────────────────────────────────────┤
-  │  Wallet:      Hx7B...abc                 │
-  │  Agent:       shopping-v1                │
-  │  Max/Day:     $100                       │
-  │  Max/Tx:      $25                        │
-  │  Duration:    24h                        │
-  └─────────────────────────────────────────┘
-
-⚠️  This grants spending authority. Continue? [y/N]
-```
-
----
-
-### `zendfi smart`
-
-Smart payments with automatic optimizations.
-
-```bash
-# Create a smart payment interactively
-zendfi smart create
-
-# With options
-zendfi smart create \
-  --amount 99.99 \
-  --wallet Hx7B...abc \
-  --country BR \
-  --ppp
-
-# Simulate pricing (no actual payment)
-zendfi smart simulate --amount 99.99 --country BR
-```
-
-**Output:**
-```
-⚡ Create Smart Payment
-
-  ┌───────────────────────────────────────────────┐
-  │  Smart Payment Details                         │
-  ├───────────────────────────────────────────────┤
-  │  ID:             sp_abc123...                  │
-  │  Status:         ● PENDING                     │
-  │  Original:       $99.99                        │
-  │  PPP Discount:   ✓ Applied                     │
-  │  Final Amount:   $64.99                        │
-  │  Savings:        $35.00                        │
-  └───────────────────────────────────────────────┘
-```
+**Learn more:** [docs.zendfi.tech/agentic](https://docs.zendfi.tech/agentic)
 
 ---
 
@@ -571,32 +426,19 @@ cd my-store
 
 ### 2. Get Your API Keys
 
-Visit [dashboard.zendfi.tech](https://dashboard.zendfi.tech) and copy your API keys.
+Visit [dashboard.zendfi.tech](https://dashboard.zendfi.tech) - sign up takes 30 seconds.
 
-### 3. Configure Environment
-
-Your `.env` file is auto-created:
-
-```env
-# Development (Free Solana Devnet)
-ZENDFI_API_KEY=zfi_test_your_key_here
-ZENDFI_WEBHOOK_SECRET=your_webhook_secret
-
-# Production (Real Solana Mainnet)
-# ZENDFI_API_KEY=zfi_live_your_key_here
-```
-
-### 4. Test Your Integration
+### 3. Test Your Integration
 
 ```bash
-# Create a test payment
-zendfi test payment --amount 10 --open
+# Create a test payment (uses free Solana devnet)
+zendfi payment create --amount 10 --open
 
 # Watch for webhooks
 zendfi webhooks listen
 ```
 
-### 5. Deploy to Production
+### 4. Deploy to Production
 
 ```bash
 # Switch to live API key in .env
@@ -606,6 +448,8 @@ ZENDFI_API_KEY=zfi_live_your_key_here
 npm run build
 npm start
 ```
+
+**That's it!** You're accepting crypto payments.
 
 ---
 
@@ -687,7 +531,7 @@ ZENDFI_API_KEY=zfi_live_...  # Don't use live keys in dev!
 ```bash
 npx create-zendfi-app crypto-store --template nextjs-ecommerce
 cd crypto-store
-zendfi test payment --amount 50 --open
+zendfi payment create --amount 50 --open
 ```
 
 ### Create SaaS Platform
@@ -695,7 +539,7 @@ zendfi test payment --amount 50 --open
 ```bash
 npx create-zendfi-app my-saas --template nextjs-saas
 cd my-saas
-zendfi test payment --amount 29.99 --description "Pro Plan"
+zendfi payment create --amount 29.99 --description "Pro Plan"
 ```
 
 ### Add ZendFi to Existing Next.js App
@@ -703,7 +547,7 @@ zendfi test payment --amount 29.99 --description "Pro Plan"
 ```bash
 cd my-existing-app
 zendfi init --framework nextjs
-zendfi test payment --amount 100
+zendfi payment create --amount 100
 ```
 
 ### Build Payment API
@@ -712,31 +556,12 @@ zendfi test payment --amount 100
 npx create-zendfi-app payment-api --template express-api
 cd payment-api
 docker-compose up -d
-zendfi test payment --amount 25
+zendfi payment create --amount 25
 ```
 
 ---
 
 ## Troubleshooting
-
-### "Template not found" error
-
-**Solution:** Clear npm cache and try again
-```bash
-npx clear-npx-cache
-npx create-zendfi-app@latest my-app
-```
-
-### Webhook signature verification fails
-
-**Solution:** Check your webhook secret
-```bash
-# Make sure ZENDFI_WEBHOOK_SECRET is set correctly
-echo $ZENDFI_WEBHOOK_SECRET
-
-# Test webhooks locally
-zendfi webhooks listen
-```
 
 ### "API key invalid" error
 
@@ -754,10 +579,21 @@ zendfi keys list
 **Solution:** Check if customer completed payment
 ```bash
 # Check payment status
-zendfi status pay_test_abc123
+zendfi payment status pay_test_abc123
 
 # Test mode uses free devnet - get test SOL at:
 # https://sol-faucet.com
+```
+
+### Webhook signature verification fails
+
+**Solution:** Check your webhook secret
+```bash
+# Make sure ZENDFI_WEBHOOK_SECRET is set correctly
+echo $ZENDFI_WEBHOOK_SECRET
+
+# Test webhooks locally
+zendfi webhooks listen
 ```
 
 ---

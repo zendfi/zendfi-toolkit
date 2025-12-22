@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * ZendFi CLI - Management commands
+ * ZendFi CLI - Crypto payments made easy
  * 
- * Commands:
+ * Core Commands (Start Here):
  * - zendfi init              Add ZendFi to existing project
- * - zendfi test payment      Create test payment
- * - zendfi status            Check payment status
- * - zendfi webhooks          Webhook management
+ * - zendfi dev               Local development server
+ * - zendfi payment           Create and manage payments
+ * - zendfi webhooks          Test webhooks locally
+ * 
+ * Advanced (Optional):
+ * - zendfi ai                AI agent features
  * - zendfi keys              API key management
- * - zendfi agent keys        Agent API key management
- * - zendfi agent sessions    Agent session management
- * - zendfi agent analytics   View agent analytics
  */
 
 import { program } from 'commander';
@@ -66,19 +66,21 @@ const version = pkg.version;
 const logo = `
 ${chalk.hex('#667eea').bold('╔══════════════════════════════════════╗')}
 ${chalk.hex('#667eea').bold('║')}  ${chalk.hex('#764ba2').bold('         ZendFi CLI')}                ${chalk.hex('#667eea').bold('║')}
-${chalk.hex('#667eea').bold('║')}  ${chalk.gray('   Crypto payments made easy')}        ${chalk.hex('#667eea').bold('║')}
+${chalk.hex('#667eea').bold('║')}  ${chalk.gray('   Payments in 7 lines of code')}      ${chalk.hex('#667eea').bold('║')}
 ${chalk.hex('#667eea').bold('╚══════════════════════════════════════╝')}
 `;
 
 program
   .name('zendfi')
-  .description('ZendFi CLI - Crypto payment tools for developers')
+  .description('Crypto payments made easy - Built for e-commerce. Ready for AI.')
   .version(version)
   .addHelpText('before', logo);
 
 // ============================================
-// INIT COMMAND
+// CORE COMMANDS
 // ============================================
+
+// INIT - Add to existing project
 program
   .command('init')
   .description('Add ZendFi to an existing project')
@@ -94,16 +96,16 @@ program
     }
   });
 
-// ============================================
-// TEST COMMAND
-// ============================================
-const testCmd = program
-  .command('test')
-  .description('Testing utilities');
-
-testCmd
+// PAYMENT - Main payment management command
+const paymentCmd = program
   .command('payment')
+  .description('Payment management')
+  .alias('pay');
+
+paymentCmd
+  .command('create')
   .description('Create a test payment')
+  .alias('test')
   .option('--amount <amount>', 'Payment amount in USD', parseFloat)
   .option('--description <description>', 'Payment description')
   .option('--email <email>', 'Customer email')
@@ -118,10 +120,7 @@ testCmd
     }
   });
 
-// ============================================
-// STATUS COMMAND
-// ============================================
-program
+paymentCmd
   .command('status <payment-id>')
   .description('Check payment status')
   .action(async (paymentId) => {
@@ -133,16 +132,11 @@ program
     }
   });
 
-// ============================================
-// WEBHOOKS COMMAND
-// ============================================
-const webhooksCmd = program
+// WEBHOOKS - Local webhook testing
+program
   .command('webhooks')
-  .description('Webhook management');
-
-webhooksCmd
-  .command('listen')
-  .description('Listen for webhooks locally')
+  .description('Test webhooks locally (tunnels via ngrok/cloudflared)')
+  .alias('listen')
   .option('--port <port>', 'Local port', '3000')
   .option('--forward-to <url>', 'Forward webhooks to URL')
   .action(async (options) => {
@@ -155,7 +149,7 @@ webhooksCmd
   });
 
 // ============================================
-// KEYS COMMAND
+// API KEYS (Basic Management)
 // ============================================
 const keysCmd = program
   .command('keys')
@@ -200,18 +194,19 @@ keysCmd
   });
 
 // ============================================
-// AGENT COMMAND (Agentic Intent Protocol)
+// AI FEATURES (Optional Advanced)
 // ============================================
-const agentCmd = program
-  .command('agent')
-  .description('Agent API key and session management');
+const aiCmd = program
+  .command('ai')
+  .description('AI agent features (advanced)')
+  .alias('agent');
 
-// Agent Keys subcommands
-const agentKeysCmd = agentCmd
+// Agent Keys
+const aiKeysCmd = aiCmd
   .command('keys')
-  .description('Manage agent API keys');
+  .description('Manage AI agent API keys');
 
-agentKeysCmd
+aiKeysCmd
   .command('create')
   .description('Create a new agent API key')
   .option('--name <name>', 'Agent name')
@@ -227,7 +222,7 @@ agentKeysCmd
     }
   });
 
-agentKeysCmd
+aiKeysCmd
   .command('list')
   .description('List all agent API keys')
   .action(async () => {
@@ -239,7 +234,7 @@ agentKeysCmd
     }
   });
 
-agentKeysCmd
+aiKeysCmd
   .command('revoke <key-id>')
   .description('Revoke an agent API key')
   .action(async (keyId) => {
@@ -252,11 +247,11 @@ agentKeysCmd
   });
 
 // Agent Sessions subcommands
-const agentSessionsCmd = agentCmd
+const aiSessionsCmd = aiCmd
   .command('sessions')
   .description('Manage agent sessions');
 
-agentSessionsCmd
+aiSessionsCmd
   .command('create')
   .description('Create an agent session with spending limits')
   .option('--agent-id <agentId>', 'Agent identifier')
@@ -273,7 +268,7 @@ agentSessionsCmd
     }
   });
 
-agentSessionsCmd
+aiSessionsCmd
   .command('list')
   .description('List all agent sessions')
   .action(async () => {
@@ -285,7 +280,7 @@ agentSessionsCmd
     }
   });
 
-agentSessionsCmd
+aiSessionsCmd
   .command('get <session-id>')
   .description('Get details of a specific agent session')
   .action(async (sessionId) => {
@@ -297,7 +292,7 @@ agentSessionsCmd
     }
   });
 
-agentSessionsCmd
+aiSessionsCmd
   .command('revoke <session-id>')
   .description('Revoke an agent session')
   .action(async (sessionId) => {
@@ -310,7 +305,7 @@ agentSessionsCmd
   });
 
 // Agent Analytics command
-agentCmd
+aiCmd
   .command('analytics')
   .description('View agent analytics and metrics')
   .action(async () => {
@@ -553,73 +548,52 @@ smartCmd
 // ============================================
 program.on('--help', () => {
   console.log('');
-  console.log(chalk.bold('Examples:'));
+  console.log(chalk.bold('🚀 Quick Start:'));
   console.log('');
   console.log(chalk.gray('  # Add ZendFi to your project'));
   console.log(chalk.cyan('  $ zendfi init'));
   console.log('');
   console.log(chalk.gray('  # Create a test payment'));
-  console.log(chalk.cyan('  $ zendfi test payment --amount 50'));
+  console.log(chalk.cyan('  $ zendfi payment create --amount 50'));
   console.log('');
   console.log(chalk.gray('  # Check payment status'));
-  console.log(chalk.cyan('  $ zendfi status pay_test_abc123'));
+  console.log(chalk.cyan('  $ zendfi payment status pay_test_abc123'));
   console.log('');
-  console.log(chalk.bold('Agent Commands (Agentic Intent Protocol):'));
+  console.log(chalk.gray('  # Test webhooks locally'));
+  console.log(chalk.cyan('  $ zendfi webhooks --port 3000'));
+  console.log('');
+  console.log(chalk.bold('🔑 API Keys:'));
+  console.log('');
+  console.log(chalk.gray('  # List all API keys'));
+  console.log(chalk.cyan('  $ zendfi keys list'));
+  console.log('');
+  console.log(chalk.gray('  # Create a new API key'));
+  console.log(chalk.cyan('  $ zendfi keys create --name "Production" --mode live'));
+  console.log('');
+  console.log(chalk.bold('🤖 AI Features (Optional Advanced):'));
   console.log('');
   console.log(chalk.gray('  # Create an agent API key'));
-  console.log(chalk.cyan('  $ zendfi agent keys create'));
+  console.log(chalk.cyan('  $ zendfi ai keys create --agent-id my-agent'));
   console.log('');
-  console.log(chalk.gray('  # List agent API keys'));
-  console.log(chalk.cyan('  $ zendfi agent keys list'));
-  console.log('');
-  console.log(chalk.gray('  # Create an agent session'));
-  console.log(chalk.cyan('  $ zendfi agent sessions create --agent-id my-agent --wallet Hx7B...'));
-  console.log('');
-  console.log(chalk.gray('  # View agent analytics'));
-  console.log(chalk.cyan('  $ zendfi agent analytics'));
-  console.log('');
-  console.log(chalk.bold('Payment Intents:'));
-  console.log('');
-  console.log(chalk.gray('  # Create a payment intent'));
-  console.log(chalk.cyan('  $ zendfi intents create --amount 99.99'));
-  console.log('');
-  console.log(chalk.gray('  # List all intents'));
-  console.log(chalk.cyan('  $ zendfi intents list'));
-  console.log('');
-  console.log(chalk.gray('  # Confirm an intent'));
-  console.log(chalk.cyan('  $ zendfi intents confirm pi_abc123 --wallet Hx7B...'));
-  console.log('');
-  console.log(chalk.bold('PPP Pricing (Purchasing Power Parity):'));
+  console.log(chalk.gray('  # Create an agent session with spending limits'));
+  console.log(chalk.cyan('  $ zendfi ai sessions create --agent-id my-agent --max-per-day 200'));
   console.log('');
   console.log(chalk.gray('  # Check PPP factor for a country'));
-  console.log(chalk.cyan('  $ zendfi ppp check BR'));
+  console.log(chalk.cyan('  $ zendfi ai ppp check BR --price 99.99'));
   console.log('');
-  console.log(chalk.gray('  # Calculate localized price'));
-  console.log(chalk.cyan('  $ zendfi ppp calculate --price 99.99 --country IN'));
+  console.log(chalk.gray('  # Create a payment intent'));
+  console.log(chalk.cyan('  $ zendfi ai intents create --amount 99.99'));
   console.log('');
-  console.log(chalk.gray('  # List all PPP factors'));
-  console.log(chalk.cyan('  $ zendfi ppp factors --sort discount'));
+  console.log(chalk.gray('  # Enable autonomous delegation'));
+  console.log(chalk.cyan('  $ zendfi ai autonomy enable --wallet Hx7B... --max-per-day 200'));
   console.log('');
-  console.log(chalk.bold('Autonomous Delegation:'));
+  console.log(chalk.gray('  # View agent analytics'));
+  console.log(chalk.cyan('  $ zendfi ai analytics'));
   console.log('');
-  console.log(chalk.gray('  # Enable autonomy for a wallet'));
-  console.log(chalk.cyan('  $ zendfi autonomy enable --wallet Hx7B... --agent-id my-agent'));
+  console.log(chalk.bold('📚 Learn More:'));
   console.log('');
-  console.log(chalk.gray('  # Check autonomy status'));
-  console.log(chalk.cyan('  $ zendfi autonomy status Hx7B...'));
-  console.log('');
-  console.log(chalk.gray('  # List all delegates'));
-  console.log(chalk.cyan('  $ zendfi autonomy delegates'));
-  console.log('');
-  console.log(chalk.bold('Smart Payments:'));
-  console.log('');
-  console.log(chalk.gray('  # Create a smart payment with PPP'));
-  console.log(chalk.cyan('  $ zendfi smart create --amount 99.99 --country BR'));
-  console.log('');
-  console.log(chalk.gray('  # Simulate pricing'));
-  console.log(chalk.cyan('  $ zendfi smart simulate --amount 99.99 --country IN'));
-  console.log('');
-  console.log(chalk.gray('Documentation:'), chalk.blue.underline('https://docs.zendfi.tech'));
+  console.log(chalk.gray('  Docs:    '), chalk.blue.underline('https://docs.zendfi.tech'));
+  console.log(chalk.gray('  AI Guide:'), chalk.blue.underline('https://docs.zendfi.tech/agentic'));
   console.log('');
 });
 
