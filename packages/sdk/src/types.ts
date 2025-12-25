@@ -1005,6 +1005,10 @@ export interface AgentAnalytics {
 export interface CreateSessionKeyRequest {
   /** User's main wallet address */
   user_wallet: string;
+  /** Agent identifier for cross-app compatibility (e.g., "shopping-assistant-v1") */
+  agent_id: string;
+  /** Human-readable agent name (e.g., "AI Shopping Assistant") */
+  agent_name?: string;
   /** Spending limit in USDC */
   limit_usdc: number;
   /** Duration in days (1-30) */
@@ -1031,6 +1035,10 @@ export interface CreateSessionKeyResponse {
   session_key_id: string;
   /** User's main wallet address */
   user_wallet: string;
+  /** Agent identifier */
+  agent_id: string;
+  /** Agent name (if provided) */
+  agent_name?: string;
   /** Spending limit in USDC */
   limit_usdc: number;
   /** Expiration timestamp */
@@ -1039,6 +1047,8 @@ export interface CreateSessionKeyResponse {
   requires_approval: boolean;
   /** Base64 encoded approval transaction (user must sign) */
   approval_transaction: string;
+  /** True if this session key works across multiple apps with same agent_id */
+  cross_app_compatible: boolean;
   /** Setup instructions */
   instructions: SessionKeyInstructions;
 }
@@ -1057,6 +1067,10 @@ export interface SessionKeyInstructions {
 export interface CreateDeviceBoundSessionKeyRequest {
   /** User's main wallet address */
   user_wallet: string;
+  /** Agent identifier for cross-app compatibility (e.g., "shopping-assistant-v1") */
+  agent_id: string;
+  /** Human-readable agent name (e.g., "AI Shopping Assistant") */
+  agent_name?: string;
   /** Spending limit in USDC */
   limit_usdc: number;
   /** Duration in days (1-30) */
@@ -1085,6 +1099,10 @@ export interface CreateDeviceBoundSessionKeyResponse {
   is_custodial: boolean;
   /** User's main wallet address */
   user_wallet: string;
+  /** Agent identifier */
+  agent_id: string;
+  /** Agent name (if provided) */
+  agent_name?: string;
   /** Session wallet public key */
   session_wallet: string;
   /** Spending limit in USDC */
@@ -1093,6 +1111,8 @@ export interface CreateDeviceBoundSessionKeyResponse {
   expires_at: string;
   /** Always true for device-bound */
   requires_client_signing: boolean;
+  /** True if this session key works across multiple apps with same agent_id */
+  cross_app_compatible: boolean;
   /** Security details */
   security_info: SessionKeySecurityInfo;
 }

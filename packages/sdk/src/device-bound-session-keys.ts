@@ -24,6 +24,8 @@ import { Transaction } from '@solana/web3.js';
 
 export interface CreateDeviceBoundSessionKeyRequest {
   userWallet: string;
+  agentId: string;
+  agentName?: string;
   limitUsdc: number;
   durationDays: number;
   encryptedSessionKey: string;
@@ -38,10 +40,13 @@ export interface CreateDeviceBoundSessionKeyResponse {
   mode: 'device_bound';
   isCustodial: false;
   userWallet: string;
+  agentId: string;
+  agentName?: string;
   sessionWallet: string;
   limitUsdc: number;
   expiresAt: string;
   requiresClientSigning: true;
+  crossAppCompatible: boolean;
   securityInfo: {
     encryptionType: string;
     deviceBound: boolean;
@@ -101,6 +106,8 @@ export class ZendFiSessionKeyManager {
    * 
    * const sessionKey = await manager.createSessionKey({
    *   userWallet: '7xKNH....',
+   *   agentId: 'shopping-assistant-v1',
+   *   agentName: 'AI Shopping Assistant',
    *   limitUSDC: 100,
    *   durationDays: 7,
    *   pin: '123456',
@@ -108,21 +115,27 @@ export class ZendFiSessionKeyManager {
    * });
    * 
    * console.log('Session key created:', sessionKey.sessionKeyId);
+   * console.log('Works across all apps with agent:', sessionKey.agentId);
    * console.log('Recovery QR:', sessionKey.recoveryQR);
    * ```
    */
   async createSessionKey(options: {
     userWallet: string;
+    agentId: string;
+    agentName?: string;
     limitUSDC: number;
     durationDays: number;
     pin: string;
     generateRecoveryQR?: boolean;
   }): Promise<{
     sessionKeyId: string;
+    agentId: string;
+    agentName?: string;
     sessionWallet: string;
     expiresAt: string;
     recoveryQR?: string;
     limitUsdc: number;
+    crossAppCompatible: boolean;
   }> {
     // Create device-bound session key (client-side)
     const sessionKey = await DeviceBoundSessionKey.create({
@@ -146,6 +159,8 @@ export class ZendFiSessionKeyManager {
     // Prepare request for backend
     const request: CreateDeviceBoundSessionKeyRequest = {
       userWallet: options.userWallet,
+      agentId: options.agentId,
+      agentName: options.agentName,
       limitUsdc: options.limitUSDC,
       durationDays: options.durationDays,
       encryptedSessionKey: encrypted.encryptedData,
@@ -169,10 +184,13 @@ export class ZendFiSessionKeyManager {
 
     return {
       sessionKeyId: response.sessionKeyId,
+      agentId: response.agentId,
+      agentName: response.agentName,
       sessionWallet: response.sessionWallet,
       expiresAt: response.expiresAt,
       recoveryQR,
       limitUsdc: response.limitUsdc,
+      crossAppCompatible: response.crossAppCompatible,
     };
   }
 

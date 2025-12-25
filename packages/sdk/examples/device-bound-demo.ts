@@ -1,25 +1,27 @@
 /**
- * Device-Bound Session Keys - Example Usage
+ * Device-Bound Session Keys - Agent-Scoped Example
  * 
- * This example shows how to use the ZendFi device-bound session keys
- * for non-custodial instant payments
+ * This example shows how to use agent-scoped session keys
+ * that work across multiple apps (no liquidity fragmentation!)
  */
 
 import { ZendFiSessionKeyManager } from '../src/device-bound-session-keys';
 
 async function main() {
-  console.log('🔐 ZendFi Device-Bound Session Keys Demo\n');
+  console.log('🔐 ZendFi Device-Bound Agent-Scoped Session Keys Demo\n');
 
   // Initialize manager
   const apiKey = process.env.ZENDFI_API_KEY || 'zai_test_your_key_here';
   const manager = new ZendFiSessionKeyManager(apiKey, 'https://api.zendfi.com');
 
-  console.log('📝 Step 1: Create Session Key');
+  console.log('📝 Step 1: Create Agent-Scoped Session Key');
   console.log('━'.repeat(50));
 
   try {
     const sessionKey = await manager.createSessionKey({
       userWallet: '7xKNH6ttXQfJpAoDW1p7zGMKS7kGvXZ4XG7fCcUjU86Y',  // Example wallet
+      agentId: 'shopping-assistant-v1',         // 🔑 Cross-app agent identifier
+      agentName: 'AI Shopping Assistant',        // Human-readable name
       limitUSDC: 100,
       durationDays: 7,
       pin: '123456',
@@ -28,10 +30,17 @@ async function main() {
 
     console.log('✅ Session key created successfully!');
     console.log(`   Session ID: ${sessionKey.sessionKeyId}`);
+    console.log(`   Agent ID: ${sessionKey.agentId}`);
+    console.log(`   Cross-App Compatible: ${sessionKey.crossAppCompatible ? '✅' : '❌'}`);
     console.log(`   Session Wallet: ${sessionKey.sessionWallet}`);
     console.log(`   Limit: $${sessionKey.limitUsdc}`);
     console.log(`   Expires: ${sessionKey.expiresAt}`);
     console.log(`   Recovery QR: ${sessionKey.recoveryQR?.substring(0, 50)}...`);
+    
+    if (sessionKey.crossAppCompatible) {
+      console.log('\n💡 This session key works across ALL apps with agent "shopping-assistant-v1"!');
+      console.log('   No re-authorization needed when using the same agent in different apps.');
+    }
     console.log('');
 
     // Save session key ID for later
