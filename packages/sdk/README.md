@@ -38,20 +38,20 @@ console.log(payment.payment_url); // Send customer here
 
 ## Features
 
-### 🚀 **Core Payments** (Start Here)
+### **Core Payments** (Start Here)
 - **Simple Payments** — QR codes, payment links, instant settlements
 - **Payment Links** — Reusable checkout pages for social/email
 - **Webhooks** — Real-time notifications with auto-verification
 - **Test Mode** — Free devnet testing with no real money
 - **Type-Safe** — Full TypeScript support with auto-completion
 
-### 💼 **Scale Up** (When You Grow)
+### **Scale Up** (When You Grow)
 - **Subscriptions** — Recurring billing with trials
 - **Installments** — Buy now, pay later flows
 - **Invoices** — Professional invoicing with email
 - **Payment Splits** — Revenue sharing for marketplaces
 
-### 🤖 **AI-Ready** (Optional Advanced)
+### **AI-Ready** (Optional Advanced)
 - **Agent Keys** — Scoped API keys for AI with spending limits
 - **Session Keys** — Pre-funded wallets for autonomous payments
 - **Payment Intents** — Two-phase commit for reliable checkout
@@ -226,7 +226,7 @@ const payment = await zendfi.agent.pay({
 
 ---
 
-## 📚 Core API Reference
+## Core API Reference
 
 ### Namespaced APIs
 
@@ -398,6 +398,111 @@ const suggestion = await zendfi.pricing.getSuggestion({
 
 **Supported Countries (27+):**
 Argentina, Australia, Brazil, Canada, China, Colombia, Egypt, France, Germany, Ghana, Hong Kong, Hungary, India, Indonesia, Israel, Japan, Kenya, Mexico, Nigeria, Philippines, Poland, South Africa, Thailand, Turkey, Ukraine, United Kingdom, Vietnam, and more.
+
+---
+
+## Optional Helper Utilities
+
+Production-ready utilities to simplify common integration patterns. All helpers are **optional**, **tree-shakeable**, and **zero-config**.
+
+```typescript
+import { 
+  SessionKeyCache,
+  WalletConnector,
+  TransactionPoller,
+  DevTools 
+} from '@zendfi/sdk/helpers';
+```
+
+### Why Use Helpers?
+
+- **Optional**: Import only what you need
+- **Tree-shakeable**: Unused code eliminated by bundlers  
+- **Zero config**: Sensible defaults, works out of the box
+- **Pluggable**: Bring your own storage/AI/PIN providers
+- **Production-ready**: Full TypeScript types, error handling
+
+### Available Helpers
+
+| Helper | Purpose | Use Case |
+|--------|---------|----------|
+| `SessionKeyCache` | Cache encrypted session keys | Avoid re-prompting for PIN |
+| `WalletConnector` | Detect & connect Solana wallets | Phantom, Solflare, Backpack |
+| `PaymentIntentParser` | Parse natural language to payments | AI chat interfaces |
+| `PINValidator` | Validate PIN strength | Device-bound security |
+| `TransactionPoller` | Poll for confirmations | Wait for on-chain finality |
+| `RetryStrategy` | Exponential backoff retries | Handle network failures |
+| `SessionKeyLifecycle` | High-level session key manager | One-liner setup |
+| `DevTools` | Debug mode & test utilities | Development & testing |
+
+### Session Key Cache
+
+Cache encrypted session keys to avoid re-prompting users for their PIN:
+
+```typescript
+import { SessionKeyCache, QuickCaches } from '@zendfi/sdk/helpers';
+
+// Use presets
+const cache = QuickCaches.persistent(); // 1 hour localStorage
+
+// Use with device-bound session keys
+const keypair = await cache.getCached(
+  sessionKeyId,
+  async () => {
+    const pin = await promptUserForPIN();
+    return await decryptKeypair(pin);
+  }
+);
+```
+
+### Wallet Connector
+
+Auto-detect and connect to Solana wallets:
+
+```typescript
+import { WalletConnector } from '@zendfi/sdk/helpers';
+
+const wallet = await WalletConnector.detectAndConnect();
+console.log(wallet.address);
+
+const signedTx = await wallet.signTransaction(transaction);
+```
+
+### Transaction Polling
+
+Wait for confirmations with exponential backoff:
+
+```typescript
+import { TransactionPoller } from '@zendfi/sdk/helpers';
+
+const poller = new TransactionPoller({ connection: rpcConnection });
+const result = await poller.waitForConfirmation(signature);
+```
+
+### Session Key Lifecycle
+
+High-level wrapper for complete session key management:
+
+```typescript
+import { SessionKeyLifecycle } from '@zendfi/sdk/helpers';
+
+const lifecycle = new SessionKeyLifecycle(zendfi, {
+  cache: QuickCaches.persistent(),
+  autoCleanup: true,
+});
+
+await lifecycle.createAndFund({
+  userWallet: userAddress,
+  agentId: 'my-agent',
+  limitUsdc: 100,
+});
+
+await lifecycle.pay(5.00, 'Coffee');
+```
+
+**Full documentation:** See [Helper Utilities Guide](https://docs.zendfi.tech/helpers) for complete API reference and examples.
+
+---
 
 ### Autonomous Delegation
 

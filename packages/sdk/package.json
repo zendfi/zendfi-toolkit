@@ -1,6 +1,6 @@
 {
   "name": "@zendfi/sdk",
-  "version": "0.5.8",
+  "version": "0.6.0",
   "description": "Zero-config TypeScript SDK for ZendFi crypto payments",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -47,11 +47,12 @@
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
-    "cross-fetch": "^4.0.0"
+    "cross-fetch": "^4.0.0",
+    "react": "^19.2.3"
   },
   "peerDependencies": {
-    "@lit-protocol/lit-node-client": "^6.0.0 || ^7.0.0 || ^8.0.0",
     "@lit-protocol/auth-helpers": "^6.0.0 || ^7.0.0 || ^8.0.0",
+    "@lit-protocol/lit-node-client": "^6.0.0 || ^7.0.0 || ^8.0.0",
     "ethers": "^5.0.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {
@@ -66,8 +67,8 @@
     }
   },
   "devDependencies": {
-    "@lit-protocol/lit-node-client": "^6.11.0",
     "@lit-protocol/auth-helpers": "^6.11.0",
+    "@lit-protocol/lit-node-client": "^6.11.0",
     "@types/node": "^20.11.19",
     "ethers": "^6.13.4",
     "tsup": "^8.0.2",

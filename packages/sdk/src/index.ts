@@ -95,3 +95,6 @@ export {
   type SignPaymentParams,
   type SignPaymentResult,
 } from './lit-crypto-signer';
+
+// Optional Helpers (tree-shakeable utilities)
+export * from './helpers';
