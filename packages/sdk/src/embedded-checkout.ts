@@ -261,7 +261,8 @@ export class ZendFiEmbeddedCheckout {
           const data = await response.json();
           
           if (data.status === 'confirmed') {
-            this.handlePaymentSuccess(data);
+            // Fetch full payment details
+            await this.fetchAndHandlePaymentSuccess();
           } else if (data.status === 'failed') {
             this.handlePaymentFailure(data);
           } else if (data.status === 'expired') {
@@ -272,6 +273,32 @@ export class ZendFiEmbeddedCheckout {
         console.error('Payment status check failed:', error);
       }
     }, 3000); // Poll every 3 seconds
+  }
+
+  /**
+   * Fetch full payment details and handle success
+   */
+  private async fetchAndHandlePaymentSuccess(): Promise<void> {
+    if (!this.checkoutData) return;
+
+    try {
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/payments/${this.checkoutData.payment_id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const payment = await response.json();
+        this.handlePaymentSuccess(payment);
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment details:', error);
+    }
   }
 
   /**
@@ -286,8 +313,8 @@ export class ZendFiEmbeddedCheckout {
     this.config.onSuccess({
       paymentId: data.id,
       transactionSignature: data.transaction_signature,
-      amount: data.amount_usd || data.amount,
-      token: data.payment_token,
+      amount: data.amount_usd,
+      token: this.checkoutData?.token || 'USDC',
       merchantName: this.checkoutData?.merchant_name || 'Merchant',
     });
 
