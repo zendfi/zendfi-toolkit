@@ -117,6 +117,7 @@ export class ZendFiEmbeddedCheckout {
   private checkoutData: CheckoutData | null = null;
   private pollInterval: NodeJS.Timeout | null = null;
   private mounted: boolean = false;
+  private paymentProcessed: boolean = false; // Prevent duplicate success callbacks
 
   constructor(config: EmbeddedCheckoutConfig) {
     this.config = {
@@ -244,7 +245,7 @@ export class ZendFiEmbeddedCheckout {
    */
   private startPaymentPolling(): void {
     this.pollInterval = setInterval(async () => {
-      if (!this.checkoutData) return;
+      if (!this.checkoutData || this.paymentProcessed) return;
 
       try {
         const response = await fetch(
@@ -260,7 +261,7 @@ export class ZendFiEmbeddedCheckout {
         if (response.ok) {
           const data = await response.json();
           
-          if (data.status === 'confirmed') {
+          if (data.status === 'confirmed' && !this.paymentProcessed) {
             // Payment confirmed - use status data directly
             this.handlePaymentSuccess(data);
           } else if (data.status === 'failed') {
@@ -279,6 +280,10 @@ export class ZendFiEmbeddedCheckout {
    * Handle successful payment
    */
   private handlePaymentSuccess(statusData: any): void {
+    // Prevent duplicate callbacks
+    if (this.paymentProcessed) return;
+    this.paymentProcessed = true;
+
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
