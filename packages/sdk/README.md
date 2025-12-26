@@ -26,11 +26,11 @@ console.log(payment.payment_url); // Send customer here
 
 | Feature | Stripe | PayPal | **ZendFi** |
 |---------|--------|--------|------------|
-| **Fees** | 2.9% + $0.30 | 3.5% + $0.49 | **0.6% flat** ✨ |
-| **Settlement** | 7 days | 3-5 days | **Instant** ✨ |
-| **Crypto Native** | Via 3rd party | Via 3rd party | **Built-in** ✨ |
-| **AI Agent Ready** | ❌ | ❌ | **✅ Native** ✨ |
-| **Setup Time** | 30 min | 30 min | **5 min** ✨ |
+| **Fees** | 2.9% + $0.30 | 3.5% + $0.49 | **0.6% flat** |
+| **Settlement** | 7 days | 3-5 days | **Instant** |
+| **Crypto Native** | Via 3rd party | Via 3rd party | **Built-in** |
+| **AI Agent Ready** | ACP  | NO | **Native** |
+| **Setup Time** | 30 min | 30 min | **5 min** |
 
 **Save 81% on fees.** Get paid instantly. Scale to AI when ready.
 
@@ -39,6 +39,7 @@ console.log(payment.payment_url); // Send customer here
 ## Features
 
 ### **Core Payments** (Start Here)
+- **Embedded Checkout** — Drop-in checkout component for your website/app
 - **Simple Payments** — QR codes, payment links, instant settlements
 - **Payment Links** — Reusable checkout pages for social/email
 - **Webhooks** — Real-time notifications with auto-verification
@@ -125,6 +126,66 @@ console.log(payment.payment_url);
 
 ---
 
+## Embedded Checkout
+
+Skip redirects entirely—embed the checkout directly into your website or app. Perfect for seamless user experiences.
+
+### Quick Example
+
+```typescript
+import { ZendFiEmbeddedCheckout } from '@zendfi/sdk';
+
+const checkout = new ZendFiEmbeddedCheckout({
+  linkCode: 'your-payment-link-code',
+  containerId: 'checkout-container',
+  mode: 'test',
+  
+  onSuccess: (payment) => {
+    console.log('Payment successful!', payment.transactionSignature);
+    // Redirect to success page or show confirmation
+  },
+  
+  onError: (error) => {
+    console.error('Payment failed:', error.message);
+  },
+});
+
+// Mount the checkout
+await checkout.mount();
+```
+
+### HTML Setup
+
+```html
+<div id="checkout-container"></div>
+<script type="module">
+  import { ZendFiEmbeddedCheckout } from '@zendfi/sdk';
+  // ... (setup code above)
+</script>
+```
+
+### Features
+
+- **Drop-in Integration** — Works with React, Vue, Next.js, or vanilla JS
+- **QR Code Generation** — Automatic mobile wallet support
+- **Wallet Connect** — Phantom, Solflare, Backpack support
+- **Real-time Updates** — Live payment confirmation polling
+- **Gasless Transactions** — Optional backend-signed payments
+- **Customizable Theme** — Match your brand colors & styles
+- **TypeScript First** — Full type safety and autocomplete
+
+### Complete Documentation
+
+For comprehensive guides, React examples, theming, and advanced usage:
+
+- **Quick Start:** [`EMBEDDED_CHECKOUT_QUICKSTART.md`](./EMBEDDED_CHECKOUT_QUICKSTART.md)
+- **Full Guide:** [`EMBEDDED_CHECKOUT.md`](./EMBEDDED_CHECKOUT.md)
+- **Implementation Details:** [`EMBEDDED_CHECKOUT_IMPLEMENTATION.md`](./EMBEDDED_CHECKOUT_IMPLEMENTATION.md)
+- **React Example:** [`examples/embedded-checkout-react.tsx`](./examples/embedded-checkout-react.tsx)
+- **Vanilla JS Example:** [`examples/embedded-checkout-vanilla.html`](./examples/embedded-checkout-vanilla.html)
+
+---
+
 ## API Key Modes
 
 ZendFi uses **smart API keys** that automatically route to the correct network:
@@ -172,7 +233,7 @@ This covers:
 
 ---
 
-## 🤖 AI-Ready Features (Optional Advanced)
+## AI-Ready Features (Optional Advanced)
 
 Building AI agents? ZendFi has native support for autonomous payments with cryptographic security and spending limits.
 
@@ -231,7 +292,10 @@ const payment = await zendfi.agent.pay({
 ### Namespaced APIs
 
 ```typescript
-import { zendfi } from '@zendfi/sdk';
+import { zendfi, ZendFiEmbeddedCheckout } from '@zendfi/sdk';
+
+// Embedded Checkout (New!)
+const checkout = new ZendFiEmbeddedCheckout({...});
 
 // Traditional Payments (Most Common)
 zendfi.createPayment(...)
@@ -814,7 +878,7 @@ await zendfi.cancelInstallmentPlan(plan.id);
 
 ---
 
-### 🧾 Invoices
+### Invoices
 
 Professional invoices with crypto payment options.
 
@@ -1201,6 +1265,45 @@ console.log('Status:', updated.status); // "Confirmed"
 ---
 
 ## Examples
+
+### Embedded Checkout Integration
+
+```typescript
+import { ZendFiEmbeddedCheckout } from '@zendfi/sdk';
+
+// React Component
+function CheckoutPage({ linkCode }) {
+  const containerRef = useRef(null);
+  
+  useEffect(() => {
+    const checkout = new ZendFiEmbeddedCheckout({
+      linkCode,
+      containerId: 'checkout-container',
+      mode: 'test',
+      
+      onSuccess: (payment) => {
+        // Payment successful - redirect or show confirmation
+        router.push(`/success?payment=${payment.paymentId}`);
+      },
+      
+      onError: (error) => {
+        // Handle errors
+        setError(error.message);
+      },
+      
+      theme: {
+        primaryColor: '#8b5cf6',
+        borderRadius: '16px',
+      },
+    });
+    
+    checkout.mount();
+    return () => checkout.unmount();
+  }, [linkCode]);
+  
+  return <div id="checkout-container" ref={containerRef} />;
+}
+```
 
 ### E-commerce Checkout
 

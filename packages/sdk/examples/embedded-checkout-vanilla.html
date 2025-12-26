@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZendFi Checkout - Vanilla JS Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    #checkout-container {
+      min-height: 500px;
+    }
+
+    .loading {
+      background: white;
+      border-radius: 16px;
+      padding: 4rem 2rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f4f6;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: white;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .footer a {
+      color: white;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 ZendFi Checkout</h1>
+      <p>Secure Solana payments, embedded on your site</p>
+    </div>
+
+    <!-- Checkout will be rendered here -->
+    <div id="checkout-container">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading checkout...</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Powered by <a href="https://zendfi.tech" target="_blank">ZendFi</a></p>
+    </div>
+  </div>
+
+  <!-- ZendFi SDK -->
+  <script type="module">
+    // Import ZendFi SDK
+    // In production, use: import { ZendFiEmbeddedCheckout } from '@zendfi/sdk';
+    // For this example, we'll use a CDN or local build
+    
+    // Get link code from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const linkCode = urlParams.get('link') || 'demo123'; // Replace with your link code
+    const mode = urlParams.get('mode') || 'test'; // 'test' or 'live'
+
+    // Initialize checkout when DOM is ready
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Dynamically import the SDK
+        const { ZendFiEmbeddedCheckout } = await import('https://unpkg.com/@zendfi/sdk@latest/dist/index.js');
+
+        // Create checkout instance
+        const checkout = new ZendFiEmbeddedCheckout({
+          linkCode: linkCode,
+          containerId: 'checkout-container',
+          mode: mode,
+
+          onLoad: () => {
+            console.log('✅ Checkout loaded successfully');
+          },
+
+          onSuccess: (payment) => {
+            console.log('✅ Payment successful!', payment);
+            
+            // Show success message
+            const container = document.getElementById('checkout-container');
+            container.innerHTML = `
+              <div style="background: white; border-radius: 16px; padding: 3rem; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+                <div style="font-size: 5rem; margin-bottom: 1rem;">🎉</div>
+                <h2 style="color: #059669; font-size: 2rem; margin-bottom: 1rem;">Payment Successful!</h2>
+                <p style="color: #6b7280; margin-bottom: 2rem;">Thank you for your payment</p>
+                <div style="background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+                  <p style="margin: 0.5rem 0;"><strong>Amount:</strong> $${payment.amount} ${payment.token}</p>
+                  <p style="margin: 0.5rem 0;"><strong>Merchant:</strong> ${payment.merchantName}</p>
+                  <p style="margin: 0.5rem 0; word-break: break-all;"><strong>Transaction:</strong> ${payment.transactionSignature.slice(0, 20)}...</p>
+                </div>
+                <button onclick="window.location.href='/'" style="background: #667eea; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                  Return Home
+                </button>
+              </div>
+            `;
+
+            // Optional: Send to analytics
+            if (window.gtag) {
+              gtag('event', 'purchase', {
+                transaction_id: payment.paymentId,
+                value: payment.amount,
+                currency: payment.token,
+              });
+            }
+
+            // Optional: Verify on backend
+            fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: payment.paymentId }),
+            }).catch(err => console.error('Verification failed:', err));
+          },
+
+          onError: (error) => {
+            console.error('❌ Payment error:', error);
+            
+            // Show error message
+            const container = document.getElementById('checkout-container');
+            container.innerHTML = `
+              <div style="background: white; border-radius: 16px; padding: 3rem; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+                <div style="font-size: 5rem; margin-bottom: 1rem;">⚠️</div>
+                <h2 style="color: #dc2626; font-size: 2rem; margin-bottom: 1rem;">Payment Failed</h2>
+                <p style="color: #6b7280; margin-bottom: 2rem;">${error.message}</p>
+                <button onclick="window.location.reload()" style="background: #dc2626; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                  Try Again
+                </button>
+              </div>
+            `;
+          },
+
+          // Custom theme
+          theme: {
+            primaryColor: '#667eea',
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            textColor: '#1f2937',
+            buttonStyle: 'solid',
+          },
+        });
+
+        // Mount the checkout
+        await checkout.mount();
+        
+      } catch (error) {
+        console.error('Failed to initialize checkout:', error);
+        
+        const container = document.getElementById('checkout-container');
+        container.innerHTML = `
+          <div style="background: white; border-radius: 16px; padding: 3rem; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+            <div style="font-size: 5rem; margin-bottom: 1rem;">😕</div>
+            <h2 style="color: #dc2626; font-size: 2rem; margin-bottom: 1rem;">Failed to Load</h2>
+            <p style="color: #6b7280; margin-bottom: 2rem;">Unable to initialize checkout. Please try again.</p>
+            <button onclick="window.location.reload()" style="background: #667eea; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+              Reload Page
+            </button>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>

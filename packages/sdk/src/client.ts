@@ -29,7 +29,7 @@ import type {
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
 import { createInterceptors, type Interceptors, type RequestConfig, type ResponseData } from './interceptors';
-import { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './api';
+import { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './aip';
 
 /**
  * ZendFi SDK Client.

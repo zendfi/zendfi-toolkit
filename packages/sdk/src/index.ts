@@ -28,8 +28,17 @@ export * from './types';
 export { ConfigLoader, RateLimiter, generateIdempotencyKey, sleep } from './utils';
 export * from './webhooks';
 
+// Embedded Checkout
+export { ZendFiEmbeddedCheckout } from './embedded-checkout';
+export type { 
+  EmbeddedCheckoutConfig, 
+  CheckoutTheme, 
+  PaymentSuccessData, 
+  CheckoutError 
+} from './embedded-checkout';
+
 // Agentic Intent Protocol APIs
-export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './api';
+export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './aip';
 
 // Error handling
 export {
