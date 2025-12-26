@@ -261,8 +261,8 @@ export class ZendFiEmbeddedCheckout {
           const data = await response.json();
           
           if (data.status === 'confirmed') {
-            // Fetch full payment details
-            await this.fetchAndHandlePaymentSuccess();
+            // Payment confirmed - use status data directly
+            this.handlePaymentSuccess(data);
           } else if (data.status === 'failed') {
             this.handlePaymentFailure(data);
           } else if (data.status === 'expired') {
@@ -276,44 +276,18 @@ export class ZendFiEmbeddedCheckout {
   }
 
   /**
-   * Fetch full payment details and handle success
-   */
-  private async fetchAndHandlePaymentSuccess(): Promise<void> {
-    if (!this.checkoutData) return;
-
-    try {
-      const response = await fetch(
-        `${this.config.apiUrl}/api/v1/payments/${this.checkoutData.payment_id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        const payment = await response.json();
-        this.handlePaymentSuccess(payment);
-      }
-    } catch (error) {
-      console.error('Failed to fetch payment details:', error);
-    }
-  }
-
-  /**
    * Handle successful payment
    */
-  private handlePaymentSuccess(data: any): void {
+  private handlePaymentSuccess(statusData: any): void {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
 
     this.config.onSuccess({
-      paymentId: data.id,
-      transactionSignature: data.transaction_signature,
-      amount: data.amount_usd,
+      paymentId: this.checkoutData?.payment_id || statusData.payment_id,
+      transactionSignature: statusData.transaction_signature || 'Processing...',
+      amount: this.checkoutData?.amount_usd || 0,
       token: this.checkoutData?.token || 'USDC',
       merchantName: this.checkoutData?.merchant_name || 'Merchant',
     });
