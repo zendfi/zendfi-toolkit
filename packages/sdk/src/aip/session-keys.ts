@@ -89,6 +89,8 @@ export class SessionKeysAPI {
   async create(request: CreateSessionKeyRequest): Promise<CreateSessionKeyResponse> {
     return this.request<CreateSessionKeyResponse>('POST', '/api/v1/ai/session-keys/create', {
       user_wallet: request.user_wallet,
+      agent_id: request.agent_id,
+      agent_name: request.agent_name,
       limit_usdc: request.limit_usdc,
       duration_days: request.duration_days ?? 7,
       device_fingerprint: request.device_fingerprint,
