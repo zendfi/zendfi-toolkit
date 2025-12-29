@@ -68,9 +68,8 @@ export {
   InterceptorManager,
 } from './interceptors';
 
-// Device-Bound Session Keys (Non-Custodial)
+// Device-Bound Crypto Primitives (Low-Level)
 export {
-  ZendFiSessionKeyManager,
   DeviceBoundSessionKey,
   DeviceFingerprintGenerator,
   SessionKeyCrypto,
@@ -78,10 +77,7 @@ export {
   type EncryptedSessionKey,
   type DeviceBoundSessionKeyOptions,
   type RecoveryQR,
-  type CreateDeviceBoundSessionKeyRequest,
-  type CreateDeviceBoundSessionKeyResponse,
-  type SessionKeyPaymentRequest,
-} from './device-bound-session-keys';
+} from './device-bound-crypto';
 
 export {
   processWebhook,

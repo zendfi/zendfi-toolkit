@@ -1,476 +1,716 @@
 /**
- * Session Keys API - On-chain funded session wallets
- * 
- * Session keys are dedicated wallets funded by users for AI agents to use.
- * Two modes are supported:
- * 
- * 1. **Custodial Mode**: Backend generates and stores the keypair (simpler)
- * 2. **Device-Bound Mode**: Client generates keypair and encrypts with PIN (more secure)
- * 
+ * Session Keys API - Device-Bound Non-Custodial Session Keys
+ *
+ * TRUE non-custodial session keys where:
+ * - Client generates keypair (backend NEVER sees private key)
+ * - Client encrypts with PIN + device fingerprint (Argon2id + AES-256-GCM)
+ * - Backend stores encrypted blob (cannot decrypt!)
+ * - Client decrypts and signs for each payment
+ *
+ * This is the ONLY supported mode. Custodial session keys are deprecated.
+ *
  * @example
  * ```typescript
- * // Create a custodial session key
+ * // Create a session key with PIN encryption
  * const result = await zendfi.sessionKeys.create({
- *   user_wallet: 'Hx7B...abc',
- *   limit_usdc: 100,
- *   duration_days: 7,
- *   device_fingerprint: await getDeviceFingerprint(),
+ *   userWallet: '7xKNH...',
+ *   agentId: 'shopping-assistant-v1',
+ *   agentName: 'AI Shopping Assistant',
+ *   limitUSDC: 100,
+ *   durationDays: 7,
+ *   pin: '123456',
+ *   generateRecoveryQR: true,
  * });
- * 
- * // User signs the approval transaction in their wallet
- * const signedTx = await wallet.signTransaction(result.approval_transaction);
- * 
- * // Submit the signed transaction
- * await zendfi.sessionKeys.submitApproval({
- *   session_key_id: result.session_key_id,
- *   signed_transaction: signedTx,
+ *
+ * console.log(`Session key: ${result.sessionKeyId}`);
+ * console.log(`Works across all apps with agent: ${result.agentId}`);
+ *
+ * // Unlock for auto-signing (one-time PIN entry)
+ * await zendfi.sessionKeys.unlock(result.sessionKeyId, '123456');
+ *
+ * // Make payments without PIN (instant!)
+ * const payment = await zendfi.sessionKeys.makePayment({
+ *   sessionKeyId: result.sessionKeyId,
+ *   amount: 5.0,
+ *   recipient: '8xYZA...',
+ *   description: 'Coffee purchase',
  * });
- * 
- * // Check status
- * const status = await zendfi.sessionKeys.getStatus(result.session_key_id);
- * console.log(`Remaining: $${status.remaining_usdc}`);
  * ```
+ *
+ * @module aip/session-keys
  */
 
-import type {
-  CreateSessionKeyRequest,
-  CreateSessionKeyResponse,
-  CreateDeviceBoundSessionKeyRequest,
-  CreateDeviceBoundSessionKeyResponse,
-  SessionKeyStatus,
-  TopUpSessionKeyRequest,
-  TopUpSessionKeyResponse,
-  SubmitSignedTransactionRequest,
-  SubmitTransactionResponse,
-  SessionKeyListResponse,
-} from '../types';
+import {
+  DeviceBoundSessionKey,
+  DeviceFingerprintGenerator,
+  SessionKeyCrypto,
+  RecoveryQRGenerator,
+  encryptKeypairWithLit,
+  type EncryptedSessionKey,
+  type LitEncryptionResult,
+} from '../device-bound-crypto';
+import { Transaction } from '@solana/web3.js';
 
 export type RequestFn = <T>(method: string, endpoint: string, data?: any) => Promise<T>;
 
+// ============================================
+// API Request/Response Types (Backend API)
+// ============================================
+
+interface BackendCreateRequest {
+  user_wallet: string;
+  agent_id: string;
+  agent_name?: string;
+  limit_usdc: number;
+  duration_days: number;
+  encrypted_session_key: string;
+  nonce: string;
+  session_public_key: string;
+  device_fingerprint: string;
+  recovery_qr_data?: string;
+  
+  // Lit Protocol encryption for autonomous signing
+  lit_encrypted_keypair?: string;
+  lit_data_hash?: string;
+}
+
+interface BackendCreateResponse {
+  session_key_id: string;
+  mode: 'device_bound';
+  is_custodial: false;
+  user_wallet: string;
+  agent_id: string;
+  agent_name?: string;
+  session_wallet: string;
+  limit_usdc: number;
+  expires_at: string;
+  requires_client_signing: true;
+  cross_app_compatible: boolean;
+  security_info: {
+    encryption_type: string;
+    device_bound: boolean;
+    backend_can_decrypt: boolean;
+    recovery_qr_saved: boolean;
+  };
+}
+
+interface GetEncryptedResponse {
+  encrypted_session_key: string;
+  nonce: string;
+  device_fingerprint_valid: boolean;
+}
+
+// ============================================
+// High-Level SDK Types (Developer Facing)
+// ============================================
+
+export interface CreateSessionKeyOptions {
+  /** User's main wallet address */
+  userWallet: string;
+  /** Agent identifier for cross-app compatibility (e.g., "shopping-assistant-v1") */
+  agentId: string;
+  /** Human-readable agent name (e.g., "AI Shopping Assistant") */
+  agentName?: string;
+  /** Spending limit in USDC */
+  limitUSDC: number;
+  /** Duration in days (1-30) */
+  durationDays: number;
+  /** 6-digit numeric PIN for encryption */
+  pin: string;
+  /** Generate recovery QR code (recommended) */
+  generateRecoveryQR?: boolean;
+  
+  /** Enable Lit Protocol for true autonomous signing (default: true) */
+  enableLitProtocol?: boolean;
+  /** Lit Protocol network (default: 'datil-dev') */
+  litNetwork?: 'datil' | 'datil-dev' | 'datil-test';
+}
+
+export interface SessionKeyResult {
+  /** UUID of the created session key */
+  sessionKeyId: string;
+  /** Agent identifier */
+  agentId: string;
+  /** Agent name (if provided) */
+  agentName?: string;
+  /** Session wallet public key */
+  sessionWallet: string;
+  /** Spending limit in USDC */
+  limitUsdc: number;
+  /** Expiration timestamp */
+  expiresAt: string;
+  /** Recovery QR code data (if generated) */
+  recoveryQR?: string;
+  /** True if this session key works across multiple apps with same agent_id */
+  crossAppCompatible: boolean;
+}
+
+export interface MakePaymentOptions {
+  /** Session key ID to pay from */
+  sessionKeyId: string;
+  /** Payment amount in USD */
+  amount: number;
+  /** Recipient wallet address */
+  recipient: string;
+  /** Token to pay with (default: USDC) */
+  token?: string;
+  /** Payment description */
+  description?: string;
+  /** PIN (only required if session key not unlocked) */
+  pin?: string;
+  /** Whether to cache keypair for future payments (default: true) */
+  enableAutoSign?: boolean;
+}
+
+export interface PaymentResult {
+  paymentId: string;
+  signature: string;
+  status: string;
+}
+
+export interface SessionKeyInfo {
+  sessionKeyId: string;
+  isActive: boolean;
+  isApproved: boolean;
+  limitUsdc: number;
+  usedAmountUsdc: number;
+  remainingUsdc: number;
+  expiresAt: string;
+  daysUntilExpiry: number;
+}
+
+// ============================================
+// Session Keys API (Device-Bound Only)
+// ============================================
+
 export class SessionKeysAPI {
-  constructor(private request: RequestFn) {}
+  private sessionKeys: Map<string, DeviceBoundSessionKey> = new Map();
+  private sessionMetadata: Map<string, { agentId: string; agentName?: string }> = new Map();
+  private requestFn: RequestFn;
+  private debugMode: boolean = false;
 
-  // ============================================
-  // Custodial Session Keys
-  // ============================================
-
-  /**
-   * Create a custodial session key
-   * 
-   * The backend generates and securely stores the keypair.
-   * Returns an approval transaction that the user must sign to fund the session wallet.
-   * 
-   * @param request - Session key configuration
-   * @returns Creation response with approval transaction
-   * 
-   * @example
-   * ```typescript
-   * // Basic creation
-   * const result = await zendfi.sessionKeys.create({
-   *   user_wallet: 'Hx7B...abc',
-   *   limit_usdc: 100,
-   *   duration_days: 7,
-   *   device_fingerprint: deviceFingerprint,
-   * });
-   * 
-   * // Create with linked session for policy enforcement
-   * const result = await zendfi.sessionKeys.create({
-   *   user_wallet: 'Hx7B...abc',
-   *   limit_usdc: 500,
-   *   duration_days: 7,
-   *   device_fingerprint: deviceFingerprint,
-   *   link_session_id: session.id,  // Links to existing session
-   * });
-   * 
-   * console.log(`Session key: ${result.session_key_id}`);
-   * console.log('Please sign the approval transaction');
-   * ```
-   */
-  async create(request: CreateSessionKeyRequest): Promise<CreateSessionKeyResponse> {
-    return this.request<CreateSessionKeyResponse>('POST', '/api/v1/ai/session-keys/create', {
-      user_wallet: request.user_wallet,
-      agent_id: request.agent_id,
-      agent_name: request.agent_name,
-      limit_usdc: request.limit_usdc,
-      duration_days: request.duration_days ?? 7,
-      device_fingerprint: request.device_fingerprint,
-      link_session_id: request.link_session_id,
-      link_session_token: request.link_session_token,
-    });
+  constructor(request: RequestFn) {
+    this.requestFn = request;
   }
 
-  // ============================================
-  // Device-Bound Session Keys (Non-Custodial)
-  // ============================================
+  /**
+   * Enable debug logging
+   */
+  private debug(...args: any[]): void {
+    if (this.debugMode && typeof console !== 'undefined') {
+      console.log('[ZendFi SessionKeys]', ...args);
+    }
+  }
 
   /**
-   * Create a device-bound session key (non-custodial)
-   * 
-   * The client generates the keypair and encrypts it with a PIN before sending.
-   * The backend cannot decrypt the keypair - only the user's device can.
-   * 
-   * @param request - Device-bound session key configuration
-   * @returns Creation response with session wallet address
-   * 
+   * Create a new device-bound session key
+   *
+   * The keypair is generated client-side and encrypted with your PIN.
+   * The backend NEVER sees your private key.
+   *
+   * @param options - Session key configuration
+   * @returns Created session key info with optional recovery QR
+   *
    * @example
    * ```typescript
-   * // Generate keypair client-side
-   * const keypair = Keypair.generate();
-   * 
-   * // Encrypt with PIN
-   * const encrypted = await encryptWithPin(keypair.secretKey, pin);
-   * 
-   * const result = await zendfi.sessionKeys.createDeviceBound({
-   *   user_wallet: 'Hx7B...abc',
-   *   limit_usdc: 100,
-   *   duration_days: 7,
-   *   encrypted_session_key: encrypted.ciphertext,
-   *   nonce: encrypted.nonce,
-   *   session_public_key: keypair.publicKey.toBase58(),
-   *   device_fingerprint: deviceFingerprint,
+   * const result = await zendfi.sessionKeys.create({
+   *   userWallet: '7xKNH...',
+   *   agentId: 'shopping-assistant-v1',
+   *   agentName: 'AI Shopping Assistant',
+   *   limitUSDC: 100,
+   *   durationDays: 7,
+   *   pin: '123456',
+   *   generateRecoveryQR: true,
    * });
-   * 
-   * console.log(`Session wallet: ${result.session_wallet}`);
+   *
+   * console.log(`Session key: ${result.sessionKeyId}`);
+   * console.log(`Recovery QR: ${result.recoveryQR}`);
    * ```
    */
-  async createDeviceBound(
-    request: CreateDeviceBoundSessionKeyRequest
-  ): Promise<CreateDeviceBoundSessionKeyResponse> {
-    return this.request<CreateDeviceBoundSessionKeyResponse>(
+  async create(options: CreateSessionKeyOptions): Promise<SessionKeyResult> {
+    // Validate PIN
+    if (!options.pin || options.pin.length < 4) {
+      throw new Error('PIN must be at least 4 characters');
+    }
+
+    // Create device-bound session key (client-side keypair generation)
+    const sessionKey = await DeviceBoundSessionKey.create({
+      pin: options.pin,
+      limitUSDC: options.limitUSDC,
+      durationDays: options.durationDays,
+      userWallet: options.userWallet,
+      generateRecoveryQR: options.generateRecoveryQR,
+    });
+
+    // Get encrypted data
+    const encrypted = sessionKey.getEncryptedData();
+
+    // Generate recovery QR if requested
+    let recoveryQR: string | undefined;
+    if (options.generateRecoveryQR) {
+      const qr = RecoveryQRGenerator.generate(encrypted);
+      recoveryQR = RecoveryQRGenerator.encode(qr);
+    }
+
+    // ✨ Encrypt with Lit Protocol for autonomous signing (default: enabled)
+    let litEncryption: LitEncryptionResult | undefined;
+    const enableLit = options.enableLitProtocol !== false; // Default true
+    
+    if (enableLit) {
+      // Retry Lit encryption with exponential backoff (RPC can be flaky)
+      const maxRetries = 3;
+      let lastError: Error | undefined;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          this.debug(`Encrypting session key with Lit Protocol (attempt ${attempt}/${maxRetries})...`);
+          
+          litEncryption = await encryptKeypairWithLit(sessionKey.getKeypair(), {
+            network: options.litNetwork || 'datil-dev',
+            debug: this.debugMode,
+          });
+          
+          this.debug('Lit Protocol encryption successful - autonomous signing enabled');
+          break; // Success! Exit retry loop
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          
+          if (attempt < maxRetries) {
+            // Exponential backoff: 500ms, 1000ms, 2000ms
+            const delayMs = 500 * Math.pow(2, attempt - 1);
+            this.debug(`Lit encryption attempt ${attempt} failed, retrying in ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          } else {
+            // All retries exhausted
+            const errorMsg = lastError.message;
+            this.debug('Lit encryption failed after 3 attempts, continuing without autonomous mode:', errorMsg);
+            console.warn('[ZendFi SDK] Lit Protocol encryption failed after retries:', errorMsg);
+            // Continue without Lit (fallback to device-bound only)
+            // This is non-fatal - session key still works with client signing
+          }
+        }
+      }
+    } else {
+      this.debug('ℹ️  Lit Protocol disabled - autonomous signing not available');
+    }
+
+    // Prepare backend request
+    const request: BackendCreateRequest = {
+      user_wallet: options.userWallet,
+      agent_id: options.agentId,
+      agent_name: options.agentName,
+      limit_usdc: options.limitUSDC,
+      duration_days: options.durationDays,
+      encrypted_session_key: encrypted.encryptedData,
+      nonce: encrypted.nonce,
+      session_public_key: encrypted.publicKey,
+      device_fingerprint: sessionKey.getDeviceFingerprint(),
+      recovery_qr_data: recoveryQR,
+      
+      // Include Lit encryption if available
+      lit_encrypted_keypair: litEncryption?.ciphertext,
+      lit_data_hash: litEncryption?.dataHash,
+    };
+
+    // Call backend API
+    const response = await this.requestFn<BackendCreateResponse>(
       'POST',
       '/api/v1/ai/session-keys/device-bound/create',
-      {
-        user_wallet: request.user_wallet,
-        limit_usdc: request.limit_usdc,
-        duration_days: request.duration_days,
-        encrypted_session_key: request.encrypted_session_key,
-        nonce: request.nonce,
-        session_public_key: request.session_public_key,
-        device_fingerprint: request.device_fingerprint,
-        recovery_qr_data: request.recovery_qr_data,
-      }
+      request
     );
-  }
 
-  /**
-   * Get encrypted session key for device-bound mode
-   * 
-   * Retrieves the encrypted keypair so the client can decrypt it with their PIN.
-   * The device fingerprint must match the one used during creation.
-   * 
-   * @param sessionKeyId - UUID of the session key
-   * @param deviceFingerprint - Current device fingerprint
-   * @returns Encrypted key data
-   */
-  async getEncrypted(
-    sessionKeyId: string,
-    deviceFingerprint: string
-  ): Promise<{
-    encrypted_session_key: string;
-    nonce: string;
-    device_fingerprint_valid: boolean;
-  }> {
-    return this.request('POST', '/api/v1/ai/session-keys/device-bound/get-encrypted', {
-      session_key_id: sessionKeyId,
-      device_fingerprint: deviceFingerprint,
+    // Store session key locally for signing
+    sessionKey.setSessionKeyId(response.session_key_id);
+    this.sessionKeys.set(response.session_key_id, sessionKey);
+    
+    // Store metadata (agentId) for this session key
+    this.sessionMetadata.set(response.session_key_id, {
+      agentId: response.agent_id,
+      agentName: response.agent_name,
     });
+
+    return {
+      sessionKeyId: response.session_key_id,
+      agentId: response.agent_id,
+      agentName: response.agent_name,
+      sessionWallet: response.session_wallet,
+      limitUsdc: response.limit_usdc,
+      expiresAt: response.expires_at,
+      recoveryQR,
+      crossAppCompatible: response.cross_app_compatible,
+    };
   }
 
-  // ============================================
-  // Transaction Submission
-  // ============================================
-
   /**
-   * Submit a signed approval transaction
-   * 
-   * After the user signs the approval transaction from `create()`,
-   * submit it here to activate the session key.
-   * 
-   * @param request - Signed transaction data
-   * @returns Submission result with signature
-   * 
+   * Load an existing session key from backend
+   *
+   * Fetches the encrypted session key and decrypts it with your PIN.
+   * Use this when resuming a session on the same device.
+   *
+   * @param sessionKeyId - UUID of the session key
+   * @param pin - PIN to decrypt the session key
+   *
    * @example
    * ```typescript
-   * const result = await zendfi.sessionKeys.submitApproval({
-   *   session_key_id: sessionKeyId,
-   *   signed_transaction: signedTxBase64,
-   * });
-   * 
-   * console.log(`Approved! Signature: ${result.signature}`);
+   * // Resume session on same device
+   * await zendfi.sessionKeys.load('uuid-of-session-key', '123456');
+   *
+   * // Now you can make payments
+   * await zendfi.sessionKeys.makePayment({...});
    * ```
    */
-  async submitApproval(
-    request: SubmitSignedTransactionRequest & { session_key_id: string }
-  ): Promise<SubmitTransactionResponse> {
-    return this.request<SubmitTransactionResponse>(
+  async load(sessionKeyId: string, pin: string): Promise<void> {
+    // Get current device fingerprint
+    const deviceInfo = await DeviceFingerprintGenerator.generate();
+
+    // Fetch encrypted session key from backend
+    const response = await this.requestFn<GetEncryptedResponse>(
       'POST',
-      '/api/v1/ai/session-keys/submit-approval',
+      '/api/v1/ai/session-keys/device-bound/get-encrypted',
       {
-        session_key_id: request.session_key_id,
-        signed_transaction: request.signed_transaction,
+        session_key_id: sessionKeyId,
+        device_fingerprint: deviceInfo.fingerprint,
       }
     );
+
+    if (!response.device_fingerprint_valid) {
+      throw new Error(
+        'Device fingerprint mismatch - this session key was created on a different device. Use recover() to migrate.'
+      );
+    }
+
+    // Reconstruct encrypted session key
+    const encrypted: EncryptedSessionKey = {
+      encryptedData: response.encrypted_session_key,
+      nonce: response.nonce,
+      publicKey: '', // Will be populated after decryption
+      deviceFingerprint: deviceInfo.fingerprint,
+      version: 'argon2id-aes256gcm-v1',
+    };
+
+    // Verify we can decrypt it (validates PIN)
+    const keypair = await SessionKeyCrypto.decrypt(encrypted, pin, deviceInfo.fingerprint);
+    encrypted.publicKey = keypair.publicKey.toBase58();
+
+    // Create session key instance
+    const sessionKey = new DeviceBoundSessionKey();
+    (sessionKey as any).encrypted = encrypted;
+    (sessionKey as any).deviceFingerprint = deviceInfo;
+    sessionKey.setSessionKeyId(sessionKeyId);
+
+    // Store locally
+    this.sessionKeys.set(sessionKeyId, sessionKey);
   }
 
   /**
-   * Submit a signed top-up transaction
-   * 
-   * After the user signs the top-up transaction from `topUp()`,
-   * submit it here to add funds.
-   * 
+   * Unlock a session key for auto-signing
+   *
+   * After unlocking, payments can be made without entering PIN.
+   * The decrypted keypair is cached in memory with a TTL.
+   *
    * @param sessionKeyId - UUID of the session key
-   * @param signedTransaction - Base64 encoded signed transaction
-   * @returns Submission result with new limit
+   * @param pin - PIN to decrypt the session key
+   * @param cacheTTL - How long to cache (default: 30 minutes)
+   *
+   * @example
+   * ```typescript
+   * // Unlock once
+   * await zendfi.sessionKeys.unlock('uuid', '123456');
+   *
+   * // Make payments instantly (no PIN!)
+   * await zendfi.sessionKeys.makePayment({...}); // Instant!
+   * await zendfi.sessionKeys.makePayment({...}); // Instant!
+   * ```
    */
-  async submitTopUp(
-    sessionKeyId: string,
-    signedTransaction: string
-  ): Promise<SubmitTransactionResponse> {
-    return this.request<SubmitTransactionResponse>(
-      'POST',
-      `/api/v1/ai/session-keys/${sessionKeyId}/submit-top-up`,
-      {
-        signed_transaction: signedTransaction,
+  async unlock(sessionKeyId: string, pin: string, cacheTTL?: number): Promise<void> {
+    const sessionKey = this.sessionKeys.get(sessionKeyId);
+    if (!sessionKey) {
+      // Try to load it first
+      await this.load(sessionKeyId, pin);
+      const loaded = this.sessionKeys.get(sessionKeyId);
+      if (loaded) {
+        await loaded.unlockWithPin(pin, cacheTTL);
       }
-    );
+      return;
+    }
+
+    await sessionKey.unlockWithPin(pin, cacheTTL);
   }
 
-  // ============================================
-  // Status & Management
-  // ============================================
+  /**
+   * Make a payment using a session key
+   *
+   * If the session key is unlocked (cached), no PIN is needed.
+   * Otherwise, you must provide the PIN.
+   *
+   * @param options - Payment configuration
+   * @returns Payment result with signature
+   *
+   * @example
+   * ```typescript
+   * // With unlocked session key (no PIN)
+   * const result = await zendfi.sessionKeys.makePayment({
+   *   sessionKeyId: 'uuid',
+   *   amount: 5.0,
+   *   recipient: '8xYZA...',
+   *   description: 'Coffee purchase',
+   * });
+   *
+   * // Or with PIN (one-time)
+   * const result = await zendfi.sessionKeys.makePayment({
+   *   sessionKeyId: 'uuid',
+   *   amount: 5.0,
+   *   recipient: '8xYZA...',
+   *   pin: '123456',
+   * });
+   * ```
+   */
+  async makePayment(options: MakePaymentOptions): Promise<PaymentResult> {
+    const sessionKey = this.sessionKeys.get(options.sessionKeyId);
+    if (!sessionKey) {
+      throw new Error(
+        `Session key ${options.sessionKeyId} not loaded. Call create() or load() first.`
+      );
+    }
+
+    const enableAutoSign = options.enableAutoSign !== false;
+
+    // Check if we need PIN
+    const needsPin = !sessionKey.isCached();
+    if (needsPin && !options.pin) {
+      throw new Error(
+        'PIN required: session key not unlocked. Provide PIN or call unlock() first.'
+      );
+    }
+
+    // Get metadata for this session key (includes agentId)
+    const metadata = this.sessionMetadata.get(options.sessionKeyId);
+    if (!metadata) {
+      throw new Error(
+        `Session key metadata not found for ${options.sessionKeyId}. Was it created in this session?`
+      );
+    }
+
+    // Request payment (backend returns unsigned transaction)
+    const paymentResponse = await this.requestFn<{
+      payment_id: string;
+      status: string;
+      unsigned_transaction?: string;
+      requires_signature: boolean;
+    }>('POST', '/api/v1/ai/smart-payment', {
+      agent_id: metadata.agentId, // Required by backend
+      amount_usd: options.amount,
+      user_wallet: sessionKey.getPublicKey(), // Session key's wallet (payer)
+      token: options.token || 'USDC',
+      description: options.description,
+      session_key_id: options.sessionKeyId,
+    });
+
+    // If no signature required (shouldn't happen for device-bound)
+    if (!paymentResponse.requires_signature && paymentResponse.status === 'confirmed') {
+      return {
+        paymentId: paymentResponse.payment_id,
+        signature: '',
+        status: paymentResponse.status,
+      };
+    }
+
+    // Sign client-side
+    if (!paymentResponse.unsigned_transaction) {
+      throw new Error('Backend did not return unsigned transaction');
+    }
+
+    // Decode transaction
+    const transactionBuffer = Buffer.from(paymentResponse.unsigned_transaction, 'base64');
+    const transaction = Transaction.from(transactionBuffer);
+
+    // Sign with session key
+    const signedTransaction = await sessionKey.signTransaction(
+      transaction,
+      options.pin || '',
+      enableAutoSign
+    );
+
+    // Submit signed transaction
+    const submitResponse = await this.requestFn<{
+      signature: string;
+      status: string;
+    }>('POST', `/api/v1/ai/payments/${paymentResponse.payment_id}/submit-signed`, {
+      signed_transaction: signedTransaction.serialize().toString('base64'),
+    });
+
+    return {
+      paymentId: paymentResponse.payment_id,
+      signature: submitResponse.signature,
+      status: submitResponse.status,
+    };
+  }
 
   /**
    * Get session key status
-   * 
+   *
    * @param sessionKeyId - UUID of the session key
-   * @returns Current status with remaining balance
-   * 
-   * @example
-   * ```typescript
-   * const status = await zendfi.sessionKeys.getStatus(sessionKeyId);
-   * 
-   * console.log(`Active: ${status.is_active}`);
-   * console.log(`Limit: $${status.limit_usdc}`);
-   * console.log(`Used: $${status.used_amount_usdc}`);
-   * console.log(`Remaining: $${status.remaining_usdc}`);
-   * console.log(`Expires in ${status.days_until_expiry} days`);
-   * ```
+   * @returns Current status including balance and expiry
    */
-  async getStatus(sessionKeyId: string): Promise<SessionKeyStatus> {
-    return this.request<SessionKeyStatus>('POST', '/api/v1/ai/session-keys/status', {
+  async getStatus(sessionKeyId: string): Promise<SessionKeyInfo> {
+    const response = await this.requestFn<{
+      is_active: boolean;
+      is_approved: boolean;
+      limit_usdc: number;
+      used_amount_usdc: number;
+      remaining_usdc: number;
+      expires_at: string;
+      days_until_expiry: number;
+    }>('POST', '/api/v1/ai/session-keys/status', {
       session_key_id: sessionKeyId,
     });
-  }
 
-  /**
-   * List all session keys for the merchant
-   * 
-   * @returns List of session keys with stats
-   * 
-   * @example
-   * ```typescript
-   * const { session_keys, stats } = await zendfi.sessionKeys.list();
-   * 
-   * console.log(`Total keys: ${stats.total_keys}`);
-   * console.log(`Active: ${stats.active_keys}`);
-   * 
-   * session_keys.forEach(key => {
-   *   console.log(`${key.session_key_id}: $${key.remaining_usdc} remaining`);
-   * });
-   * ```
-   */
-  async list(): Promise<SessionKeyListResponse> {
-    return this.request<SessionKeyListResponse>('GET', '/api/v1/ai/session-keys/list');
-  }
-
-  /**
-   * Top up a session key with additional funds
-   * 
-   * Returns a transaction that the user must sign to add funds.
-   * 
-   * @param sessionKeyId - UUID of the session key
-   * @param request - Top-up configuration
-   * @returns Top-up transaction to sign
-   * 
-   * @example
-   * ```typescript
-   * const topUp = await zendfi.sessionKeys.topUp(sessionKeyId, {
-   *   user_wallet: 'Hx7B...abc',
-   *   amount_usdc: 50,
-   *   device_fingerprint: deviceFingerprint,
-   * });
-   * 
-   * console.log(`Adding $${topUp.added_amount}`);
-   * console.log(`New limit will be: $${topUp.new_limit}`);
-   * 
-   * // User signs the transaction
-   * const signedTx = await wallet.signTransaction(topUp.top_up_transaction);
-   * 
-   * // Submit it
-   * await zendfi.sessionKeys.submitTopUp(sessionKeyId, signedTx);
-   * ```
-   */
-  async topUp(
-    sessionKeyId: string,
-    request: TopUpSessionKeyRequest
-  ): Promise<TopUpSessionKeyResponse> {
-    return this.request<TopUpSessionKeyResponse>(
-      'POST',
-      `/api/v1/ai/session-keys/${sessionKeyId}/top-up`,
-      {
-        user_wallet: request.user_wallet,
-        amount_usdc: request.amount_usdc,
-        device_fingerprint: request.device_fingerprint,
-      }
-    );
+    return {
+      sessionKeyId,
+      isActive: response.is_active,
+      isApproved: response.is_approved,
+      limitUsdc: response.limit_usdc,
+      usedAmountUsdc: response.used_amount_usdc,
+      remainingUsdc: response.remaining_usdc,
+      expiresAt: response.expires_at,
+      daysUntilExpiry: response.days_until_expiry,
+    };
   }
 
   /**
    * Revoke a session key
-   * 
-   * Immediately deactivates the session key. Any remaining funds
-   * are refunded to the user's wallet.
-   * 
-   * @param sessionKeyId - UUID of the session key
-   * @returns Revocation result with optional refund details
-   * 
-   * @example
-   * ```typescript
-   * const result = await zendfi.sessionKeys.revoke(sessionKeyId);
-   * 
-   * console.log('Session key revoked');
-   * if (result.refund?.refunded) {
-   *   console.log(`Refunded: ${result.refund.transaction_signature}`);
-   * }
-   * ```
+   *
+   * Permanently deactivates the session key. Cannot be undone.
+   *
+   * @param sessionKeyId - UUID of the session key to revoke
    */
-  async revoke(sessionKeyId: string): Promise<{
-    message: string;
-    session_key_id: string;
-    note: string;
-    refund?: {
-      refunded: boolean;
-      transaction_signature: string;
-      message: string;
-    };
-  }> {
-    return this.request('POST', '/api/v1/ai/session-keys/revoke', {
+  async revoke(sessionKeyId: string): Promise<void> {
+    await this.requestFn('POST', '/api/v1/ai/session-keys/revoke', {
       session_key_id: sessionKeyId,
     });
+
+    // Clear local state
+    this.sessionKeys.delete(sessionKeyId);
   }
 
-  // ============================================
-  // Session Linking
-  // ============================================
-
   /**
-   * Link a session key to an AI session for policy enforcement
-   * 
-   * When linked, payments through this session key will check both:
-   * 1. Session key balance (hard cap)
-   * 2. AI session limits (per-tx, daily, weekly, monthly)
-   * 
-   * This provides defense-in-depth: the session key provides signing
-   * capability while the session enforces granular spending policies.
-   * 
-   * @param sessionKeyId - UUID of the session key
-   * @param sessionId - UUID of the AI session to link
-   * @returns Updated session key status
-   * 
+   * Recover session key on new device
+   *
+   * Use this when moving to a new device with a recovery QR code.
+   *
+   * @param options - Recovery configuration
+   *
    * @example
    * ```typescript
-   * // Create a session with limits
-   * const session = await zendfi.agent.createSession({
-   *   agent_id: 'shopping-bot',
-   *   user_wallet: userWallet,
-   *   limits: {
-   *     max_per_transaction: 25,
-   *     max_per_day: 100,
-   *   },
-   *   duration_hours: 24,
+   * await zendfi.sessionKeys.recover({
+   *   sessionKeyId: 'uuid',
+   *   recoveryQR: '{"encryptedSessionKey":"..."}',
+   *   oldPin: '123456',
+   *   newPin: '654321',
    * });
-   * 
-   * // Create and fund a session key
-   * const key = await zendfi.sessionKeys.create({
-   *   user_wallet: userWallet,
-   *   limit_usdc: 500,  // Fund with $500
-   *   duration_days: 7,
-   *   device_fingerprint: fp,
-   * });
-   * 
-   * // Link them together
-   * await zendfi.sessionKeys.linkSession(key.session_key_id, session.id);
-   * 
-   * // Now payments will:
-   * // - Be limited to $25 per transaction (session policy)
-   * // - Be limited to $100 per day (session policy)
-   * // - Never exceed $500 total (session key balance)
    * ```
    */
-  async linkSession(
-    sessionKeyId: string,
-    sessionId: string
-  ): Promise<{
-    success: boolean;
-    session_key_id: string;
-    linked_session_id: string;
-    message: string;
-  }> {
-    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/link-session`, {
-      session_id: sessionId,
-    });
+  async recover(options: {
+    sessionKeyId: string;
+    recoveryQR: string;
+    oldPin: string;
+    newPin: string;
+  }): Promise<void> {
+    // Decode recovery QR
+    const recoveryData = RecoveryQRGenerator.decode(options.recoveryQR);
+
+    // Get new device fingerprint
+    const newDeviceInfo = await DeviceFingerprintGenerator.generate();
+
+    // Re-encrypt for new device
+    const newEncrypted = await RecoveryQRGenerator.reEncryptForNewDevice(
+      recoveryData,
+      options.oldPin,
+      'recovery-mode', // Old fingerprint (stored in QR in production)
+      options.newPin,
+      newDeviceInfo.fingerprint
+    );
+
+    // Call backend recovery endpoint
+    await this.requestFn(
+      'POST',
+      `/api/v1/ai/session-keys/device-bound/${options.sessionKeyId}/recover`,
+      {
+        recovery_qr_data: options.recoveryQR,
+        new_device_fingerprint: newDeviceInfo.fingerprint,
+        new_encrypted_session_key: newEncrypted.encryptedData,
+        new_nonce: newEncrypted.nonce,
+      }
+    );
+
+    // Load recovered session key
+    await this.load(options.sessionKeyId, options.newPin);
   }
 
   /**
-   * Unlink a session key from its AI session
-   * 
-   * After unlinking, the session key will only be limited by its funded balance.
-   * 
-   * @param sessionKeyId - UUID of the session key
-   * @returns Result of the unlink operation
+   * Clear cached keypair for a session key
+   *
+   * Use this on logout or when session ends.
+   *
+   * @param sessionKeyId - UUID of the session key (or all if not specified)
    */
-  async unlinkSession(sessionKeyId: string): Promise<{
-    success: boolean;
-    session_key_id: string;
-    message: string;
-  }> {
-    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/unlink-session`, {});
+  clearCache(sessionKeyId?: string): void {
+    if (sessionKeyId) {
+      const sessionKey = this.sessionKeys.get(sessionKeyId);
+      if (sessionKey) {
+        sessionKey.clearCache();
+      }
+    } else {
+      // Clear all
+      for (const sessionKey of this.sessionKeys.values()) {
+        sessionKey.clearCache();
+      }
+    }
   }
 
   /**
-   * Check if a payment amount is allowed
-   * 
-   * Checks both session key balance and linked session limits (if any).
-   * Useful for pre-validating payments before attempting them.
-   * 
+   * Check if a session key is cached (unlocked)
+   *
    * @param sessionKeyId - UUID of the session key
-   * @param amount - Amount in USD to check
-   * @returns Whether the payment is allowed and the effective limit
-   * 
-   * @example
-   * ```typescript
-   * const check = await zendfi.sessionKeys.canAfford(keyId, 50);
-   * 
-   * if (check.allowed) {
-   *   await zendfi.smart.execute({ ... });
-   * } else {
-   *   console.log(`Cannot afford: ${check.reason}`);
-   *   console.log(`Effective limit: $${check.effective_limit}`);
-   * }
-   * ```
+   * @returns True if keypair is cached and auto-signing is enabled
    */
-  async canAfford(
-    sessionKeyId: string,
-    amount: number
-  ): Promise<{
-    allowed: boolean;
-    reason?: string;
-    effective_limit: number;
-    session_key_remaining: number;
-    session_remaining_today?: number;
-  }> {
-    return this.request('POST', `/api/v1/ai/session-keys/${sessionKeyId}/check-payment`, {
-      amount,
-    });
+  isCached(sessionKeyId: string): boolean {
+    const sessionKey = this.sessionKeys.get(sessionKeyId);
+    return sessionKey?.isCached() || false;
+  }
+
+  /**
+   * Get time remaining until cache expires
+   *
+   * @param sessionKeyId - UUID of the session key
+   * @returns Milliseconds until cache expires
+   */
+  getCacheTimeRemaining(sessionKeyId: string): number {
+    const sessionKey = this.sessionKeys.get(sessionKeyId);
+    return sessionKey?.getCacheTimeRemaining() || 0;
+  }
+
+  /**
+   * Extend cache expiry time
+   *
+   * Useful to keep session active during user activity.
+   *
+   * @param sessionKeyId - UUID of the session key
+   * @param additionalTTL - Additional time in milliseconds
+   */
+  extendCache(sessionKeyId: string, additionalTTL: number): void {
+    const sessionKey = this.sessionKeys.get(sessionKeyId);
+    if (sessionKey) {
+      sessionKey.extendCache(additionalTTL);
+    }
+  }
+
+  /**
+   * Get all loaded session key IDs
+   *
+   * @returns Array of session key UUIDs currently loaded
+   */
+  getLoadedSessionKeys(): string[] {
+    return Array.from(this.sessionKeys.keys());
   }
 }

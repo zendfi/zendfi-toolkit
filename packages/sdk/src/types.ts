@@ -999,60 +999,37 @@ export interface AgentAnalytics {
 // ============================================
 
 /**
- * Session key creation request (custodial mode)
- * Backend generates and stores the keypair
+ * @deprecated Use device-bound session keys via `zendfi.sessionKeys.create()` instead.
+ * Custodial session keys are deprecated and will be removed in a future version.
  */
 export interface CreateSessionKeyRequest {
-  /** User's main wallet address */
-  user_wallet: string;
-  /** Agent identifier for cross-app compatibility (e.g., "shopping-assistant-v1") */
-  agent_id: string;
-  /** Human-readable agent name (e.g., "AI Shopping Assistant") */
-  agent_name?: string;
-  /** Spending limit in USDC */
-  limit_usdc: number;
-  /** Duration in days (1-30) */
-  duration_days?: number;
-  /** Device fingerprint for security */
-  device_fingerprint: string;
-  /** 
-   * Optional: Link to an existing AI session for policy enforcement.
-   * When linked, payments will check both session key balance AND session limits.
-   */
-  link_session_id?: string;
-  /**
-   * Optional: Link to a session by token instead of ID.
-   * Mutually exclusive with link_session_id.
-   */
-  link_session_token?: string;
+  /** @deprecated */ user_wallet: string;
+  /** @deprecated */ agent_id: string;
+  /** @deprecated */ agent_name?: string;
+  /** @deprecated */ limit_usdc: number;
+  /** @deprecated */ duration_days?: number;
+  /** @deprecated */ device_fingerprint: string;
+  /** @deprecated */ link_session_id?: string;
+  /** @deprecated */ link_session_token?: string;
 }
 
 /**
- * Session key creation response (custodial mode)
+ * @deprecated Use device-bound session keys instead.
  */
 export interface CreateSessionKeyResponse {
-  /** UUID of the created session key */
-  session_key_id: string;
-  /** User's main wallet address */
-  user_wallet: string;
-  /** Agent identifier */
-  agent_id: string;
-  /** Agent name (if provided) */
-  agent_name?: string;
-  /** Spending limit in USDC */
-  limit_usdc: number;
-  /** Expiration timestamp */
-  expires_at: string;
-  /** Whether user needs to sign approval transaction */
-  requires_approval: boolean;
-  /** Base64 encoded approval transaction (user must sign) */
-  approval_transaction: string;
-  /** True if this session key works across multiple apps with same agent_id */
-  cross_app_compatible: boolean;
-  /** Setup instructions */
-  instructions: SessionKeyInstructions;
+  /** @deprecated */ session_key_id: string;
+  /** @deprecated */ user_wallet: string;
+  /** @deprecated */ agent_id: string;
+  /** @deprecated */ agent_name?: string;
+  /** @deprecated */ limit_usdc: number;
+  /** @deprecated */ expires_at: string;
+  /** @deprecated */ requires_approval: boolean;
+  /** @deprecated */ approval_transaction: string;
+  /** @deprecated */ cross_app_compatible: boolean;
+  /** @deprecated */ instructions: SessionKeyInstructions;
 }
 
+/** @deprecated */
 export interface SessionKeyInstructions {
   step_1: string;
   step_2: string;

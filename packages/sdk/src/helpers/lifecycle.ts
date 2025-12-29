@@ -29,7 +29,6 @@
 
 import type { ZendFiClient } from '../client';
 import type { SessionKeyCache } from './cache';
-import type { SessionKeyStatus } from '../types';
 
 export interface LifecycleConfig {
   /** Optional cache instance */
@@ -65,8 +64,6 @@ export interface PaymentResult {
 export class SessionKeyLifecycle {
   private sessionKeyId: string | null = null;
   private sessionWallet: string | null = null;
-  private encryptedKey: { ciphertext: string; nonce: string } | null = null;
-  private deviceFingerprint: string | null = null;
 
   constructor(
     private client: ZendFiClient,
@@ -82,82 +79,41 @@ export class SessionKeyLifecycle {
 
   /**
    * Create and fund session key in one call
-   * Handles: keypair generation → encryption → backend registration → funding
+   * Handles: keypair generation → encryption → backend registration
+   * Note: The SDK now handles all crypto internally
    */
   async createAndFund(config: CreateAndFundConfig): Promise<{
     sessionKeyId: string;
     sessionWallet: string;
   }> {
-    // Get device fingerprint
-    const fingerprint = this.config.deviceFingerprintProvider
-      ? await this.config.deviceFingerprintProvider()
-      : await this.generateDeviceFingerprint();
-
-    this.deviceFingerprint = fingerprint;
-
     // Get PIN
     const pin = this.config.pinProvider
       ? await this.config.pinProvider()
       : await this.promptForPIN('Create PIN for session key');
 
-    // Import device-bound utilities
-    const { Keypair } = await this.getSolanaWeb3();
-    const { SessionKeyCrypto } = await import('../device-bound-crypto');
-
-    // Generate keypair
-    const keypair = Keypair.generate();
-
-    // Encrypt keypair
-    const encrypted = await SessionKeyCrypto.encrypt(
-      keypair.secretKey,
-      pin,
-      fingerprint
-    );
-
-    // Store encrypted key
-    this.encryptedKey = {
-      ciphertext: encrypted.encryptedData,
-      nonce: encrypted.nonce,
-    };
-
-    // Register with backend
-    const response = await this.client.sessionKeys.createDeviceBound({
-      user_wallet: config.userWallet,
-      agent_id: config.agentId,
-      agent_name: config.agentName,
-      limit_usdc: config.limitUsdc,
-      duration_days: config.durationDays || 7,
-      encrypted_session_key: encrypted.encryptedData,
-      nonce: encrypted.nonce,
-      session_public_key: keypair.publicKey.toBase58(),
-      device_fingerprint: fingerprint,
+    // The new SDK handles everything: keypair generation, encryption, and backend registration
+    const response = await this.client.sessionKeys.create({
+      userWallet: config.userWallet,
+      agentId: config.agentId,
+      agentName: config.agentName,
+      limitUSDC: config.limitUsdc,
+      durationDays: config.durationDays || 7,
+      pin, // SDK handles encryption internally
+      generateRecoveryQR: false,
     });
 
-    this.sessionKeyId = response.session_key_id;
-    this.sessionWallet = response.session_wallet;
+    this.sessionKeyId = response.sessionKeyId;
+    this.sessionWallet = response.sessionWallet;
 
-    // Cache the keypair
-    if (this.config.cache) {
-      await this.config.cache.getCached(
-        this.sessionKeyId,
-        async () => keypair,
-        { deviceFingerprint: fingerprint }
-      );
-    }
+    // The SDK now caches internally after create() - session key is auto-unlocked
+    // No need to call unlock() separately since we just created it with PIN
 
-    // Handle funding
+    // Note: The new device-bound session keys don't need separate funding
+    // The user funds the session wallet directly after creation
     if (config.onApprovalNeeded) {
-      // Custom approval handler
-      const topupResponse = await this.client.sessionKeys.topUp(
-        this.sessionKeyId,
-        {
-          user_wallet: config.userWallet,
-          amount_usdc: config.limitUsdc,
-          device_fingerprint: fingerprint,
-        }
-      );
-
-      await config.onApprovalNeeded(topupResponse.top_up_transaction);
+      // Signal that approval/funding is needed
+      // The developer should handle funding the session wallet externally
+      await config.onApprovalNeeded(`Fund session wallet: ${this.sessionWallet}`);
     }
 
     return {
@@ -168,100 +124,50 @@ export class SessionKeyLifecycle {
 
   /**
    * Make a payment using the session key
-   * Auto-handles caching, PIN prompts, and signing
+   * Uses the new SDK's makePayment which handles caching internally
    */
   async pay(
     amount: number,
     description: string
   ): Promise<PaymentResult> {
-    if (!this.sessionKeyId) {
+    if (!this.sessionKeyId || !this.sessionWallet) {
       throw new Error('No active session key. Call createAndFund() first.');
     }
 
-    // Try to get cached keypair
-    let keypair: any;
+    // Get PIN if not cached
+    const pin = this.config.pinProvider
+      ? await this.config.pinProvider()
+      : undefined;
 
-    if (this.config.cache) {
-      keypair = await this.config.cache.getCached(
-        this.sessionKeyId,
-        async () => {
-          // Cache miss - decrypt with PIN
-          const pin = this.config.pinProvider
-            ? await this.config.pinProvider()
-            : await this.promptForPIN('Enter PIN to sign payment');
-
-          return await this.decryptKeypair(pin);
-        },
-        { deviceFingerprint: this.deviceFingerprint || undefined }
-      );
-    } else {
-      // No cache - always prompt for PIN
-      const pin = this.config.pinProvider
-        ? await this.config.pinProvider()
-        : await this.promptForPIN('Enter PIN to sign payment');
-
-      keypair = await this.decryptKeypair(pin);
-    }
-
-    // Create payment with session key
-    const paymentResponse = await this.client.smart.execute({
-      user_wallet: this.sessionWallet!, // Session wallet, not user wallet
-      amount_usd: amount,
+    // Use the new SDK's makePayment
+    const result = await this.client.sessionKeys.makePayment({
+      sessionKeyId: this.sessionKeyId,
+      amount,
+      recipient: this.sessionWallet,
       description,
-      agent_id: 'session-lifecycle',
-      auto_detect_gasless: true,
+      pin, // SDK will only use PIN if needed
     });
 
-    // If requires signature (device-bound), sign locally
-    if (paymentResponse.requires_signature && paymentResponse.unsigned_transaction) {
-      // Import Solana web3
-      const { Transaction } = await this.getSolanaWeb3();
-
-      // Deserialize and sign
-      const txBuffer = Uint8Array.from(atob(paymentResponse.unsigned_transaction), c => c.charCodeAt(0));
-      const tx = Transaction.from(txBuffer);
-      tx.partialSign(keypair);
-
-      // Submit signed transaction
-      const submitUrl = paymentResponse.submit_url || `/api/v1/ai/payments/${paymentResponse.payment_id}/submit-signed`;
-      const submitResponse = await fetch(`${this.client['config'].baseURL}${submitUrl}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.client['config'].apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          signed_transaction: btoa(String.fromCharCode(...tx.serialize())),
-        }),
-      });
-
-      if (!submitResponse.ok) {
-        throw new Error(`Failed to submit signed transaction: ${submitResponse.statusText}`);
-      }
-
-      const submitData = await submitResponse.json();
-
-      return {
-        paymentId: paymentResponse.payment_id,
-        status: submitData.status,
-        signature: submitData.transaction_signature,
-        confirmedInMs: submitData.confirmed_in_ms,
-      };
-    }
-
-    // Auto-signed (custodial or autonomous)
     return {
-      paymentId: paymentResponse.payment_id,
-      status: paymentResponse.status,
-      signature: paymentResponse.transaction_signature,
-      confirmedInMs: paymentResponse.confirmed_in_ms,
+      paymentId: result.paymentId,
+      status: result.status,
+      signature: result.signature,
     };
   }
 
   /**
    * Check session key status
    */
-  async getStatus(): Promise<SessionKeyStatus> {
+  async getStatus(): Promise<{
+    sessionKeyId: string;
+    isActive: boolean;
+    isApproved: boolean;
+    limitUsdc: number;
+    usedAmountUsdc: number;
+    remainingUsdc: number;
+    expiresAt: string;
+    daysUntilExpiry: number;
+  }> {
     if (!this.sessionKeyId) {
       throw new Error('No active session key');
     }
@@ -271,24 +177,18 @@ export class SessionKeyLifecycle {
 
   /**
    * Top up session key
+   * @deprecated Device-bound session keys are funded directly by the user.
+   * Use the session wallet address to send funds directly.
    */
-  async topUp(amount: number, userWallet: string, onApprovalNeeded?: (tx: string) => Promise<void>): Promise<void> {
-    if (!this.sessionKeyId || !this.deviceFingerprint) {
+  async topUp(_amount: number, _userWallet: string, _onApprovalNeeded?: (tx: string) => Promise<void>): Promise<void> {
+    if (!this.sessionWallet) {
       throw new Error('No active session key');
     }
 
-    const response = await this.client.sessionKeys.topUp(
-      this.sessionKeyId,
-      {
-        user_wallet: userWallet,
-        amount_usdc: amount,
-        device_fingerprint: this.deviceFingerprint,
-      }
+    console.warn(
+      'topUp() is deprecated for device-bound session keys. ' +
+      `Send funds directly to the session wallet: ${this.sessionWallet}`
     );
-
-    if (onApprovalNeeded) {
-      await onApprovalNeeded(response.top_up_transaction);
-    }
   }
 
   /**
@@ -312,10 +212,13 @@ export class SessionKeyLifecycle {
       await this.config.cache.invalidate(this.sessionKeyId);
     }
 
+    // Clear cache on the SDK side too
+    if (this.sessionKeyId) {
+      this.client.sessionKeys.clearCache(this.sessionKeyId);
+    }
+
     this.sessionKeyId = null;
     this.sessionWallet = null;
-    this.encryptedKey = null;
-    this.deviceFingerprint = null;
   }
 
   /**
@@ -336,30 +239,6 @@ export class SessionKeyLifecycle {
   // Private Helpers
   // ============================================
 
-  private async decryptKeypair(pin: string): Promise<any> {
-    if (!this.encryptedKey || !this.deviceFingerprint) {
-      throw new Error('No encrypted key available');
-    }
-
-    const { SessionKeyCrypto } = await import('../device-bound-crypto');
-
-    const encrypted = {
-      encryptedData: this.encryptedKey.ciphertext,
-      nonce: this.encryptedKey.nonce,
-      publicKey: '', // Not needed for decryption
-      deviceFingerprint: this.deviceFingerprint,
-      version: 'argon2id-aes256gcm-v1' as const,
-    };
-
-    return await SessionKeyCrypto.decrypt(encrypted, pin, this.deviceFingerprint);
-  }
-
-  private async generateDeviceFingerprint(): Promise<string> {
-    const { DeviceFingerprintGenerator } = await import('../device-bound-crypto');
-    const fingerprint = await DeviceFingerprintGenerator.generate();
-    return fingerprint.fingerprint;
-  }
-
   private async promptForPIN(message: string): Promise<string> {
     // Simple browser prompt (can be overridden by pinProvider)
     if (typeof window !== 'undefined' && window.prompt) {
@@ -370,15 +249,6 @@ export class SessionKeyLifecycle {
       return pin;
     }
     throw new Error('PIN provider not configured and no browser prompt available');
-  }
-
-  private async getSolanaWeb3(): Promise<any> {
-    // Dynamically import to avoid forcing dependency
-    try {
-      return await import('@solana/web3.js');
-    } catch {
-      throw new Error('@solana/web3.js not installed. Install it to use device-bound payments.');
-    }
   }
 }
 

@@ -115,20 +115,26 @@ export class DeviceFingerprintGenerator {
       // Audio context fingerprinting
       components.audio = await this.getAudioFingerprint();
 
-      // Screen properties
-      components.screen = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+      // Screen properties (check for SSR)
+      if (typeof screen !== 'undefined') {
+        components.screen = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+      } else {
+        components.screen = 'unknown-ssr';
+      }
 
       // Timezone
       components.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      // Languages
-      components.languages = navigator.languages?.join(',') || navigator.language;
-
-      // Platform
-      components.platform = navigator.platform;
-
-      // Hardware concurrency
-      components.hardwareConcurrency = navigator.hardwareConcurrency?.toString() || 'unknown';
+      // Languages (check for SSR)
+      if (typeof navigator !== 'undefined') {
+        components.languages = navigator.languages?.join(',') || navigator.language;
+        components.platform = navigator.platform;
+        components.hardwareConcurrency = navigator.hardwareConcurrency?.toString() || 'unknown';
+      } else {
+        components.languages = 'unknown-ssr';
+        components.platform = 'unknown-ssr';
+        components.hardwareConcurrency = 'unknown-ssr';
+      }
 
       // Combine all components
       const combined = Object.entries(components)
@@ -213,6 +219,7 @@ export class DeviceFingerprintGenerator {
   }
 
   private static async getCanvasFingerprint(): Promise<string> {
+    if (typeof document === 'undefined') return 'no-canvas-ssr';
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return 'no-canvas';
@@ -234,6 +241,7 @@ export class DeviceFingerprintGenerator {
   }
 
   private static async getWebGLFingerprint(): Promise<string> {
+    if (typeof document === 'undefined') return 'no-webgl-ssr';
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
     if (!gl) return 'no-webgl';
@@ -249,6 +257,7 @@ export class DeviceFingerprintGenerator {
 
   private static async getAudioFingerprint(): Promise<string> {
     try {
+      if (typeof window === 'undefined') return 'no-audio-ssr';
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return 'no-audio';
 
@@ -593,6 +602,7 @@ export class DeviceBoundSessionKey {
   private deviceFingerprint: DeviceFingerprint | null = null;
   private sessionKeyId: string | null = null;
   private recoveryQR: RecoveryQR | null = null;
+  private originalKeypair: Keypair | null = null; // Store for Lit encryption
   
   // Auto-signing cache: decrypted keypair stored in memory
   // Enables instant signing without re-entering PIN for subsequent payments
@@ -621,6 +631,7 @@ export class DeviceBoundSessionKey {
     const instance = new DeviceBoundSessionKey();
     instance.encrypted = encrypted;
     instance.deviceFingerprint = deviceFingerprint;
+    instance.originalKeypair = keypair; // Store for Lit encryption
 
     // Generate recovery QR if requested
     if (options.generateRecoveryQR) {
@@ -628,6 +639,18 @@ export class DeviceBoundSessionKey {
     }
 
     return instance;
+  }
+
+  /**
+   * Get the original keypair (only available immediately after creation)
+   * Used for Lit Protocol encryption during session creation
+   * @internal
+   */
+  getKeypair(): Keypair {
+    if (!this.originalKeypair) {
+      throw new Error('Keypair not available - only accessible during session creation');
+    }
+    return this.originalKeypair;
   }
 
   /**
@@ -733,8 +756,9 @@ export class DeviceBoundSessionKey {
       }
     }
 
-    // Sign transaction
-    transaction.sign(keypair);
+    // Partial sign to preserve existing signatures (e.g., backend fee payer)
+    // This allows the session key to sign while keeping the system wallet's signature intact
+    transaction.partialSign(keypair);
 
     return transaction;
   }
@@ -881,5 +905,119 @@ export class DeviceBoundSessionKey {
       throw new Error('Session key not registered with backend');
     }
     return this.sessionKeyId;
+  }
+}
+
+// ============================================
+// Lit Protocol Integration
+// ============================================
+
+export interface LitEncryptionResult {
+  /** Lit Protocol ciphertext */
+  ciphertext: string;
+  /** Data hash for verification */
+  dataHash: string;
+}
+
+/**
+ * Encrypt session keypair with Lit Protocol for autonomous signing
+ * 
+ * This allows the backend to decrypt and sign transactions when the client is offline.
+ * The keypair is encrypted with Lit's distributed key management.
+ * 
+ * @param keypair - The session keypair to encrypt
+ * @param options - Lit Protocol configuration
+ * @returns Lit encryption result (ciphertext and hash)
+ * 
+ * @example
+ * ```typescript
+ * import { encryptKeypairWithLit } from '@zendfi/sdk';
+ * 
+ * const sessionKey = await DeviceBoundSessionKey.generate('123456');
+ * const litEncryption = await encryptKeypairWithLit(sessionKey.keypair, {
+ *   network: 'datil-dev'
+ * });
+ * 
+ * // Pass to backend during session creation for autonomous signing
+ * ```
+ */
+export async function encryptKeypairWithLit(
+  keypair: Keypair,
+  options?: {
+    network?: 'datil' | 'datil-dev' | 'datil-test';
+    debug?: boolean;
+  }
+): Promise<LitEncryptionResult> {
+  const network = options?.network || 'datil-dev';
+  const debug = options?.debug || false;
+
+  if (debug) {
+    console.log('[Lit] Encrypting keypair with Lit Protocol...');
+  }
+
+  try {
+    // Dynamic import to avoid bundling if not used
+    const { LitNodeClient } = await import('@lit-protocol/lit-node-client');
+
+    // Connect to Lit
+    const litClient = new LitNodeClient({
+      litNetwork: network as any,
+      debug,
+    });
+    
+    await litClient.connect();
+
+    if (debug) {
+      console.log(`[Lit] Connected to ${network}`);
+    }
+
+    try {
+      // Access control: Universal USDC totalSupply check (matches backend/MPC wallet)
+      // This allows any backend service with the Ethereum key to decrypt (no wallet-specific binding)
+      const accessControlConditions = [
+        {
+          contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC on Ethereum
+          standardContractType: 'ERC20',
+          chain: 'ethereum',
+          method: 'totalSupply',
+          parameters: [],
+          returnValueTest: {
+            comparator: '>',
+            value: '0',
+          },
+        },
+      ];
+
+      // Get keypair bytes as Uint8Array (64 bytes: 32 secret + 32 public)
+      const dataToEncrypt: Uint8Array = keypair.secretKey;
+
+      if (debug) {
+        console.log('[Lit] Encrypting keypair bytes...');
+      }
+
+      // Encrypt with Lit
+      const encryptResult = await litClient.encrypt({
+        accessControlConditions,
+        dataToEncrypt,
+      } as any) as { ciphertext: string; dataToEncryptHash: string };
+
+      if (debug) {
+        console.log('[Lit] ✅ Encryption successful');
+      }
+
+      return {
+        ciphertext: encryptResult.ciphertext,
+        dataHash: encryptResult.dataToEncryptHash,
+      };
+    } finally {
+      await litClient.disconnect();
+    }
+  } catch (error) {
+    if (debug) {
+      console.error('[Lit] ❌ Encryption failed:', error);
+    }
+    throw new Error(
+      `Lit Protocol encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }

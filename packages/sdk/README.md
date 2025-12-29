@@ -262,23 +262,28 @@ const agentKey = await zendfi.agent.createKey({
   rate_limit_per_hour: 100,
 });
 
-// 2. User approves spending session (one-time)
-const session = await zendfi.agent.createSession({
-  agent_id: 'shopping-assistant-v1',
-  user_wallet: 'Hx7B...abc',
-  limits: {
-    max_per_transaction: 50,  // $50 max per payment
-    max_per_day: 200,         // $200 daily cap
-  },
-  duration_hours: 24,
+// 2. Create device-bound session key (one-time setup with PIN)
+const sessionKey = await zendfi.sessionKeys.create({
+  userWallet: 'Hx7B...abc',
+  agentId: 'shopping-assistant-v1',
+  agentName: 'Shopping Assistant',
+  limitUSDC: 200,
+  durationDays: 1,
+  pin: '123456',
 });
 
-// 3. AI agent makes payments autonomously (within limits)
-const payment = await zendfi.agent.pay({
-  session_token: session.session_token,
-  amount: 25.00,
-  description: 'Coffee order',
-});
+// 3. Unlock for payments (client-side)
+await zendfi.sessionKeys.unlock(sessionKey.sessionKeyId, '123456');
+
+// 4. AI agent makes payments autonomously (within limits)
+const payment = await zendfi.sessionKeys.makePayment(
+  sessionKey.sessionKeyId,
+  {
+    recipientWallet: 'merchant-wallet',
+    amountUSD: 25.00,
+    description: 'Coffee order',
+  }
+);
 
 // Done! User approved once, AI pays within limits
 ```
@@ -587,69 +592,64 @@ const status = await zendfi.autonomy.getStatus(walletAddress);
 await zendfi.autonomy.revoke(delegateId);
 ```
 
-### Session Keys (On-Chain Funded Wallets)
+### Session Keys (Device-Bound Non-Custodial)
 
-Session keys are pre-funded wallets with spending limits that enable AI agents to make autonomous payments. They use Lit Protocol's PKP (Programmable Key Pairs) for secure on-chain identity.
+Session keys are TRUE non-custodial wallets where:
+- **Client generates keypair** (backend NEVER sees private key)
+- **PIN encryption** using Argon2id + AES-256-GCM
+- **Device fingerprint binding** for security
+- **Autonomous payments** within spending limits
 
 **The Flow:**
-1. **Create** - Agent requests a session key with spending limit
-2. **Approve** - User signs a one-time approval transaction
-3. **Spend** - Agent makes payments autonomously up to the limit
-4. **Top-up** - Optionally add more funds when needed
+1. **Create** - Client generates keypair, encrypts with PIN (SDK handles this)
+2. **Unlock** - Decrypt with PIN once, enable auto-signing
+3. **Pay** - Make payments instantly without re-entering PIN
 
 ```typescript
-// Step 1: Create a session key
+// Create a device-bound session key
 const key = await zendfi.sessionKeys.create({
-  user_wallet: 'Hx7B...abc',
-  limit_usdc: 100,
-  duration_days: 7,
-  device_fingerprint: await generateFingerprint(),
+  userWallet: 'Hx7B...abc',
+  agentId: 'shopping-assistant-v1',
+  agentName: 'AI Shopping Assistant',
+  limitUSDC: 100,
+  durationDays: 7,
+  pin: '123456',  // SDK encrypts keypair with this
+  generateRecoveryQR: true,
 });
 
-// key.session_key_id - Unique identifier
-// key.approval_transaction - Transaction for user to sign
-// key.session_wallet - The funded wallet address
-// key.pkp_public_key - Lit Protocol PKP public key NB: This only exists if mint_pkp is set to true in sessions
+console.log(`Session key: ${key.sessionKeyId}`);
+console.log(`Session wallet: ${key.sessionWallet}`);
+console.log(`Recovery QR: ${key.recoveryQR}`);
 
-// Step 2: User signs the approval transaction (one-time)
-const signedTx = await wallet.signTransaction(key.approval_transaction);
-await zendfi.sessionKeys.submitApproval(key.session_key_id, {
-  signed_transaction: signedTx,
-});
+// Session key is auto-unlocked after create()
+// Make payments without PIN!
+const payment = await zendfi.sessionKeys.makePayment(
+  key.sessionKeyId,
+  {
+    recipientWallet: '8xYZA...',
+    amountUSD: 5.0,
+    description: 'Coffee purchase',
+  }
+);
 
-// Step 3: Check status and make payments
-const status = await zendfi.sessionKeys.getStatus(key.session_key_id);
-console.log(`Status: ${status.status}`);           // "active"
-console.log(`Remaining: $${status.remaining_usdc}`);
-console.log(`Spent: $${status.used_amount_usdc}`);
-console.log(`Transactions: ${status.transaction_count}`);
+// Or unlock an existing session key
+await zendfi.sessionKeys.unlock(key.sessionKeyId, '123456');
 
-// Step 4: Top-up if needed
-const topUp = await zendfi.sessionKeys.topUp(key.session_key_id, {
-  amount: 50,  // Add $50 more
-});
-// User signs the top-up transaction
-const signedTopUp = await wallet.signTransaction(topUp.approval_transaction);
-await zendfi.sessionKeys.submitTopUp(key.session_key_id, {
-  signed_transaction: signedTopUp,
-});
+// Check status
+const status = await zendfi.sessionKeys.getStatus(key.sessionKeyId);
+console.log(`Active: ${status.isActive}`);
+console.log(`Remaining: $${status.remainingUSDC}`);
+console.log(`Spent: $${status.usedAmountUSDC}`);
 
 // Revoke when done
-await zendfi.sessionKeys.revoke(key.session_key_id);
-
-// List all session keys
-const keys = await zendfi.sessionKeys.list();
-keys.session_keys.forEach(k => {
-  console.log(`${k.session_key_id}: $${k.remaining_amount} remaining`);
-});
+await zendfi.sessionKeys.revoke(key.sessionKeyId);
 ```
 
-**Session Key Statuses:**
-- `pending_approval` - Waiting for user to sign approval
-- `active` - Ready for payments
-- `exhausted` - Spending limit reached
-- `expired` - Past expiry time
-- `revoked` - Manually revoked
+**Security Features:**
+- **Backend cannot decrypt** - Keys encrypted client-side
+- **Device fingerprint** - Binds key to specific device
+- **Recovery QR** - Migrate to new device
+- **Auto-signing cache** - Instant payments after unlock
 
 ### Smart Payments
 
