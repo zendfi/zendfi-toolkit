@@ -726,12 +726,7 @@ export class DeviceBoundSessionKey {
     if (this.isCached()) {
       // Use cached keypair - no decryption needed! ✨
       keypair = this.cachedKeypair!;
-      
-      // Optional: Log for debugging (remove in production)
-      if (typeof console !== 'undefined') {
-        console.log('🚀 Using cached keypair - instant signing (no PIN required)');
-      }
-    } else {
+      } else {
       // Cache miss or expired - decrypt with PIN
       if (!pin) {
         throw new Error('PIN required: no cached keypair available');
@@ -748,11 +743,6 @@ export class DeviceBoundSessionKey {
       if (cacheKeypair) {
         const ttl = cacheTTL || this.DEFAULT_CACHE_TTL_MS;
         this.cacheKeypair(keypair, ttl);
-        
-        // Optional: Log for debugging (remove in production)
-        if (typeof console !== 'undefined') {
-          console.log(`✅ Keypair decrypted and cached for ${ttl / 1000 / 60} minutes`);
-        }
       }
     }
 
@@ -809,11 +799,6 @@ export class DeviceBoundSessionKey {
   clearCache(): void {
     this.cachedKeypair = null;
     this.cacheExpiry = null;
-    
-    // Optional: Log for debugging (remove in production)
-    if (typeof console !== 'undefined') {
-      console.log('🧹 Keypair cache cleared');
-    }
   }
 
   /**
@@ -845,11 +830,6 @@ export class DeviceBoundSessionKey {
     // Cache it
     const ttl = cacheTTL || this.DEFAULT_CACHE_TTL_MS;
     this.cacheKeypair(keypair, ttl);
-    
-    // Optional: Log for debugging (remove in production)
-    if (typeof console !== 'undefined') {
-      console.log(`🔓 Session key unlocked and cached for ${ttl / 1000 / 60} minutes`);
-    }
   }
 
   /**
@@ -882,12 +862,6 @@ export class DeviceBoundSessionKey {
     }
 
     this.cacheExpiry! += additionalTTL;
-    
-    // Optional: Log for debugging (remove in production)
-    if (typeof console !== 'undefined') {
-      const remainingMinutes = this.getCacheTimeRemaining() / 1000 / 60;
-      console.log(`⏰ Cache extended - ${remainingMinutes.toFixed(1)} minutes remaining`);
-    }
   }
 
   /**

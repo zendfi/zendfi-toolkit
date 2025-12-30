@@ -252,7 +252,7 @@ export class SessionKeysAPI {
       recoveryQR = RecoveryQRGenerator.encode(qr);
     }
 
-    // ✨ Encrypt with Lit Protocol for autonomous signing (default: enabled)
+    // Encrypt with Lit Protocol for autonomous signing (default: enabled)
     let litEncryption: LitEncryptionResult | undefined;
     const enableLit = options.enableLitProtocol !== false; // Default true
     
