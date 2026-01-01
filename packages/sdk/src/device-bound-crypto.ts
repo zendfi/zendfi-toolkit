@@ -946,17 +946,17 @@ export async function encryptKeypairWithLit(
     }
 
     try {
-      // Access control: Universal USDC totalSupply check (matches backend/MPC wallet)
-      // This allows any backend service with the Ethereum key to decrypt (no wallet-specific binding)
+      // Access control: Universal USDC balanceOf(:userAddress) check (matches backend/MPC wallet)
+      // The :userAddress parameter is required for Lit capacity delegation compatibility
       const accessControlConditions = [
         {
           contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC on Ethereum
           standardContractType: 'ERC20',
           chain: 'ethereum',
-          method: 'totalSupply',
-          parameters: [],
+          method: 'balanceOf',
+          parameters: [':userAddress'],
           returnValueTest: {
-            comparator: '>',
+            comparator: '>=',
             value: '0',
           },
         },
