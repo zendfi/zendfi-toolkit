@@ -266,7 +266,9 @@ export class SessionKeysAPI {
           this.debug(`Encrypting session key with Lit Protocol (attempt ${attempt}/${maxRetries})...`);
           
           litEncryption = await encryptKeypairWithLit(sessionKey.getKeypair(), {
-            network: options.litNetwork || 'datil-dev',
+            // CRITICAL: Must match backend LIT_NETWORK (Datil = mainnet)
+            // datil-dev encryption cannot be decrypted by datil backend!
+            network: options.litNetwork || 'datil',
             debug: this.debugMode,
           });
           

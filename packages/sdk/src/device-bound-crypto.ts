@@ -922,7 +922,9 @@ export async function encryptKeypairWithLit(
     debug?: boolean;
   }
 ): Promise<LitEncryptionResult> {
-  const network = options?.network || 'datil-dev';
+  // Default to 'datil' (mainnet) to match backend LIT_NETWORK
+  // CRITICAL: SDK and backend MUST use the same Lit network!
+  const network = options?.network || 'datil';
   const debug = options?.debug || false;
 
   if (debug) {
