@@ -946,16 +946,25 @@ export async function encryptKeypairWithLit(
     }
 
     try {
-      // Access control: Universal USDC balanceOf(:userAddress) check (matches backend/MPC wallet)
+      // EVM Contract Conditions: USDC balanceOf(:userAddress) check
+      // MUST use evmContractConditions (not accessControlConditions) to match backend decryption
       // The :userAddress parameter is required for Lit capacity delegation compatibility
-      const accessControlConditions = [
+      const evmContractConditions = [
         {
           contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC on Ethereum
-          standardContractType: 'ERC20',
+          functionName: 'balanceOf',
+          functionParams: [':userAddress'],
+          functionAbi: {
+            constant: true,
+            inputs: [{ name: 'account', type: 'address' }],
+            name: 'balanceOf',
+            outputs: [{ name: '', type: 'uint256' }],
+            stateMutability: 'view',
+            type: 'function',
+          },
           chain: 'ethereum',
-          method: 'balanceOf',
-          parameters: [':userAddress'],
           returnValueTest: {
+            key: '',
             comparator: '>=',
             value: '0',
           },
@@ -966,12 +975,12 @@ export async function encryptKeypairWithLit(
       const dataToEncrypt: Uint8Array = keypair.secretKey;
 
       if (debug) {
-        console.log('[Lit] Encrypting keypair bytes...');
+        console.log('[Lit] Encrypting keypair bytes with evmContractConditions...');
       }
 
-      // Encrypt with Lit
+      // Encrypt with Lit using evmContractConditions (matches backend decryption)
       const encryptResult = await litClient.encrypt({
-        accessControlConditions,
+        evmContractConditions,
         dataToEncrypt,
       } as any) as { ciphertext: string; dataToEncryptHash: string };
 
