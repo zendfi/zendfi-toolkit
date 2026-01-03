@@ -139,6 +139,7 @@ export interface CreatePaymentLinkRequest {
   max_uses?: number;
   expires_at?: string;
   metadata?: Record<string, any>;
+  onramp?: boolean;
 }
 
 export interface PaymentLink {
@@ -165,6 +166,7 @@ export interface PaymentLink {
   max_uses?: number;
   uses_count?: number;
   is_active?: boolean;
+  onramp?: boolean;
 }
 
 export interface Payment {

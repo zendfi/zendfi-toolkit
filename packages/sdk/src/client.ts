@@ -296,6 +296,7 @@ export class ZendFiClient {
       ...request,
       currency: request.currency || 'USD',
       token: request.token || 'USDC',
+      onramp: request.onramp || false,
     });
     
     return {
