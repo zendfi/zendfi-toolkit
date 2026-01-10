@@ -60,6 +60,7 @@ export interface EmbeddedCheckoutConfig {
     walletConnect?: boolean;
     qrCode?: boolean;
     solanaWallet?: boolean;
+    bank?: boolean; // PAJ Ramp onramp
   };
 }
 
@@ -103,6 +104,8 @@ interface CheckoutData {
   minimum_amount?: number;
   maximum_amount?: number;
   suggested_amount?: number;
+  onramp?: boolean;
+  payment_link_id?: string;
 }
 
 /**
@@ -118,6 +121,19 @@ export class ZendFiEmbeddedCheckout {
   private pollInterval: NodeJS.Timeout | null = null;
   private mounted: boolean = false;
   private paymentProcessed: boolean = false; // Prevent duplicate success callbacks
+  
+  // Bank payment state
+  private bankPaymentState: {
+    customerEmail?: string;
+    orderId?: string;
+    bankDetails?: {
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      amount: number;
+    };
+    pollingInterval?: NodeJS.Timeout;
+  } = {};
 
   constructor(config: EmbeddedCheckoutConfig) {
     this.config = {
@@ -135,6 +151,7 @@ export class ZendFiEmbeddedCheckout {
         walletConnect: true,
         qrCode: true,
         solanaWallet: true,
+        bank: true,
       },
     };
 
@@ -452,12 +469,16 @@ export class ZendFiEmbeddedCheckout {
   private renderPaymentMethods(): string {
     if (!this.checkoutData) return '';
 
+    // Show bank payment option if onramp is enabled
+    const showBank = this.config.paymentMethods.bank && this.checkoutData.onramp;
+
     return `
       <div class="zendfi-payment-methods" style="padding: 24px;">
         <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #1f2937;">
           Payment Methods
         </h3>
         
+        ${showBank ? this.renderBankMethod() : ''}
         ${this.config.paymentMethods.qrCode ? this.renderQRCodeMethod() : ''}
         ${this.config.paymentMethods.solanaWallet ? this.renderWalletMethod() : ''}
         ${this.config.paymentMethods.walletConnect ? this.renderWalletConnectMethod() : ''}
@@ -525,6 +546,149 @@ export class ZendFiEmbeddedCheckout {
         >
           📱 WalletConnect
         </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render bank payment method (PAJ Ramp onramp)
+   */
+  private renderBankMethod(): string {
+    if (!this.checkoutData) return '';
+
+    const isEmailStep = !this.bankPaymentState.orderId;
+    const isBankDetailsStep = !!this.bankPaymentState.bankDetails;
+
+    return `
+      <div class="zendfi-payment-method" style="padding: 16px; border: 2px solid #10b981; border-radius: 12px; margin-bottom: 16px; background: #f0fdf4;">
+        <div style="margin-bottom: 12px;">
+          <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #065f46; display: flex; align-items: center;">
+            🏦 Pay with Bank Transfer (Nigeria)
+          </h4>
+          <p style="margin: 0; font-size: 12px; color: #047857;">
+            Pay with your Nigerian bank account • Instant confirmation
+          </p>
+        </div>
+        
+        ${isEmailStep ? this.renderBankEmailStep() : ''}
+        ${isBankDetailsStep ? this.renderBankDetailsStep() : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Render bank email/OTP step
+   */
+  private renderBankEmailStep(): string {
+    return `
+      <div id="zendfi-bank-email-step">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 14px; color: #374151; margin-bottom: 4px; font-weight: 500;">
+            Email Address
+          </label>
+          <input
+            type="email"
+            id="zendfi-bank-email"
+            placeholder="your@email.com"
+            style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;"
+          />
+        </div>
+        
+        <div id="zendfi-bank-otp-container" style="display: none; margin-bottom: 12px;">
+          <label style="display: block; font-size: 14px; color: #374151; margin-bottom: 4px; font-weight: 500;">
+            Verification Code
+          </label>
+          <input
+            type="text"
+            id="zendfi-bank-otp"
+            placeholder="Enter 4-digit code"
+            maxlength="4"
+            style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;"
+          />
+          <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+            Check your email for the verification code
+          </p>
+        </div>
+        
+        <button
+          id="zendfi-bank-submit"
+          style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+          onmouseover="this.style.background='#059669';"
+          onmouseout="this.style.background='#10b981';"
+        >
+          Send Verification Code
+        </button>
+        
+        <div id="zendfi-bank-error" style="display: none; margin-top: 12px; padding: 12px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; font-size: 14px;"></div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render bank details step
+   */
+  private renderBankDetailsStep(): string {
+    if (!this.bankPaymentState.bankDetails) return '';
+
+    const { accountNumber, accountName, bankName, amount } = this.bankPaymentState.bankDetails;
+
+    return `
+      <div id="zendfi-bank-details-step">
+        <div style="background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151;">
+            📋 Transfer to this account:
+          </h5>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 2px;">Bank Name</div>
+            <div style="font-weight: 600; color: #111827;">${bankName}</div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 2px;">Account Number</div>
+            <div style="font-weight: 600; color: #111827; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+              <span id="zendfi-bank-account">${accountNumber}</span>
+              <button
+                id="zendfi-copy-account"
+                style="padding: 2px 6px; font-size: 11px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 2px;">Account Name</div>
+            <div style="font-weight: 600; color: #111827;">${accountName}</div>
+          </div>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 2px;">Amount to Send</div>
+            <div style="font-size: 24px; font-weight: 700; color: #8866ff;">${amount.toFixed(2)} NGN</div>
+          </div>
+        </div>
+        
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <p style="margin: 0; font-size: 12px; color: #92400e;">
+            <strong>Important:</strong> Transfer the exact amount shown above. Payment will auto-complete in 10-30 seconds.
+          </p>
+        </div>
+        
+        <div id="zendfi-bank-status" style="text-align: center; padding: 16px;">
+          <div class="zendfi-spinner" style="margin: 0 auto 8px;"></div>
+          <div style="color: #6b7280; font-size: 14px;" id="zendfi-bank-status-text">
+            Waiting for bank transfer... (<span id="zendfi-bank-timer">0:00</span>)
+          </div>
+          <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+            ⏱️ Usually takes 10-30 seconds
+          </div>
+          <button
+            id="zendfi-refresh-status"
+            style="margin-top: 12px; padding: 8px 16px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; color: #6b7280; font-size: 14px;"
+          >
+            🔄 Refresh Status
+          </button>
+        </div>
       </div>
     `;
   }
@@ -612,6 +776,35 @@ export class ZendFiEmbeddedCheckout {
     const walletConnectBtn = document.getElementById('zendfi-wallet-connect');
     if (walletConnectBtn) {
       walletConnectBtn.addEventListener('click', () => this.handleWalletConnectScan());
+    }
+
+    // Bank payment: Send OTP button
+    const bankSubmitBtn = document.getElementById('zendfi-bank-submit');
+    if (bankSubmitBtn) {
+      bankSubmitBtn.addEventListener('click', () => this.handleBankSubmit());
+    }
+
+    // Bank payment: Copy account number
+    const copyAccountBtn = document.getElementById('zendfi-copy-account');
+    if (copyAccountBtn) {
+      copyAccountBtn.addEventListener('click', () => {
+        const accountNum = document.getElementById('zendfi-bank-account')?.textContent || '';
+        navigator.clipboard.writeText(accountNum);
+        copyAccountBtn.textContent = 'Copied!';
+        copyAccountBtn.style.background = '#15803D';
+        copyAccountBtn.style.color = 'white';
+        setTimeout(() => {
+          copyAccountBtn.textContent = 'Copy';
+          copyAccountBtn.style.background = '';
+          copyAccountBtn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    // Bank payment: Refresh status button
+    const refreshBtn = document.getElementById('zendfi-refresh-status');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => this.refreshBankStatus());
     }
   }
 
@@ -902,6 +1095,205 @@ export class ZendFiEmbeddedCheckout {
 
   private getErrorStyles(): string {
     return this.getLoadingStyles();
+  }
+
+  /**
+   * Handle bank payment submit (send OTP or verify OTP)
+   */
+  private async handleBankSubmit(): Promise<void> {
+    const submitBtn = document.getElementById('zendfi-bank-submit') as HTMLButtonElement;
+    const errorDiv = document.getElementById('zendfi-bank-error') as HTMLElement;
+    const emailInput = document.getElementById('zendfi-bank-email') as HTMLInputElement;
+    const otpContainer = document.getElementById('zendfi-bank-otp-container') as HTMLElement;
+    const otpInput = document.getElementById('zendfi-bank-otp') as HTMLInputElement;
+
+    if (!submitBtn || !errorDiv || !emailInput) return;
+
+    errorDiv.style.display = 'none';
+    submitBtn.disabled = true;
+
+    try {
+      // If OTP input is visible, verify OTP and create order
+      if (otpContainer && otpContainer.style.display !== 'none' && otpInput) {
+        const otp = otpInput.value.trim();
+        
+        if (otp.length !== 4) {
+          throw new Error('Please enter the 4-digit verification code');
+        }
+
+        submitBtn.textContent = 'Creating order...';
+
+        const response = await fetch(`${this.config.apiUrl}/api/v1/onramp/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_email: this.bankPaymentState.customerEmail,
+            otp,
+            fiat_amount: this.checkoutData!.amount_usd,
+            currency: this.checkoutData!.currency,
+            payment_link_id: this.checkoutData!.payment_link_id,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create order');
+        }
+
+        const orderData = await response.json();
+        
+        // Store order details
+        this.bankPaymentState.orderId = orderData.order_id;
+        this.bankPaymentState.bankDetails = {
+          accountNumber: orderData.bank_account_number,
+          accountName: orderData.bank_account_name,
+          bankName: orderData.bank_name,
+          amount: orderData.fiat_amount,
+        };
+
+        // Re-render to show bank details
+        this.render();
+        this.startBankStatusPolling();
+
+      } else {
+        // Send OTP
+        const email = emailInput.value.trim();
+        
+        if (!email || !email.includes('@')) {
+          throw new Error('Please enter a valid email address');
+        }
+
+        this.bankPaymentState.customerEmail = email;
+        submitBtn.textContent = 'Sending code...';
+
+        const response = await fetch(`${this.config.apiUrl}/api/v1/onramp/initiate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_email: email,
+            fiat_amount: this.checkoutData!.amount_usd,
+            payment_link_id: this.checkoutData!.payment_link_id,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to send verification code');
+        }
+
+        // Show OTP input
+        if (otpContainer) {
+          otpContainer.style.display = 'block';
+        }
+        emailInput.disabled = true;
+        submitBtn.textContent = 'Verify Code';
+      }
+    } catch (error: any) {
+      errorDiv.textContent = error.message;
+      errorDiv.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Start polling bank payment status
+   */
+  private startBankStatusPolling(): void {
+    if (!this.bankPaymentState.orderId) return;
+
+    let startTime = Date.now();
+    
+    // Update timer every second
+    const timerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      const timerEl = document.getElementById('zendfi-bank-timer');
+      if (timerEl) {
+        timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }, 1000);
+
+    // Poll status every 5 seconds
+    const pollInterval = setInterval(async () => {
+      await this.checkBankPaymentStatus();
+    }, 5000);
+
+    this.bankPaymentState.pollingInterval = pollInterval as any;
+
+    // Store timer interval for cleanup
+    (this.bankPaymentState as any).timerInterval = timerInterval;
+  }
+
+  /**
+   * Check bank payment status
+   */
+  private async checkBankPaymentStatus(): Promise<void> {
+    if (!this.bankPaymentState.orderId) return;
+
+    try {
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/onramp/orders/${this.bankPaymentState.orderId}`
+      );
+
+      if (!response.ok) return;
+
+      const order = await response.json();
+
+      if (order.status === 'COMPLETED' || order.status === 'completed') {
+        // Payment completed!
+        this.handleBankPaymentSuccess(order);
+      }
+    } catch (error) {
+      console.error('Failed to check bank payment status:', error);
+    }
+  }
+
+  /**
+   * Handle successful bank payment
+   */
+  private handleBankPaymentSuccess(order: any): void {
+    // Stop polling
+    if (this.bankPaymentState.pollingInterval) {
+      clearInterval(this.bankPaymentState.pollingInterval);
+    }
+    if ((this.bankPaymentState as any).timerInterval) {
+      clearInterval((this.bankPaymentState as any).timerInterval);
+    }
+
+    // Show success
+    this.renderSuccess();
+
+    // Trigger callback
+    if (!this.paymentProcessed) {
+      this.paymentProcessed = true;
+      this.config.onSuccess({
+        paymentId: this.checkoutData!.payment_id,
+        transactionSignature: order.paj_order_id,
+        amount: order.token_amount,
+        token: this.checkoutData!.token,
+        merchantName: this.checkoutData!.merchant_name,
+      });
+    }
+  }
+
+  /**
+   * Manually refresh bank payment status
+   */
+  private async refreshBankStatus(): Promise<void> {
+    const refreshBtn = document.getElementById('zendfi-refresh-status') as HTMLButtonElement;
+    if (!refreshBtn) return;
+
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '🔄 Checking...';
+
+    await this.checkBankPaymentStatus();
+
+    setTimeout(() => {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '🔄 Refresh Status';
+    }, 1000);
   }
 }
 
