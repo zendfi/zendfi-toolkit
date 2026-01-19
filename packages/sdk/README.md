@@ -29,10 +29,9 @@ console.log(payment.payment_url); // Send customer here
 | **Fees** | 2.9% + $0.30 | 3.5% + $0.49 | **0.6% flat** |
 | **Settlement** | 7 days | 3-5 days | **Instant** |
 | **Crypto Native** | Via 3rd party | Via 3rd party | **Built-in** |
-| **AI Agent Ready** | ACP  | NO | **Native** |
 | **Setup Time** | 30 min | 30 min | **5 min** |
 
-**Save 81% on fees.** Get paid instantly. Scale to AI when ready.
+**Save 81% on fees.** Get paid instantly.
 
 ---
 
@@ -51,15 +50,6 @@ console.log(payment.payment_url); // Send customer here
 - **Installments** — Buy now, pay later flows
 - **Invoices** — Professional invoicing with email
 - **Payment Splits** — Revenue sharing for marketplaces
-
-### **AI-Ready** (Optional Advanced)
-- **Agent Keys** — Scoped API keys for AI with spending limits
-- **Session Keys** — Pre-funded wallets for autonomous payments
-- **Payment Intents** — Two-phase commit for reliable checkout
-- **PPP Pricing** — Auto-adjust prices for 27+ countries
-- **Smart Payments** — AI-optimized payment routing
-
-Don't need AI features? **Ignore them.** The SDK works perfectly for traditional payments.
 
 ---
 
@@ -233,76 +223,17 @@ This covers:
 
 ---
 
-## AI-Ready Features (Optional Advanced)
-
-Building AI agents? ZendFi has native support for autonomous payments with cryptographic security and spending limits.
-
-### When Do I Need This?
-
-**Use traditional payments if:**
-- Building e-commerce, SaaS, or creator tools
-- User clicks "Pay" button for each transaction
-- Standard checkout flow
-
-**Use AI features if:**
-- Building AI agents that make purchases
-- Need autonomous payments without per-transaction approval
-- Want spending limits and scoped permissions
-
-### Quick Example: AI Agent Payment
-
-```typescript
-import { zendfi } from '@zendfi/sdk';
-
-// 1. Create agent key with limited permissions
-const agentKey = await zendfi.agent.createKey({
-  name: 'Shopping Assistant',
-  agent_id: 'shopping-assistant-v1',
-  scopes: ['create_payments'],
-  rate_limit_per_hour: 100,
-});
-
-// 2. Create device-bound session key (one-time setup with PIN)
-const sessionKey = await zendfi.sessionKeys.create({
-  userWallet: 'Hx7B...abc',
-  agentId: 'shopping-assistant-v1',
-  agentName: 'Shopping Assistant',
-  limitUSDC: 200,
-  durationDays: 1,
-  pin: '123456',
-});
-
-// 3. Unlock for payments (client-side)
-await zendfi.sessionKeys.unlock(sessionKey.sessionKeyId, '123456');
-
-// 4. AI agent makes payments autonomously (within limits)
-const payment = await zendfi.sessionKeys.makePayment(
-  sessionKey.sessionKeyId,
-  {
-    recipientWallet: 'merchant-wallet',
-    amountUSD: 25.00,
-    description: 'Coffee order',
-  }
-);
-
-// Done! User approved once, AI pays within limits
-```
-
-**Learn more:** [AI Payments Documentation](https://docs.zendfi.tech/agentic)
-
----
-
 ## Core API Reference
 
-### Namespaced APIs
+### API Methods
 
 ```typescript
 import { zendfi, ZendFiEmbeddedCheckout } from '@zendfi/sdk';
 
-// Embedded Checkout (New!)
+// Embedded Checkout
 const checkout = new ZendFiEmbeddedCheckout({...});
 
-// Traditional Payments (Most Common)
+// Payments
 zendfi.createPayment(...)
 zendfi.getPayment(...)
 zendfi.listPayments(...)
@@ -314,159 +245,75 @@ zendfi.createPaymentLink(...)
 zendfi.createSubscription(...)
 zendfi.cancelSubscription(...)
 
-// AI Features (Optional)
-zendfi.agent.createKey(...)           // Scoped API keys
-zendfi.agent.createSession(...)       // Spending limits
-zendfi.agent.pay(...)                 // Autonomous payments
-zendfi.intents.create(...)            // Two-phase checkout
-zendfi.sessionKeys.create(...)        // Pre-funded wallets
-zendfi.autonomy.enable(...)           // User-granted delegation
-zendfi.pricing.getPPPFactor(...)      // Global pricing
+// Escrow
+zendfi.createEscrow(...)
+zendfi.releaseEscrow(...)
+
+// Invoices
+zendfi.createInvoice(...)
+zendfi.sendInvoice(...)
 ```
 
-### Core Payments
+### Payments
 
-Create scoped API keys for AI agents with limited permissions:
-
-```typescript
-// Create an agent API key (prefixed with zai_)
-const agentKey = await zendfi.agent.createKey({
-  name: 'Shopping Assistant',
-  agent_id: 'shopping-assistant-v1',
-  scopes: ['create_payments', 'read_analytics'],
-  rate_limit_per_hour: 500,
-});
-
-// IMPORTANT: Save the full_key now - it won't be shown again!
-console.log(agentKey.full_key); // => "zai_test_abc123..."
-
-// List agent keys
-const keys = await zendfi.agent.listKeys();
-
-// Revoke a key
-await zendfi.agent.revokeKey(keyId);
-```
-
-**Available Scopes:**
-- `full` - Full access to all APIs
-- `read_only` - Read-only access
-- `create_payments` - Create new payments
-- `create_subscriptions` - Create subscriptions
-- `manage_escrow` - Manage escrow transactions
-- `manage_installments` - Manage installment plans
-- `read_analytics` - Access analytics data
-
-### Agent Sessions
-
-Create sessions with spending limits for user-approved agent actions:
+Create payments for your customers:
 
 ```typescript
-// Create a session with spending limits
-const session = await zendfi.agent.createSession({
-  agent_id: 'shopping-assistant-v1',
-  user_wallet: 'Hx7B...abc',
-  limits: {
-    max_per_transaction: 50,  // $50 max per payment
-    max_per_day: 200,         // $200 daily limit
-    allowed_merchants: ['merchant_123'], // Optional whitelist
-  },
-  duration_hours: 24,
-});
-
-// Make payments within the session (spending limits enforced!)
-const payment = await zendfi.agent.pay({
-  session_token: session.session_token,
-  amount: 29.99,
-  description: 'Premium widget',
-  auto_gasless: true,
-});
-
-if (payment.requires_signature) {
-  // Device-bound: user must sign
-  console.log('Sign transaction:', payment.unsigned_transaction);
-  console.log('Submit to:', payment.submit_url);
-} else {
-  // Auto-signed: payment complete
-  console.log('Payment confirmed:', payment.transaction_signature);
-}
-
-// List active sessions
-const sessions = await zendfi.agent.listSessions();
-
-// Get specific session
-const session = await zendfi.agent.getSession(sessionId);
-
-// Revoke session
-await zendfi.agent.revokeSession(sessionId);
-```
-
-### Payment Intents
-
-Modern two-phase payment flow for reliable checkout:
-
-```typescript
-// Step 1: Create intent when user starts checkout
-const intent = await zendfi.intents.create({
-  amount: 99.99,
+// Create a simple payment
+const payment = await zendfi.createPayment({
+  amount: 50,
   description: 'Premium subscription',
-  capture_method: 'automatic', // or 'manual' for auth-only
+  customer_email: 'customer@example.com',
 });
 
-// Step 2: Pass client_secret to frontend for confirmation
-console.log(intent.client_secret); // cs_abc123...
+// Get payment status
+const status = await zendfi.getPayment(payment.id);
 
-// Step 3: Confirm when user clicks "Pay"
-const confirmed = await zendfi.intents.confirm(intent.id, {
-  client_secret: intent.client_secret,
-  customer_wallet: 'Hx7B...abc',
+// List payments with pagination
+const payments = await zendfi.listPayments({
+  page: 1,
+  limit: 10,
+  status: 'confirmed',
 });
-
-// Or cancel if user abandons checkout
-await zendfi.intents.cancel(intent.id);
 ```
 
-**Intent Statuses:**
-- `requires_payment` - Waiting for confirmation
-- `processing` - Payment in progress
-- `succeeded` - Payment complete
-- `canceled` - Canceled by user/merchant
-- `failed` - Payment failed
+### Payment Links
 
-### PPP Pricing (Purchasing Power Parity)
-
-Automatically adjust prices based on customer location:
+Create reusable payment links:
 
 ```typescript
-// Get PPP factor for a country
-const factor = await zendfi.pricing.getPPPFactor('BR');
-// {
-//   country_code: 'BR',
-//   country_name: 'Brazil',
-//   ppp_factor: 0.35,
-//   adjustment_percentage: 35.0,
-//   currency_code: 'BRL'
-// }
-
-// Calculate localized price
-const basePrice = 100;
-const localPrice = basePrice * factor.ppp_factor;
-console.log(`$${localPrice} for Brazilian customers`); // $35
-
-// List all supported countries
-const factors = await zendfi.pricing.listFactors();
-
-// Get AI pricing suggestion
-const suggestion = await zendfi.pricing.getSuggestion({
-  agent_id: 'my-agent',
-  base_price: 99.99,
-  user_profile: {
-    location_country: 'BR',
-  },
+// Create a payment link
+const link = await zendfi.createPaymentLink({
+  amount: 99.99,
+  description: 'Pro Plan',
+  max_uses: 100,
 });
+
+console.log(link.url); // Share with customers
 ```
 
-**Supported Countries (27+):**
-Argentina, Australia, Brazil, Canada, China, Colombia, Egypt, France, Germany, Ghana, Hong Kong, Hungary, India, Indonesia, Israel, Japan, Kenya, Mexico, Nigeria, Philippines, Poland, South Africa, Thailand, Turkey, Ukraine, United Kingdom, Vietnam, and more.
+### Subscriptions
+
+Set up recurring billing:
+
+```typescript
+// Create a subscription plan
+const plan = await zendfi.createSubscriptionPlan({
+  name: 'Pro Plan',
+  amount: 29.99,
+  interval: 'monthly',
+  trial_days: 14,
+});
+
+// Subscribe a customer
+const subscription = await zendfi.createSubscription({
+  plan_id: plan.id,
+  customer_email: 'customer@example.com',
+});
+
+// Cancel subscription
+await zendfi.cancelSubscription(subscription.id);
+```
 
 ---
 
@@ -476,7 +323,6 @@ Production-ready utilities to simplify common integration patterns. All helpers 
 
 ```typescript
 import { 
-  SessionKeyCache,
   WalletConnector,
   TransactionPoller,
   DevTools 
@@ -488,41 +334,17 @@ import {
 - **Optional**: Import only what you need
 - **Tree-shakeable**: Unused code eliminated by bundlers  
 - **Zero config**: Sensible defaults, works out of the box
-- **Pluggable**: Bring your own storage/AI/PIN providers
+- **Pluggable**: Bring your own storage providers
 - **Production-ready**: Full TypeScript types, error handling
 
 ### Available Helpers
 
 | Helper | Purpose | Use Case |
 |--------|---------|----------|
-| `SessionKeyCache` | Cache encrypted session keys | Avoid re-prompting for PIN |
 | `WalletConnector` | Detect & connect Solana wallets | Phantom, Solflare, Backpack |
-| `PaymentIntentParser` | Parse natural language to payments | AI chat interfaces |
-| `PINValidator` | Validate PIN strength | Device-bound security |
 | `TransactionPoller` | Poll for confirmations | Wait for on-chain finality |
 | `RetryStrategy` | Exponential backoff retries | Handle network failures |
-| `SessionKeyLifecycle` | High-level session key manager | One-liner setup |
 | `DevTools` | Debug mode & test utilities | Development & testing |
-
-### Session Key Cache
-
-Cache encrypted session keys to avoid re-prompting users for their PIN:
-
-```typescript
-import { SessionKeyCache, QuickCaches } from '@zendfi/sdk/helpers';
-
-// Use presets
-const cache = QuickCaches.persistent(); // 1 hour localStorage
-
-// Use with device-bound session keys
-const keypair = await cache.getCached(
-  sessionKeyId,
-  async () => {
-    const pin = await promptUserForPIN();
-    return await decryptKeypair(pin);
-  }
-);
-```
 
 ### Wallet Connector
 
@@ -548,147 +370,7 @@ const poller = new TransactionPoller({ connection: rpcConnection });
 const result = await poller.waitForConfirmation(signature);
 ```
 
-### Session Key Lifecycle
-
-High-level wrapper for complete session key management:
-
-```typescript
-import { SessionKeyLifecycle } from '@zendfi/sdk/helpers';
-
-const lifecycle = new SessionKeyLifecycle(zendfi, {
-  cache: QuickCaches.persistent(),
-  autoCleanup: true,
-});
-
-await lifecycle.createAndFund({
-  userWallet: userAddress,
-  agentId: 'my-agent',
-  limitUsdc: 100,
-});
-
-await lifecycle.pay(5.00, 'Coffee');
-```
-
-**Full documentation:** See [Helper Utilities Guide](https://docs.zendfi.tech/helpers) for complete API reference and examples.
-
----
-
-### Autonomous Delegation
-
-Enable agents to make payments without per-transaction approval:
-
-```typescript
-// Enable autonomous mode for a wallet
-await zendfi.autonomy.enable(sessionKeyId, { 
-  max_amount_usd: 100,          // Total amount, not per-day
-  duration_hours: 24,           // Duration
-  delegation_signature: sig,    // Required signature
-});
-
-// Check autonomy status
-const status = await zendfi.autonomy.getStatus(walletAddress);
-
-// Revoke delegation
-await zendfi.autonomy.revoke(delegateId);
-```
-
-### Session Keys (Device-Bound Non-Custodial)
-
-Session keys are TRUE non-custodial wallets where:
-- **Client generates keypair** (backend NEVER sees private key)
-- **PIN encryption** using Argon2id + AES-256-GCM
-- **Device fingerprint binding** for security
-- **Autonomous payments** within spending limits
-
-**The Flow:**
-1. **Create** - Client generates keypair, encrypts with PIN (SDK handles this)
-2. **Unlock** - Decrypt with PIN once, enable auto-signing
-3. **Pay** - Make payments instantly without re-entering PIN
-
-```typescript
-// Create a device-bound session key
-const key = await zendfi.sessionKeys.create({
-  userWallet: 'Hx7B...abc',
-  agentId: 'shopping-assistant-v1',
-  agentName: 'AI Shopping Assistant',
-  limitUSDC: 100,
-  durationDays: 7,
-  pin: '123456',  // SDK encrypts keypair with this
-  generateRecoveryQR: true,
-});
-
-console.log(`Session key: ${key.sessionKeyId}`);
-console.log(`Session wallet: ${key.sessionWallet}`);
-console.log(`Recovery QR: ${key.recoveryQR}`);
-
-// Session key is auto-unlocked after create()
-// Make payments without PIN!
-const payment = await zendfi.sessionKeys.makePayment(
-  key.sessionKeyId,
-  {
-    recipientWallet: '8xYZA...',
-    amountUSD: 5.0,
-    description: 'Coffee purchase',
-  }
-);
-
-// Or unlock an existing session key
-await zendfi.sessionKeys.unlock(key.sessionKeyId, '123456');
-
-// Check status
-const status = await zendfi.sessionKeys.getStatus(key.sessionKeyId);
-console.log(`Active: ${status.isActive}`);
-console.log(`Remaining: $${status.remainingUSDC}`);
-console.log(`Spent: $${status.usedAmountUSDC}`);
-
-// Revoke when done
-await zendfi.sessionKeys.revoke(key.sessionKeyId);
-```
-
-**Security Features:**
-- **Backend cannot decrypt** - Keys encrypted client-side
-- **Device fingerprint** - Binds key to specific device
-- **Recovery QR** - Migrate to new device
-- **Auto-signing cache** - Instant payments after unlock
-
-### Smart Payments
-
-AI-powered payments that automatically apply optimizations:
-
-```typescript
-// Create a smart payment with automatic PPP
-const payment = await zendfi.smart.execute({
-  agent_id: 'my-agent',
-  user_wallet: 'Hx7B...abc',
-  amount_usd: 99.99,
-  country_code: 'BR', // Apply PPP automatically
-  auto_detect_gasless: true,
-  description: 'Pro subscription',
-});
-
-// Response includes discount applied
-console.log(`Original: $${payment.original_amount_usd}`);
-console.log(`Final: $${payment.final_amount_usd}`);
-// Original: $99.99
-// Final: $64.99 (35% PPP discount applied)
-```
-
-#### Device-Bound Flow
-
-For payments requiring user signatures:
-
-```typescript
-// After user signs the transaction locally
-const result = await zendfi.smart.submitSigned(
-  'pay_123...',
-  signedTransactionBase64
-);
-
-console.log(result.status);  // "confirmed"
-console.log(result.transaction_signature);
-```
-
-> **Tip:** `zendfi.smartPayment()` is also available as an alias for `zendfi.smart.execute()`.
+**Full documentation:** See [Helper Utilities Guide](https://docs.zendfi.tech/developer-tools/helper-utilities) for complete API reference and examples.
 
 ---
 

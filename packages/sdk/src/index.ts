@@ -6,20 +6,12 @@
  * ```typescript
  * import { zendfi } from '@zendfi/sdk';
  *
- * // Simple payment (unchanged)
  * const payment = await zendfi.createPayment({
  *   amount: 50,
  *   description: 'Premium subscription',
  * });
  *
- * // Agentic Intent Protocol
- * const agentKey = await zendfi.agent.createKey({
- *   name: 'Shopping Assistant',
- *   agent_id: 'shopping-assistant-v1',
- * });
- *
- * const intent = await zendfi.intents.create({ amount: 99.99 });
- * const ppp = await zendfi.pricing.getPPPFactor('BR');
+ * console.log(payment.payment_url); // Send customer here
  * ```
  */
 
@@ -36,9 +28,6 @@ export type {
   PaymentSuccessData, 
   CheckoutError 
 } from './embedded-checkout';
-
-// Agentic Intent Protocol APIs
-export { AgentAPI, PaymentIntentsAPI, PricingAPI, AutonomyAPI, SmartPaymentsAPI, SessionKeysAPI } from './aip';
 
 // Error handling
 export {
@@ -68,17 +57,6 @@ export {
   InterceptorManager,
 } from './interceptors';
 
-// Device-Bound Crypto Primitives (Low-Level)
-export {
-  DeviceBoundSessionKey,
-  DeviceFingerprintGenerator,
-  SessionKeyCrypto,
-  RecoveryQRGenerator,
-  type EncryptedSessionKey,
-  type DeviceBoundSessionKeyOptions,
-  type RecoveryQR,
-} from './device-bound-crypto';
-
 export {
   processWebhook,
   type WebhookHandlers,
@@ -86,20 +64,6 @@ export {
   type WebhookResult,
   type WebhookEventHandler,
 } from './webhook-handler';
-
-// Lit Protocol PKP Session Identity (for mint_pkp sessions)
-// Note: PKP provides audit trail, not signing (ECDSA vs Ed25519 incompatibility)
-export {
-  LitCryptoSigner,
-  SPENDING_LIMIT_ACTION_CID,
-  requiresLitSigning,
-  encodeTransactionForLit,
-  decodeSignatureFromLit,
-  type LitNetwork,
-  type LitCryptoSignerConfig,
-  type SignPaymentParams,
-  type SignPaymentResult,
-} from './lit-crypto-signer';
 
 // Optional Helpers (tree-shakeable utilities)
 export * from './helpers';
