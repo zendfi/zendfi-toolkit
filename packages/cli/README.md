@@ -2,7 +2,7 @@
 
 > Payments in 7 lines of code. Built for Solana e-commerce.
 
-[![npm version](https://img.shields.io/npm/v/create-zendfi-app.svg)](https://www.npmjs.com/package/create-zendfi-app)
+[![npm version](https://img.shields.io/npm/v/create-zendfi-app.svg)](https://www.npmjs.com/package/zendfi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This package includes **two powerful tools**:
@@ -62,16 +62,16 @@ npx create-zendfi-app my-store --template nextjs-saas --skip-install
 
 Full-featured online store built with Next.js 14 App Router:
 
-- ✅ Product catalog with filtering
-- ✅ Shopping cart with persistent state
-- ✅ Crypto checkout (SOL, USDC, USDT)
-- ✅ Order management system
-- ✅ Admin dashboard
-- ✅ Webhook handlers with signature verification
-- ✅ Prisma database integration
-- ✅ NextAuth.js authentication
-- ✅ Tailwind CSS styling
-- ✅ TypeScript throughout
+- Product catalog with filtering
+- Shopping cart with persistent state
+- Crypto checkout (SOL, USDC, USDT)
+- Order management system
+- Admin dashboard
+- Webhook handlers with signature verification
+- Prisma database integration
+- NextAuth.js authentication
+- Tailwind CSS styling
+- TypeScript throughout
 
 **Perfect for:** E-commerce stores, digital product sales, NFT marketplaces
 
@@ -79,15 +79,15 @@ Full-featured online store built with Next.js 14 App Router:
 
 Modern SaaS application with subscription billing:
 
-- ✅ User authentication & authorization
-- ✅ Subscription plan management
-- ✅ Recurring crypto payments
-- ✅ Usage tracking & analytics
-- ✅ Pricing page with multiple tiers
-- ✅ Customer dashboard
-- ✅ Webhook handlers for subscription events
-- ✅ Automatic access control
-- ✅ Responsive design
+- User authentication & authorization
+- Subscription plan management
+- Recurring crypto payments
+- Usage tracking & analytics
+- Pricing page with multiple tiers
+- Customer dashboard
+- Webhook handlers for subscription events
+- Automatic access control
+- Responsive design
 
 **Perfect for:** SaaS platforms, membership sites, premium content services
 
@@ -95,16 +95,16 @@ Modern SaaS application with subscription billing:
 
 Backend API server with crypto payment endpoints:
 
-- ✅ RESTful API architecture
-- ✅ Payment processing endpoints
-- ✅ Webhook handling with verification
-- ✅ Prisma ORM for database
-- ✅ JWT authentication
-- ✅ Rate limiting middleware
-- ✅ Input validation
-- ✅ Error handling
-- ✅ Docker support
-- ✅ TypeScript
+- RESTful API architecture
+- Payment processing endpoints
+- Webhook handling with verification
+- Prisma ORM for database
+- JWT authentication
+- Rate limiting middleware
+- Input validation
+- Error handling
+- Docker support
+- TypeScript
 
 **Perfect for:** Mobile apps, frontend-backend separation, microservices
 
@@ -207,7 +207,7 @@ zendfi payment status pay_test_abc123xyz
 ```
 Payment Status: pay_test_abc123xyz
 
-Status: Confirmed ✅
+Status: Confirmed
 Amount: $50.00 USD
 Currency: USDC
 Customer: customer@example.com
@@ -341,7 +341,7 @@ zendfi ppp factors
 
 **Output:**
 ```
-🌍 PPP Factor Lookup
+PPP Factor Lookup
 
   🇧🇷 Brazil (BR)
   PPP Factor: 0.35
@@ -390,17 +390,17 @@ npm start
 
 ---
 
-## 🎨 Template Features Comparison
+## Template Features Comparison
 
 | Feature | E-commerce | SaaS | Express API |
 |---------|-----------|------|-------------|
-| **Frontend** | ✅ Next.js | ✅ Next.js | ❌ API Only |
+| **Frontend** | Next.js | Next.js | API Only |
 | **One-time Payments** | ✅ | ✅ | ✅ |
 | **Subscriptions** | ❌ | ✅ | ✅ |
 | **Shopping Cart** | ✅ | ❌ | ❌ |
 | **Admin Dashboard** | ✅ | ✅ | ❌ |
-| **Authentication** | ✅ NextAuth | ✅ NextAuth | ✅ JWT |
-| **Database** | ✅ Prisma | ✅ Prisma | ✅ Prisma |
+| **Authentication** | NextAuth | NextAuth | JWT |
+| **Database** | Prisma | Prisma | Prisma |
 | **Webhooks** | ✅ | ✅ | ✅ |
 | **Docker** | ❌ | ❌ | ✅ |
 | **TypeScript** | ✅ | ✅ | ✅ |
@@ -422,8 +422,8 @@ export const POST = createNextWebhookHandler({
   secret: process.env.ZENDFI_WEBHOOK_SECRET!,
   handlers: {
     'payment.confirmed': async (payment) => {
-      // ✅ Signature already verified
-      // ✅ Payload already validated
+      // Signature already verified
+      // Payload already validated
       await fulfillOrder(payment.metadata.order_id);
     },
   },
@@ -432,20 +432,20 @@ export const POST = createNextWebhookHandler({
 
 ### API Key Management
 
-- ✅ Use `zfi_test_` keys for development (free devnet)
-- ✅ Use `zfi_live_` keys for production (real mainnet)
-- ✅ Never commit `.env` files to git
-- ✅ Rotate keys regularly with `zendfi keys rotate`
-- ✅ Use different keys for different environments
+- Use `zfi_test_` keys for development (free devnet)
+- Use `zfi_live_` keys for production (real mainnet)
+- Never commit `.env` files to git
+- Rotate keys regularly with `zendfi keys rotate`
+- Use different keys for different environments
 
 ### Environment Variables
 
 ```env
-# ✅ Good - Separate keys per environment
+# Good - Separate keys per environment
 ZENDFI_TEST_API_KEY=zfi_test_...
 ZENDFI_LIVE_API_KEY=zfi_live_...
 
-# ❌ Bad - Same key everywhere
+# Bad - Same key everywhere
 ZENDFI_API_KEY=zfi_live_...  # Don't use live keys in dev!
 ```
 
@@ -564,7 +564,7 @@ MIT © ZendFi
 
 ---
 
-## 🙏 Support
+## Support
 
 Need help? We're here for you!
 
