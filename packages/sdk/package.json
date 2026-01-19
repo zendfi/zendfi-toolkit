@@ -1,7 +1,7 @@
 {
   "name": "@zendfi/sdk",
   "version": "1.0.0",
-  "description": "Zero-config TypeScript SDK for ZendFi crypto payments on Solana",
+  "description": "Zero-config TypeScript SDK for ZendFi. Global payments powered by stablecoins!",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
