@@ -14,14 +14,12 @@
  * ```
  */
 
-// Wallet integration
 export {
   WalletConnector,
   createWalletHook,
   type ConnectedWallet,
 } from './wallet';
 
-// Transaction polling
 export {
   TransactionPoller,
   TransactionMonitor,
@@ -29,7 +27,6 @@ export {
   type TransactionStatus,
 } from './polling';
 
-// Development tools
 export {
   DevTools,
   PerformanceMonitor,

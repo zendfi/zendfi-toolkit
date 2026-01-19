@@ -11,8 +11,7 @@ import type { WebhookPayload } from './types';
  * 
  * @example
  * ```typescript
- * // app/api/webhooks/zendfi/route.ts
- * import { verifyNextWebhook } from '@zendfi/sdk/webhooks';
+ * import { verifyNextWebhook } from '@zendfi/sdk';
  * 
  * export async function POST(request: Request) {
  *   const webhook = await verifyNextWebhook(request);
@@ -21,10 +20,8 @@ import type { WebhookPayload } from './types';
  *     return new Response('Invalid signature', { status: 401 });
  *   }
  *   
- *   // Process webhook
  *   switch (webhook.event) {
  *     case 'payment.confirmed':
- *       // Handle payment
  *       break;
  *   }
  *   
@@ -71,7 +68,7 @@ export async function verifyNextWebhook(
  * 
  * @example
  * ```typescript
- * import { verifyExpressWebhook } from '@zendfi/sdk/webhooks';
+ * import { verifyExpressWebhook } from '@zendfi/sdk';
  * 
  * app.post('/webhooks/zendfi', async (req, res) => {
  *   const webhook = await verifyExpressWebhook(req);
@@ -128,7 +125,7 @@ export async function verifyExpressWebhook(
  * 
  * @example
  * ```typescript
- * import { verifyWebhookSignature } from '@zendfi/sdk/webhooks';
+ * import { verifyWebhookSignature } from '@zendfi/sdk';
  * 
  * const isValid = verifyWebhookSignature(
  *   payloadString,

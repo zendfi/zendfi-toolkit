@@ -45,10 +45,6 @@ export type WebhookHandlers = Partial<{
   'installment.due': WebhookEventHandler;
   'installment.paid': WebhookEventHandler;
   'installment.late': WebhookEventHandler;
-  'escrow.funded': WebhookEventHandler;
-  'escrow.released': WebhookEventHandler;
-  'escrow.refunded': WebhookEventHandler;
-  'escrow.disputed': WebhookEventHandler;
   'invoice.sent': WebhookEventHandler;
   'invoice.paid': WebhookEventHandler;
 }>;
@@ -105,7 +101,6 @@ async function processPayload(
   try {
     const webhookId = generateWebhookId(payload);
 
-    // Support alternate option names for backward compatibility/tests
     const isProcessed =
       config.isProcessed || (config as any).checkDuplicate || defaultIsProcessed;
     const onProcessed =
@@ -115,8 +110,6 @@ async function processPayload(
       !!((config as any).enableDeduplication || config.isProcessed || (config as any).checkDuplicate);
 
     if (dedupEnabled && (await isProcessed(webhookId))) {
-      // When deduplication is explicitly enabled, return a failure so callers
-      // can know this webhook was already processed.
       return {
         success: false,
         processed: false,
@@ -212,14 +205,12 @@ export async function processWebhook(
   }
 
   try {
-    // Support signatures that may be prefixed like `sha256=<hex>`
     const sig = typeof signature === 'string' && signature.startsWith('sha256=')
       ? signature.slice('sha256='.length)
       : String(signature);
 
     const hmac = createHmac('sha256', secret).update(body, 'utf8').digest('hex');
 
-    // Compare raw hex bytes to avoid encoding differences
     let ok = false;
     try {
       const sigBuf = Buffer.from(sig, 'hex');
@@ -228,7 +219,6 @@ export async function processWebhook(
         ok = timingSafeEqual(sigBuf, hmacBuf);
       }
     } catch (e) {
-      // If signature isn't valid hex, fall back to utf8-safe compare
       ok = timingSafeEqual(Buffer.from(String(sig), 'utf8'), Buffer.from(hmac, 'utf8'));
     }
 
@@ -248,7 +238,6 @@ export async function processWebhook(
       isProcessed: cfg.isProcessed,
       onProcessed: cfg.onProcessed,
       onError: cfg.onError,
-      // Forward compatibility for alternate names and flags
       enableDeduplication: (cfg as any).enableDeduplication,
       checkDuplicate: (cfg as any).checkDuplicate,
       markProcessed: (cfg as any).markProcessed,

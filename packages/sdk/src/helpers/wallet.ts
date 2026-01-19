@@ -22,13 +22,13 @@
 export interface ConnectedWallet {
   address: string;
   provider: 'phantom' | 'solflare' | 'backpack' | 'coinbase' | 'trust' | 'unknown';
-  publicKey: any; // Solana PublicKey
+  publicKey: any;
   signTransaction: (tx: any) => Promise<any>;
   signAllTransactions: (txs: any[]) => Promise<any[]>;
   signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
   disconnect: () => Promise<void>;
   isConnected: () => boolean;
-  raw: any; // Original wallet adapter
+  raw: any;
 }
 
 export interface WalletConnectorConfig {
@@ -53,12 +53,10 @@ export class WalletConnector {
    * Detect and connect to a Solana wallet
    */
   static async detectAndConnect(config: WalletConnectorConfig = {}): Promise<ConnectedWallet> {
-    // Check if already connected
     if (this.connectedWallet && this.connectedWallet.isConnected()) {
       return this.connectedWallet;
     }
 
-    // Detect available wallets
     const detected = this.detectWallets();
 
     if (detected.length === 0) {
@@ -68,13 +66,11 @@ export class WalletConnector {
       throw new Error('No Solana wallet detected. Please install Phantom, Solflare, or Backpack.');
     }
 
-    // Select wallet (prefer user's choice or first available)
     let selectedProvider: 'phantom' | 'solflare' | 'backpack' | 'coinbase' | 'trust' = detected[0]!;
     if (config.preferredProvider && detected.includes(config.preferredProvider)) {
       selectedProvider = config.preferredProvider;
     }
 
-    // Connect to wallet
     const wallet = await this.connectToProvider(selectedProvider);
     this.connectedWallet = wallet;
 
@@ -160,7 +156,6 @@ export class WalletConnector {
         throw new Error(`Unknown wallet provider: ${provider}`);
     }
 
-    // Connect
     try {
       const response = await adapter.connect();
       const publicKey = response.publicKey || adapter.publicKey;
@@ -180,7 +175,6 @@ export class WalletConnector {
           if (adapter.signAllTransactions) {
             return await adapter.signAllTransactions(txs);
           }
-          // Fallback: sign one by one
           const signed = [];
           for (const tx of txs) {
             signed.push(await adapter.signTransaction(tx));
@@ -217,12 +211,10 @@ export class WalletConnector {
   static async signAndSubmit(
     transaction: any,
     wallet: ConnectedWallet,
-    connection: any // Solana Connection
+    connection: any
   ): Promise<{ signature: string }> {
-    // Sign transaction
     const signedTx = await wallet.signTransaction(transaction);
 
-    // Submit to network
     const signature = await connection.sendRawTransaction(signedTx.serialize(), {
       skipPreflight: false,
       preflightCommitment: 'confirmed',
@@ -256,7 +248,6 @@ export class WalletConnector {
       return () => {};
     }
 
-    // Try all wallet providers
     const cleanupFns: Array<() => void> = [];
 
     // @ts-ignore
@@ -279,7 +270,6 @@ export class WalletConnector {
       });
     }
 
-    // Return cleanup function
     return () => {
       cleanupFns.forEach(fn => fn());
     };
@@ -335,7 +325,6 @@ Install one of these wallets:
 
     console.warn(message);
 
-    // Try to show browser alert (if available)
     if (typeof window !== 'undefined') {
       const userChoice = window.confirm(
         'No Solana wallet detected.\n\nWould you like to install Phantom wallet?'
@@ -373,7 +362,6 @@ Install one of these wallets:
  * Export as separate module to avoid forcing React dependency
  */
 export function createWalletHook() {
-  // Only load React if available
   let useState: any;
   let useEffect: any;
   try {
@@ -408,7 +396,6 @@ export function createWalletHook() {
     };
 
     useEffect(() => {
-      // Listen for account changes
       const cleanup = WalletConnector.onAccountChange((publicKey) => {
         if (wallet) {
           setWallet({ ...wallet, publicKey, address: publicKey.toString() });

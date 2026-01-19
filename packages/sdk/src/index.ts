@@ -20,7 +20,6 @@ export * from './types';
 export { ConfigLoader, RateLimiter, generateIdempotencyKey, sleep } from './utils';
 export * from './webhooks';
 
-// Embedded Checkout
 export { ZendFiEmbeddedCheckout } from './embedded-checkout';
 export type { 
   EmbeddedCheckoutConfig, 
@@ -29,7 +28,6 @@ export type {
   CheckoutError 
 } from './embedded-checkout';
 
-// Error handling
 export {
   ZendFiError,
   AuthenticationError,
@@ -46,7 +44,6 @@ export {
   type ZendFiErrorData,
 } from './errors';
 
-// Interceptors
 export {
   type RequestConfig,
   type ResponseData,
@@ -65,5 +62,4 @@ export {
   type WebhookEventHandler,
 } from './webhook-handler';
 
-// Optional Helpers (tree-shakeable utilities)
 export * from './helpers';

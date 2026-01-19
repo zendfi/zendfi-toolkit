@@ -1,11 +1,11 @@
 # @zendfi/sdk
 
-> The only crypto payment API built for the AI era
+> The simplest crypto payment SDK for Solana
 
 [![npm version](https://img.shields.io/npm/v/@zendfi/sdk.svg)](https://www.npmjs.com/package/@zendfi/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Accept **SOL, USDC, and USDT** payments in 7 lines of code. Built for e-commerce. Ready for AI agents.
+Accept **SOL, USDC, and USDT** payments in 7 lines of code. Built for e-commerce.
 
 ```typescript
 import { zendfi } from '@zendfi/sdk';
@@ -18,7 +18,7 @@ const payment = await zendfi.createPayment({
 console.log(payment.payment_url); // Send customer here
 ```
 
-**That's it.** Works for traditional payments AND AI agents. Same API.
+**That's it.** Full type safety. Instant settlements. 0.6% fees.
 
 ---
 
@@ -205,7 +205,7 @@ When ready for production:
 
 ---
 
-## Pricing (The Good News!)
+## Pricing
 
 **Platform Fee: 0.6%** (all-inclusive)
 
@@ -236,7 +236,6 @@ const checkout = new ZendFiEmbeddedCheckout({...});
 // Payments
 zendfi.createPayment(...)
 zendfi.getPayment(...)
-zendfi.listPayments(...)
 
 // Payment Links
 zendfi.createPaymentLink(...)
@@ -244,10 +243,6 @@ zendfi.createPaymentLink(...)
 // Subscriptions
 zendfi.createSubscription(...)
 zendfi.cancelSubscription(...)
-
-// Escrow
-zendfi.createEscrow(...)
-zendfi.releaseEscrow(...)
 
 // Invoices
 zendfi.createInvoice(...)
@@ -268,13 +263,6 @@ const payment = await zendfi.createPayment({
 
 // Get payment status
 const status = await zendfi.getPayment(payment.id);
-
-// List payments with pagination
-const payments = await zendfi.listPayments({
-  page: 1,
-  limit: 10,
-  status: 'confirmed',
-});
 ```
 
 ### Payment Links
@@ -406,23 +394,6 @@ const payment = await zendfi.getPayment('pay_abc123...');
 
 console.log(payment.status);
 // => "Pending" | "Confirmed" | "Failed" | "Expired"
-```
-
-#### List Payments (with filters)
-
-```typescript
-const payments = await zendfi.listPayments({
-  page: 1,
-  limit: 50,
-  status: 'Confirmed',
-  from_date: '2025-01-01',
-  to_date: '2025-12-31',
-});
-
-console.log(`Found ${payments.pagination.total} payments`);
-payments.data.forEach(payment => {
-  console.log(`${payment.id}: $${payment.amount} - ${payment.status}`);
-});
 ```
 
 ---
@@ -631,10 +602,6 @@ Get notified when payments are confirmed, subscriptions renew, etc.
 'installment.due'
 'installment.paid'
 'installment.late'
-'escrow.funded'
-'escrow.released'
-'escrow.refunded'
-'escrow.disputed'
 'invoice.sent'
 'invoice.paid'
 ```
@@ -670,13 +637,8 @@ export const POST = createNextWebhookHandler({
     },
     
     'subscription.activated': async (subscription) => {
-      console.log(`✅ Subscription activated for ${subscription.customer_email}`);
+      console.log(`Subscription activated for ${subscription.customer_email}`);
       await grantAccess(subscription.customer_email);
-    },
-    
-    'escrow.released': async (escrow) => {
-      console.log(`🔓 Escrow released: $${escrow.amount}`);
-      await notifySeller(escrow.seller_email);
     },
   },
 });
@@ -1048,40 +1010,6 @@ const subscription = await zendfi.createSubscription({
 // - subscription.canceled → Revoke access
 ```
 
-### Marketplace Escrow
-
-```typescript
-// 1. Buyer purchases from seller
-const escrow = await zendfi.createEscrow({
-  amount: 500,
-  buyer_email: buyer.email,
-  seller_email: seller.email,
-  buyer_wallet: buyer.wallet,
-  seller_wallet: seller.wallet,
-  description: 'Freelance project milestone',
-  metadata: {
-    project_id: project.id,
-    milestone: 'design-complete',
-  },
-});
-
-// 2. Buyer pays into escrow
-// Funds held securely
-
-// 3. When work is delivered:
-await zendfi.approveEscrow(escrow.id, {
-  approved_by: buyer.email,
-});
-// Funds released to seller
-
-// OR if there's an issue:
-await zendfi.disputeEscrow(escrow.id, {
-  dispute_reason: 'Work incomplete',
-  raised_by: buyer.email,
-});
-// ZendFi team mediates
-```
-
 ---
 
 ## Troubleshooting
@@ -1219,5 +1147,3 @@ Need help? We're here for you!
 ---
 
 **Built with ❤️ by the ZendFi team**
-
-*Making crypto payments as easy as traditional payments.*

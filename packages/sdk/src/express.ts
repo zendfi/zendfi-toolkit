@@ -3,7 +3,6 @@
  * 
  * @example
  * ```typescript
- * // src/routes/webhooks.ts
  * import express from 'express';
  * import { createExpressWebhookHandler } from '@zendfi/sdk/express';
  * 

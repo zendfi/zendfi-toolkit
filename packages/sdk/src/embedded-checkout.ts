@@ -60,7 +60,7 @@ export interface EmbeddedCheckoutConfig {
     walletConnect?: boolean;
     qrCode?: boolean;
     solanaWallet?: boolean;
-    bank?: boolean; // PAJ Ramp onramp
+    bank?: boolean;
   };
 }
 
@@ -120,9 +120,8 @@ export class ZendFiEmbeddedCheckout {
   private checkoutData: CheckoutData | null = null;
   private pollInterval: NodeJS.Timeout | null = null;
   private mounted: boolean = false;
-  private paymentProcessed: boolean = false; // Prevent duplicate success callbacks
+  private paymentProcessed: boolean = false;
   
-  // Bank payment state
   private bankPaymentState: {
     customerEmail?: string;
     orderId?: string;
@@ -182,19 +181,14 @@ export class ZendFiEmbeddedCheckout {
     }
 
     try {
-      // Show loading state
       this.renderLoading();
 
-      // Load dependencies (QR code, Solana web3.js)
       await this.loadDependencies();
 
-      // Fetch checkout data
       await this.fetchCheckoutData();
 
-      // Render the checkout UI
       this.render();
 
-      // Start polling for payment confirmation
       this.startPaymentPolling();
 
       this.mounted = true;
@@ -234,11 +228,9 @@ export class ZendFiEmbeddedCheckout {
     let method: string;
 
     if (this.config.linkCode) {
-      // For payment links, use POST to create a new payment
       endpoint = `/api/v1/payment-links/${this.config.linkCode}/pay`;
       method = 'POST';
     } else {
-      // For direct payment IDs, use GET to fetch checkout data
       endpoint = `/api/v1/payments/${this.config.paymentId}/checkout-data`;
       method = 'GET';
     }
@@ -279,7 +271,6 @@ export class ZendFiEmbeddedCheckout {
           const data = await response.json();
           
           if (data.status === 'confirmed' && !this.paymentProcessed) {
-            // Payment confirmed - use status data directly
             this.handlePaymentSuccess(data);
           } else if (data.status === 'failed') {
             this.handlePaymentFailure(data);
@@ -290,14 +281,13 @@ export class ZendFiEmbeddedCheckout {
       } catch (error) {
         console.error('Payment status check failed:', error);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 3000);
   }
 
   /**
    * Handle successful payment
    */
   private handlePaymentSuccess(statusData: any): void {
-    // Prevent duplicate callbacks
     if (this.paymentProcessed) return;
     this.paymentProcessed = true;
 
@@ -469,7 +459,6 @@ export class ZendFiEmbeddedCheckout {
   private renderPaymentMethods(): string {
     if (!this.checkoutData) return '';
 
-    // Show bank payment option if onramp is enabled
     const showBank = this.config.paymentMethods.bank && this.checkoutData.onramp;
 
     return `
@@ -526,7 +515,7 @@ export class ZendFiEmbeddedCheckout {
           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0, 0, 0, 0.15)';"
           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)';"
         >
-          🔗 Connect Wallet
+          Connect Wallet
         </button>
       </div>
     `;
@@ -544,7 +533,7 @@ export class ZendFiEmbeddedCheckout {
           onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';"
           onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white';"
         >
-          📱 WalletConnect
+          WalletConnect
         </button>
       </div>
     `;
@@ -563,7 +552,7 @@ export class ZendFiEmbeddedCheckout {
       <div class="zendfi-payment-method" style="padding: 16px; border: 2px solid #10b981; border-radius: 12px; margin-bottom: 16px; background: #f0fdf4;">
         <div style="margin-bottom: 12px;">
           <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #065f46; display: flex; align-items: center;">
-            🏦 Pay with Bank Transfer (Nigeria)
+            Pay with Bank Transfer (Nigeria)
           </h4>
           <p style="margin: 0; font-size: 12px; color: #047857;">
             Pay with your Nigerian bank account • Instant confirmation
@@ -748,43 +737,37 @@ export class ZendFiEmbeddedCheckout {
    * Attach event listeners to interactive elements
    */
   private attachEventListeners(): void {
-    // QR Code generation
     const qrCanvas = document.getElementById('zendfi-qr-code') as HTMLCanvasElement;
     if (qrCanvas && this.checkoutData) {
       this.generateQRCode(qrCanvas, this.checkoutData.qr_code);
     }
 
-    // Copy address button
     const copyBtn = document.getElementById('zendfi-copy-address');
     if (copyBtn && this.checkoutData) {
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(this.checkoutData!.wallet_address);
         copyBtn.textContent = '✓ Copied!';
         setTimeout(() => {
-          copyBtn.textContent = '📋 Copy Address';
+          copyBtn.textContent = 'Copy Address';
         }, 2000);
       });
     }
 
-    // Connect wallet button
     const connectBtn = document.getElementById('zendfi-connect-wallet');
     if (connectBtn) {
       connectBtn.addEventListener('click', () => this.handleWalletConnect());
     }
 
-    // WalletConnect button
     const walletConnectBtn = document.getElementById('zendfi-wallet-connect');
     if (walletConnectBtn) {
       walletConnectBtn.addEventListener('click', () => this.handleWalletConnectScan());
     }
 
-    // Bank payment: Send OTP button
     const bankSubmitBtn = document.getElementById('zendfi-bank-submit');
     if (bankSubmitBtn) {
       bankSubmitBtn.addEventListener('click', () => this.handleBankSubmit());
     }
 
-    // Bank payment: Copy account number
     const copyAccountBtn = document.getElementById('zendfi-copy-account');
     if (copyAccountBtn) {
       copyAccountBtn.addEventListener('click', () => {
@@ -801,7 +784,6 @@ export class ZendFiEmbeddedCheckout {
       });
     }
 
-    // Bank payment: Refresh status button
     const refreshBtn = document.getElementById('zendfi-refresh-status');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.refreshBankStatus());
@@ -813,14 +795,12 @@ export class ZendFiEmbeddedCheckout {
    */
   private async handleWalletConnect(): Promise<void> {
     try {
-      // Check if Solana wallet is available
       const provider = (window as any).solana;
       if (!provider) {
         alert('No Solana wallet found. Please install Phantom, Solflare, or another Solana wallet.');
         return;
       }
 
-      // Connect to wallet
       const connectBtn = document.getElementById('zendfi-connect-wallet');
       if (connectBtn) {
         connectBtn.textContent = '🔄 Connecting...';
@@ -834,7 +814,6 @@ export class ZendFiEmbeddedCheckout {
         connectBtn.textContent = '🔨 Building transaction...';
       }
 
-      // Build transaction
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/payments/${this.checkoutData!.payment_id}/build-transaction`,
         {
@@ -854,24 +833,20 @@ export class ZendFiEmbeddedCheckout {
       const { transaction: transactionBase64, is_gasless } = await response.json();
 
       if (connectBtn) {
-        connectBtn.textContent = '✍️ Sign transaction...';
+        connectBtn.textContent = 'Sign transaction...';
       }
 
-      // Decode transaction using @solana/web3.js
       const solanaWeb3 = (window as any).solanaWeb3;
       const transactionBuffer = Uint8Array.from(atob(transactionBase64), c => c.charCodeAt(0));
       const transaction = solanaWeb3.Transaction.from(transactionBuffer);
 
-      // Sign transaction
       const signedTransaction = await provider.signTransaction(transaction);
 
       if (connectBtn) {
-        connectBtn.textContent = '📡 Submitting...';
+        connectBtn.textContent = 'Submitting...';
       }
 
-      // Submit transaction
       if (is_gasless) {
-        // For gasless, submit signed transaction to backend
         const serialized = signedTransaction.serialize();
         const signedBase64 = btoa(String.fromCharCode(...serialized));
 
@@ -891,7 +866,6 @@ export class ZendFiEmbeddedCheckout {
           throw new Error(errorData.error || 'Failed to submit gasless transaction');
         }
       } else {
-        // For regular transactions, submit signature
         const signature = signedTransaction.signature?.toString();
         if (!signature) {
           throw new Error('Transaction signature missing');
@@ -915,17 +889,15 @@ export class ZendFiEmbeddedCheckout {
       }
 
       if (connectBtn) {
-        connectBtn.textContent = '⏳ Confirming...';
+        connectBtn.textContent = 'Confirming...';
       }
 
-      // Payment will be confirmed via polling
     } catch (error) {
       console.error('Wallet connection error:', error);
       
-      // Reset button
       const connectBtn = document.getElementById('zendfi-connect-wallet');
       if (connectBtn) {
-        connectBtn.textContent = '🔗 Connect Wallet';
+        connectBtn.textContent = 'Connect Wallet';
         (connectBtn as HTMLButtonElement).disabled = false;
       }
 
@@ -945,15 +917,11 @@ export class ZendFiEmbeddedCheckout {
   private handleWalletConnectScan(): void {
     if (!this.checkoutData) return;
 
-    // Generate Solana Pay URL
     const solanaPayUrl = `solana:${this.checkoutData.wallet_address}?amount=${this.checkoutData.amount_usd}&spl-token=${this.checkoutData.token}&reference=${this.checkoutData.payment_id}&label=${encodeURIComponent(this.checkoutData.merchant_name)}&message=${encodeURIComponent(this.checkoutData.description || 'Payment')}`;
 
-    // Open in mobile wallet or copy to clipboard
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // On mobile, try to open wallet directly
       window.location.href = solanaPayUrl;
     } else {
-      // On desktop, copy to clipboard and show QR
       navigator.clipboard.writeText(solanaPayUrl).then(() => {
         alert('Solana Pay link copied! Open it on your mobile wallet or scan the QR code above.');
       }).catch(() => {
@@ -1009,12 +977,10 @@ export class ZendFiEmbeddedCheckout {
    * Load external dependencies (QR code library, Solana web3.js)
    */
   private async loadDependencies(): Promise<void> {
-    // Load QRious for QR code generation
     if (!(window as any).QRious) {
       await this.loadScript('https://cdn.jsdelivr.net/npm/qrious@4/dist/qrious.min.js');
     }
 
-    // Load Solana web3.js
     if (!(window as any).solanaWeb3) {
       await this.loadScript('https://unpkg.com/@solana/web3.js@1.95.2/lib/index.iife.min.js');
     }
@@ -1113,7 +1079,6 @@ export class ZendFiEmbeddedCheckout {
     submitBtn.disabled = true;
 
     try {
-      // If OTP input is visible, verify OTP and create order
       if (otpContainer && otpContainer.style.display !== 'none' && otpInput) {
         const otp = otpInput.value.trim();
         
@@ -1142,7 +1107,6 @@ export class ZendFiEmbeddedCheckout {
 
         const orderData = await response.json();
         
-        // Store order details
         this.bankPaymentState.orderId = orderData.order_id;
         this.bankPaymentState.bankDetails = {
           accountNumber: orderData.bank_account_number,
@@ -1151,12 +1115,10 @@ export class ZendFiEmbeddedCheckout {
           amount: orderData.fiat_amount,
         };
 
-        // Re-render to show bank details
         this.render();
         this.startBankStatusPolling();
 
       } else {
-        // Send OTP
         const email = emailInput.value.trim();
         
         if (!email || !email.includes('@')) {
@@ -1181,7 +1143,6 @@ export class ZendFiEmbeddedCheckout {
           throw new Error(error.error || 'Failed to send verification code');
         }
 
-        // Show OTP input
         if (otpContainer) {
           otpContainer.style.display = 'block';
         }
@@ -1204,7 +1165,6 @@ export class ZendFiEmbeddedCheckout {
 
     let startTime = Date.now();
     
-    // Update timer every second
     const timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const minutes = Math.floor(elapsed / 60);
@@ -1215,14 +1175,12 @@ export class ZendFiEmbeddedCheckout {
       }
     }, 1000);
 
-    // Poll status every 5 seconds
     const pollInterval = setInterval(async () => {
       await this.checkBankPaymentStatus();
     }, 5000);
 
     this.bankPaymentState.pollingInterval = pollInterval as any;
 
-    // Store timer interval for cleanup
     (this.bankPaymentState as any).timerInterval = timerInterval;
   }
 
@@ -1242,7 +1200,6 @@ export class ZendFiEmbeddedCheckout {
       const order = await response.json();
 
       if (order.status === 'COMPLETED' || order.status === 'completed') {
-        // Payment completed!
         this.handleBankPaymentSuccess(order);
       }
     } catch (error) {
@@ -1254,7 +1211,6 @@ export class ZendFiEmbeddedCheckout {
    * Handle successful bank payment
    */
   private handleBankPaymentSuccess(order: any): void {
-    // Stop polling
     if (this.bankPaymentState.pollingInterval) {
       clearInterval(this.bankPaymentState.pollingInterval);
     }
@@ -1262,10 +1218,8 @@ export class ZendFiEmbeddedCheckout {
       clearInterval((this.bankPaymentState as any).timerInterval);
     }
 
-    // Show success
     this.renderSuccess();
 
-    // Trigger callback
     if (!this.paymentProcessed) {
       this.paymentProcessed = true;
       this.config.onSuccess({
@@ -1297,7 +1251,6 @@ export class ZendFiEmbeddedCheckout {
   }
 }
 
-// Export for use in HTML
 if (typeof window !== 'undefined') {
   (window as any).ZendFiEmbeddedCheckout = ZendFiEmbeddedCheckout;
 }

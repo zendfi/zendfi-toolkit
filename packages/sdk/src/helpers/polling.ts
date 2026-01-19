@@ -6,7 +6,6 @@
  * ```typescript
  * import { TransactionPoller } from '@zendfi/sdk/helpers';
  * 
- * // Wait for confirmation
  * const status = await TransactionPoller.waitForConfirmation(
  *   signature,
  *   { timeout: 60000, interval: 2000 }
@@ -70,7 +69,6 @@ export class TransactionPoller {
     while (true) {
       attempts++;
 
-      // Check timeout
       if (Date.now() - startTime > timeout) {
         return {
           confirmed: false,
@@ -79,7 +77,6 @@ export class TransactionPoller {
         };
       }
 
-      // Check max attempts
       if (attempts > maxAttempts) {
         return {
           confirmed: false,
@@ -89,7 +86,6 @@ export class TransactionPoller {
       }
 
       try {
-        // Poll transaction status
         const status = await this.checkTransactionStatus(signature, commitment, rpcUrl);
 
         if (status.confirmed) {
@@ -100,12 +96,10 @@ export class TransactionPoller {
           return status;
         }
 
-        // Wait before next poll (exponential backoff)
         await this.sleep(currentInterval);
         currentInterval = Math.min(currentInterval * 1.5, maxInterval);
 
       } catch (error: any) {
-        // Network error - retry with backoff
         await this.sleep(currentInterval);
         currentInterval = Math.min(currentInterval * 1.5, maxInterval);
       }
@@ -156,7 +150,6 @@ export class TransactionPoller {
       };
     }
 
-    // Check if confirmed at requested commitment level
     const isConfirmed = this.isCommitmentReached(status, commitment);
 
     return {
@@ -179,7 +172,7 @@ export class TransactionPoller {
 
     switch (commitment) {
       case 'processed':
-        return true; // Any status means processed
+        return true;
       case 'confirmed':
         return status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized';
       case 'finalized':
@@ -193,7 +186,6 @@ export class TransactionPoller {
    * Get default RPC URL based on environment
    */
   private static getDefaultRpcUrl(): string {
-    // Try to detect network from environment
     if (typeof window !== 'undefined' && window.location) {
       const hostname = window.location.hostname;
       if (hostname.includes('localhost') || hostname.includes('dev')) {
@@ -201,7 +193,6 @@ export class TransactionPoller {
       }
     }
 
-    // Default to mainnet
     return 'https://api.mainnet-beta.solana.com';
   }
 
@@ -336,14 +327,12 @@ export class TransactionMonitor {
     },
     options: PollingOptions = {}
   ): void {
-    // Stop existing monitor if any
     this.stopMonitoring(signature);
 
     const { timeout = 60000, interval = 2000 } = options;
     const startTime = Date.now();
 
     const intervalId = setInterval(async () => {
-      // Check timeout
       if (Date.now() - startTime > timeout) {
         this.stopMonitoring(signature);
         callbacks.onTimeout?.();
@@ -353,7 +342,7 @@ export class TransactionMonitor {
       try {
         const status = await TransactionPoller.waitForConfirmation(signature, {
           ...options,
-          maxAttempts: 1, // Single check per interval
+          maxAttempts: 1,
         });
 
         if (status.confirmed) {
@@ -364,7 +353,6 @@ export class TransactionMonitor {
           callbacks.onFailed?.(status);
         }
       } catch (error) {
-        // Continue polling on error
       }
     }, interval);
 

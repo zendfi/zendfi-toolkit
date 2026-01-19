@@ -13,21 +13,20 @@ import { processWebhook } from '../webhook-handler';
  * 
  * @example
  * ```typescript
- * // src/routes/webhooks.ts
  * import express from 'express';
  * import { createWebhookHandler } from '@zendfi/sdk/express';
  * 
  * const router = express.Router();
  * 
  * router.post('/zendfi', 
- *   express.raw({ type: 'application/json' }), // Important: raw body
+ *   express.raw({ type: 'application/json' }),
  *   createWebhookHandler({
  *     secret: process.env.ZENDFI_WEBHOOK_SECRET!,
  *     handlers: {
  *       'payment.confirmed': async (payment) => {
- *         // ✅ Already verified
- *         // ✅ Already typed
- *         // ✅ Already deduplicated
+ *         // Already verified
+ *         // Already typed
+ *         // Already deduplicated
  *         await updateOrder(payment.metadata.orderId, 'paid');
  *       },
  *       'subscription.canceled': async (subscription) => {
@@ -123,8 +122,7 @@ export function createWebhookHandler(
  *     secret: process.env.ZENDFI_WEBHOOK_SECRET!
  *   }),
  *   async (req, res) => {
- *     const payload = req.body.payload; // Verified payload
- *     // Handle manually
+ *     const payload = (req as any).webhookPayload;
  *   }
  * );
  * ```

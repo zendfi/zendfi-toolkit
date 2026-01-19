@@ -45,7 +45,6 @@ export class ConfigLoader {
     if (apiKey.startsWith('zfi_live_')) {
       return 'live';
     }
-    // Fallback to live if no prefix detected
     return 'live';
   }
 
@@ -53,7 +52,6 @@ export class ConfigLoader {
    * Detect environment based on various signals
    */
   private static detectEnvironment(): Environment {
-    // Explicit env var takes precedence
     const envVar = process.env.ZENDFI_ENVIRONMENT || process.env.NEXT_PUBLIC_ZENDFI_ENVIRONMENT;
     if (envVar) {
       return envVar as Environment;
@@ -105,7 +103,6 @@ export class ConfigLoader {
       const credentials = this.loadCLICredentials();
       if (credentials?.apiKey) return credentials.apiKey;
     } catch {
-      // Ignore errors loading CLI credentials
     }
 
     throw new Error(
@@ -121,8 +118,6 @@ export class ConfigLoader {
   private static getBaseURL(_environment: Environment, _mode: 'test' | 'live', explicitURL?: string): string {
     if (explicitURL) return explicitURL;
 
-    // Single API endpoint for both test (devnet) and live (mainnet) modes
-    // Backend uses API key prefix to determine network routing
     return process.env.ZENDFI_API_URL || 'https://api.zendfi.tech';
   }
 
@@ -145,7 +140,6 @@ export class ConfigLoader {
         return JSON.parse(data);
       }
     } catch (error) {
-      // Ignore errors
     }
 
     return null;
@@ -166,14 +160,14 @@ export class ConfigLoader {
     
     if (mode === 'live' && env === 'development') {
       console.warn(
-        '⚠️  Warning: Using a live API key (zfi_live_) in development environment. ' +
+        'Warning: Using a live API key (zfi_live_) in development environment. ' +
           'This will create real mainnet transactions. Use a test key (zfi_test_) for devnet testing.'
       );
     }
     
     if (mode === 'test' && env === 'production') {
       console.warn(
-        '⚠️  Warning: Using a test API key (zfi_test_) in production environment. ' +
+        'Warning: Using a test API key (zfi_test_) in production environment. ' +
           'This will create devnet transactions only. Use a live key (zfi_live_) for mainnet.'
       );
     }
@@ -227,10 +221,6 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ============================================
-// Client-Side Rate Limiter
-// ============================================
-
 /**
  * Client-side rate limiter to prevent hitting API rate limits
  * 
@@ -238,7 +228,7 @@ export function sleep(ms: number): Promise<void> {
  * ```typescript
  * const limiter = new RateLimiter({
  *   maxRequests: 100,
- *   windowMs: 60000, // 100 requests per minute
+ *   windowMs: 60000,
  * });
  * 
  * if (limiter.canMakeRequest()) {
@@ -257,7 +247,7 @@ export class RateLimiter {
 
   constructor(options: { maxRequests?: number; windowMs?: number } = {}) {
     this.maxRequests = options.maxRequests ?? 100;
-    this.windowMs = options.windowMs ?? 60000; // 1 minute default
+    this.windowMs = options.windowMs ?? 60000;
   }
 
   /**

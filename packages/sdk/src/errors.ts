@@ -44,7 +44,6 @@ export class ZendFiError extends Error {
     this.response = data.response;
     this.docs_url = `https://docs.zendfi.com/errors/${data.code}`;
 
-    // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ZendFiError);
     }
@@ -57,10 +56,10 @@ export class ZendFiError extends Error {
     let message = `[${this.code}] ${this.message}`;
     
     if (this.suggestion) {
-      message += `\n💡 Suggestion: ${this.suggestion}`;
+      message += `\nSuggestion: ${this.suggestion}`;
     }
     
-    message += `\n📚 Docs: ${this.docs_url}`;
+    message += `\nDocs: ${this.docs_url}`;
     
     return message;
   }
@@ -90,7 +89,7 @@ export class AuthenticationError extends ZendFiError {
       code,
       message,
       type: 'authentication_error',
-      suggestion: suggestion || 'Check your API key in the dashboard at https://app.zendfi.com/settings/api-keys',
+      suggestion: suggestion || 'Check your API key in the dashboard at https://dashboard.zendfi.tech',
       statusCode: 401,
     });
     this.name = 'AuthenticationError';
@@ -206,7 +205,6 @@ export function createZendFiError(
   const errorMessage = message || responseBody?.error?.message || responseBody?.message || 'An error occurred';
   const errorCode = responseBody?.error?.code || responseBody?.code || 'unknown_error';
 
-  // Authentication errors
   if (statusCode === 401) {
     return new AuthenticationError(
       errorMessage,
@@ -215,23 +213,19 @@ export function createZendFiError(
     );
   }
 
-  // Rate limiting
   if (statusCode === 429) {
     const retryAfter = responseBody?.retry_after;
     return new RateLimitError(errorMessage, retryAfter);
   }
 
-  // Validation errors
   if (statusCode === 400 || statusCode === 422) {
     return new ValidationError(errorMessage, errorCode);
   }
 
-  // Payment errors
   if (statusCode === 402) {
     return new PaymentError(errorMessage, errorCode);
   }
 
-  // Network errors
   if (statusCode === 0 || statusCode >= 500) {
     return new NetworkError(
       errorMessage,
@@ -242,7 +236,6 @@ export function createZendFiError(
     );
   }
 
-  // Generic API error
   return new ApiError(errorMessage, errorCode, statusCode, responseBody);
 }
 
@@ -250,30 +243,24 @@ export function createZendFiError(
  * Common error codes and their messages
  */
 export const ERROR_CODES = {
-  // Authentication
   INVALID_API_KEY: 'invalid_api_key',
   API_KEY_EXPIRED: 'api_key_expired',
   API_KEY_REVOKED: 'api_key_revoked',
   
-  // Payment
   INSUFFICIENT_BALANCE: 'insufficient_balance',
   PAYMENT_DECLINED: 'payment_declined',
   PAYMENT_EXPIRED: 'payment_expired',
   INVALID_AMOUNT: 'invalid_amount',
   INVALID_CURRENCY: 'invalid_currency',
   
-  // Validation
   MISSING_REQUIRED_FIELD: 'missing_required_field',
   INVALID_PARAMETER: 'invalid_parameter',
   
-  // Network
   NETWORK_ERROR: 'network_error',
   TIMEOUT: 'timeout',
   
-  // Rate limiting
   RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
   
-  // Webhook
   WEBHOOK_SIGNATURE_INVALID: 'webhook_signature_invalid',
   WEBHOOK_TIMESTAMP_TOO_OLD: 'webhook_timestamp_too_old',
 } as const;

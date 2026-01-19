@@ -4,8 +4,6 @@ import type {
   ZendFiConfig,
   CreatePaymentRequest,
   Payment,
-  ListPaymentsRequest,
-  PaginatedResponse,
   CreateSubscriptionPlanRequest,
   SubscriptionPlan,
   CreateSubscriptionRequest,
@@ -16,11 +14,6 @@ import type {
   VerifyWebhookRequest,
   CreateInstallmentPlanRequest,
   InstallmentPlan,
-  CreateEscrowRequest,
-  Escrow,
-  ApproveEscrowRequest,
-  RefundEscrowRequest,
-  DisputeEscrowRequest,
   CreateInvoiceRequest,
   Invoice,
 } from './types';
@@ -71,25 +64,6 @@ export class ZendFiClient {
    */
   async getPayment(paymentId: string): Promise<Payment> {
     return this.request<Payment>('GET', `/api/v1/payments/${paymentId}`);
-  }
-
-  /**
-   * List all payments with pagination
-   */
-  async listPayments(
-    request?: ListPaymentsRequest
-  ): Promise<PaginatedResponse<Payment>> {
-    const params = new URLSearchParams();
-
-    if (request?.page) params.append('page', request.page.toString());
-    if (request?.limit) params.append('limit', request.limit.toString());
-    if (request?.status) params.append('status', request.status);
-    if (request?.from_date) params.append('from_date', request.from_date);
-    if (request?.to_date) params.append('to_date', request.to_date);
-
-    const query = params.toString() ? `?${params.toString()}` : '';
-
-    return this.request<PaginatedResponse<Payment>>('GET', `/api/v1/payments${query}`);
   }
 
   /**
@@ -233,80 +207,6 @@ export class ZendFiClient {
   }
 
   /**
-   * Create an escrow transaction
-   * Hold funds until conditions are met
-   */
-  async createEscrow(request: CreateEscrowRequest): Promise<Escrow> {
-    return this.request<Escrow>('POST', '/api/v1/escrows', {
-      ...request,
-      currency: request.currency || 'USD',
-      token: request.token || 'USDC',
-    });
-  }
-
-  /**
-   * Get escrow by ID
-   */
-  async getEscrow(escrowId: string): Promise<Escrow> {
-    return this.request<Escrow>('GET', `/api/v1/escrows/${escrowId}`);
-  }
-
-  /**
-   * List all escrows for merchant
-   */
-  async listEscrows(params?: { limit?: number; offset?: number }): Promise<Escrow[]> {
-    const query = new URLSearchParams();
-    if (params?.limit) query.append('limit', params.limit.toString());
-    if (params?.offset) query.append('offset', params.offset.toString());
-    const queryString = query.toString() ? `?${query.toString()}` : '';
-    return this.request<Escrow[]>('GET', `/api/v1/escrows${queryString}`);
-  }
-
-  /**
-   * Approve escrow release to seller
-   */
-  async approveEscrow(
-    escrowId: string,
-    request: ApproveEscrowRequest
-  ): Promise<{ status: string; transaction_signature?: string; message: string }> {
-    return this.request<{ status: string; transaction_signature?: string; message: string }>(
-      'POST',
-      `/api/v1/escrows/${escrowId}/approve`,
-      request
-    );
-  }
-
-  /**
-   * Refund escrow to buyer
-   */
-  async refundEscrow(
-    escrowId: string,
-    request: RefundEscrowRequest
-  ): Promise<{ status: string; transaction_signature: string; message: string; reason: string }> {
-    return this.request<{
-      status: string;
-      transaction_signature: string;
-      message: string;
-      reason: string;
-    }>('POST', `/api/v1/escrows/${escrowId}/refund`, request);
-  }
-
-  /**
-   * Raise a dispute for an escrow
-   */
-  async disputeEscrow(
-    escrowId: string,
-    request: DisputeEscrowRequest
-  ): Promise<{ status: string; message: string; dispute_id: string; created_at: string }> {
-    return this.request<{
-      status: string;
-      message: string;
-      dispute_id: string;
-      created_at: string;
-    }>('POST', `/api/v1/escrows/${escrowId}/dispute`, request);
-  }
-
-  /**
    * Create an invoice
    */
   async createInvoice(request: CreateInvoiceRequest): Promise<Invoice> {
@@ -405,10 +305,8 @@ export class ZendFiClient {
 
       return this.timingSafeEqual(request.signature, computedSignature);
     } catch (err) {
-      // In dev, print concise error message (avoid dumping large objects)
       const error = err as Error | undefined;
       if (this.config.environment === 'development') {
-        // eslint-disable-next-line no-console
         console.error('Webhook verification error:', error?.message || String(error));
       }
       return false;
@@ -445,7 +343,6 @@ export class ZendFiClient {
         const bufferB = Buffer.from(b, 'utf8');
         return timingSafeEqual(bufferA, bufferB);
       } catch {
-        // Fall back to manual comparison
       }
     }
 
@@ -484,7 +381,6 @@ export class ZendFiClient {
         headers['Idempotency-Key'] = idempotencyKey;
       }
 
-      // Build request config
       let requestConfig: RequestConfig = {
         method,
         url,
@@ -492,12 +388,10 @@ export class ZendFiClient {
         body: data,
       };
 
-      // Run request interceptors
       if (this.interceptors.request.has()) {
         requestConfig = await this.interceptors.request.execute(requestConfig);
       }
 
-      // Debug logging - request
       if (this.config.debug) {
         console.log(`[ZendFi] ${method} ${endpoint}`);
         if (data) {
@@ -527,10 +421,8 @@ export class ZendFiClient {
       const duration = Date.now() - startTime;
 
       if (!response.ok) {
-        // Create proper error
         const error = createZendFiError(response.status, body);
 
-        // Debug logging - error
         if (this.config.debug) {
           console.error(`[ZendFi] ❌ ${response.status} ${response.statusText} (${duration}ms)`);
           console.error(`[ZendFi] Error:`, error.toString());
@@ -538,7 +430,7 @@ export class ZendFiClient {
 
         // Retry logic for 5xx errors
         if (response.status >= 500 && attempt < this.config.retries) {
-          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+          const delay = Math.pow(2, attempt) * 1000;
           
           if (this.config.debug) {
             console.log(`[ZendFi] Retrying in ${delay}ms... (attempt ${attempt + 1}/${this.config.retries})`);
@@ -551,7 +443,6 @@ export class ZendFiClient {
           });
         }
 
-        // Run error interceptors
         if (this.interceptors.error.has()) {
           const interceptedError = await this.interceptors.error.execute(error);
           throw interceptedError;
@@ -560,7 +451,6 @@ export class ZendFiClient {
         throw error;
       }
 
-      // Debug logging - success
       if (this.config.debug) {
         console.log(`[ZendFi] ✓ ${response.status} ${response.statusText} (${duration}ms)`);
         if (body) {
@@ -568,7 +458,6 @@ export class ZendFiClient {
         }
       }
 
-      // Build response data
       const headersObj: Record<string, string> = {};
       response.headers.forEach((value, key) => {
         headersObj[key] = value;
@@ -582,14 +471,12 @@ export class ZendFiClient {
         config: requestConfig,
       };
 
-      // Run response interceptors
       if (this.interceptors.response.has()) {
         responseData = await this.interceptors.response.execute(responseData);
       }
 
       return responseData.data as T;
     } catch (error: any) {
-      // Handle timeout
       if (error.name === 'AbortError') {
         const timeoutError = createZendFiError(0, {}, `Request timeout after ${this.config.timeout}ms`);
         
@@ -600,7 +487,6 @@ export class ZendFiClient {
         throw timeoutError;
       }
 
-      // Handle network errors with retry
       if (attempt < this.config.retries && (error.message?.includes('fetch') || error.message?.includes('network'))) {
         const delay = Math.pow(2, attempt) * 1000;
         
@@ -615,12 +501,10 @@ export class ZendFiClient {
         });
       }
 
-      // If it's already a ZendFiError, just throw it
       if (isZendFiError(error)) {
         throw error;
       }
 
-      // Wrap unknown errors
       const wrappedError = createZendFiError(0, {}, error.message || 'An unknown error occurred');
       
       if (this.config.debug) {

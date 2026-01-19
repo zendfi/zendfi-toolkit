@@ -12,16 +12,15 @@ import { processWebhook } from '../webhook-handler';
  * 
  * @example
  * ```typescript
- * // app/api/webhooks/zendfi/route.ts
  * import { createWebhookHandler } from '@zendfi/sdk/nextjs';
  * 
  * export const POST = createWebhookHandler({
  *   secret: process.env.ZENDFI_WEBHOOK_SECRET!,
  *   handlers: {
  *     'payment.confirmed': async (payment) => {
- *       // ✅ Already verified
- *       // ✅ Already typed
- *       // ✅ Already deduplicated
+ *       // Already verified
+ *       // Already typed
+ *       // Already deduplicated
  *       await db.orders.update({
  *         where: { id: payment.metadata.orderId },
  *         data: { status: 'paid' }
@@ -98,7 +97,6 @@ export function createWebhookHandler(
  * 
  * @example
  * ```typescript
- * // pages/api/webhooks/zendfi.ts
  * import { createPagesWebhookHandler } from '@zendfi/sdk/nextjs';
  * 
  * export default createPagesWebhookHandler({
@@ -112,7 +110,7 @@ export function createWebhookHandler(
  * 
  * export const config = {
  *   api: {
- *     bodyParser: false, // Important: disable body parser
+ *     bodyParser: false,
  *   },
  * };
  * ```

@@ -23,9 +23,6 @@ export type InvoiceId = Brand<string, 'InvoiceId'>;
 /** Subscription ID (e.g., 'sub_abc123') */
 export type SubscriptionId = Brand<string, 'SubscriptionId'>;
 
-/** Escrow ID (e.g., 'esc_abc123') */
-export type EscrowId = Brand<string, 'EscrowId'>;
-
 /** Installment Plan ID (e.g., 'inst_abc123') */
 export type InstallmentPlanId = Brand<string, 'InstallmentPlanId'>;
 
@@ -37,7 +34,6 @@ export const asPaymentId = (id: string): PaymentId => id as PaymentId;
 export const asMerchantId = (id: string): MerchantId => id as MerchantId;
 export const asInvoiceId = (id: string): InvoiceId => id as InvoiceId;
 export const asSubscriptionId = (id: string): SubscriptionId => id as SubscriptionId;
-export const asEscrowId = (id: string): EscrowId => id as EscrowId;
 export const asInstallmentPlanId = (id: string): InstallmentPlanId => id as InstallmentPlanId;
 export const asPaymentLinkCode = (id: string): PaymentLinkCode => id as PaymentLinkCode;
 
@@ -59,8 +55,6 @@ export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'paused';
 
 export type InstallmentPlanStatus = 'active' | 'completed' | 'defaulted' | 'cancelled';
 
-export type EscrowStatus = 'pending' | 'funded' | 'released' | 'refunded' | 'disputed' | 'cancelled';
-
 export type InvoiceStatus = 'draft' | 'sent' | 'paid';
 
 export type SplitStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
@@ -79,10 +73,6 @@ export type WebhookEvent =
   | 'installment.due'
   | 'installment.paid'
   | 'installment.late'
-  | 'escrow.funded'
-  | 'escrow.released'
-  | 'escrow.refunded'
-  | 'escrow.disputed'
   | 'invoice.sent'
   | 'invoice.paid';
 
@@ -353,69 +343,6 @@ export interface InstallmentPlan {
   updated_at?: string;
   completed_at?: string;
   defaulted_at?: string;
-}
-
-/**
- * Escrow - Secure fund holding
- */
-export interface ReleaseCondition {
-  type: 'manual_approval' | 'time_based' | 'confirmation_required' | 'milestone';
-  approver?: string;
-  approved?: boolean;
-  release_after?: string;
-  confirmations_needed?: number;
-  confirmed_by?: string[];
-  description?: string;
-  approved_by?: string;
-}
-
-export interface CreateEscrowRequest {
-  buyer_wallet: string;
-  seller_wallet: string;
-  amount: number;
-  currency?: Currency;
-  token?: PaymentToken;
-  description?: string;
-  release_conditions: ReleaseCondition;
-  metadata?: Record<string, any>;
-}
-
-export interface Escrow {
-  id: string;
-  payment_id: string;
-  merchant_id: string;
-  buyer_wallet: string;
-  seller_wallet: string;
-  escrow_wallet: string;
-  amount: number;
-  currency: Currency;
-  token: PaymentToken;
-  release_conditions: ReleaseCondition;
-  status: EscrowStatus;
-  payment_url?: string;
-  qr_code?: string;
-  funded_at?: string;
-  released_at?: string;
-  refunded_at?: string;
-  disputed_at?: string;
-  dispute_reason?: string;
-  release_transaction_signature?: string;
-  refund_transaction_signature?: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ApproveEscrowRequest {
-  approver_wallet: string;
-}
-
-export interface RefundEscrowRequest {
-  reason: string;
-}
-
-export interface DisputeEscrowRequest {
-  reason: string;
 }
 
 /**

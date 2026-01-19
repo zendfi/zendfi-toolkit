@@ -3,7 +3,6 @@
  * 
  * @example
  * ```typescript
- * // app/api/webhooks/zendfi/route.ts
  * import { createNextWebhookHandler } from '@zendfi/sdk/nextjs';
  * 
  * export const POST = createNextWebhookHandler({

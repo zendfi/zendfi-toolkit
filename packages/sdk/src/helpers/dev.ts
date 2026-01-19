@@ -109,7 +109,6 @@ export class DevTools {
     console.log('Data:', data);
     console.groupEnd();
 
-    // Update request log
     const lastRequest = this.requestLog[this.requestLog.length - 1];
     if (lastRequest && lastRequest.method === method && lastRequest.url === url) {
       lastRequest.status = status;
@@ -146,7 +145,6 @@ export class DevTools {
       throw new Error('Test session keys can only be created in development');
     }
 
-    // Generate test keypair
     const { Keypair } = await this.getSolanaWeb3();
     const keypair = Keypair.generate();
 
@@ -154,7 +152,7 @@ export class DevTools {
       sessionKeyId: this.generateTestId('sk_test'),
       sessionWallet: keypair.publicKey.toString(),
       privateKey: keypair.secretKey,
-      budget: 10, // $10 test budget
+      budget: 10,
     };
   }
 
@@ -168,13 +166,13 @@ export class DevTools {
       address: mockAddress,
       publicKey: { toString: () => mockAddress },
       signTransaction: async (tx: any) => {
-        console.log('🔧 Mock wallet: Signing transaction');
-        return tx; // Return unsigned in mock
+        console.log('Mock wallet: Signing transaction');
+        return tx;
       },
       signMessage: async (_msg: Uint8Array) => {
-        console.log('🔧 Mock wallet: Signing message');
+        console.log('Mock wallet: Signing message');
         return {
-          signature: new Uint8Array(64), // Mock signature
+          signature: new Uint8Array(64),
         };
       },
       isConnected: () => true,
@@ -190,26 +188,26 @@ export class DevTools {
   static logTransactionFlow(paymentId: string): void {
     console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║                    TRANSACTION FLOW                            ║
+║                    TRANSACTION FLOW                           ║
 ╠═══════════════════════════════════════════════════════════════╣
-║                                                                ║
-║  Payment ID: ${paymentId}                                      ║
-║                                                                ║
-║  1. 🏗️  Create Payment Intent                                 ║
+║                                                               ║
+║  Payment ID: ${paymentId}                                     ║
+║                                                               ║
+║  1. Create Payment Intent                                     ║
 ║      └─> POST /api/v1/ai/smart-payment                        ║
-║                                                                ║
-║  2. 🔐 Sign Transaction (Device-Bound)                        ║
-║      └─> Client-side signing with cached keypair             ║
-║                                                                ║
-║  3. 📤 Submit Signed Transaction                              ║
-║      └─> POST /api/v1/ai/payments/{id}/submit-signed         ║
-║                                                                ║
-║  4. ⏳ Wait for Blockchain Confirmation                       ║
-║      └─> Poll Solana RPC (~30-60 seconds)                    ║
-║                                                                ║
-║  5. ✅ Payment Confirmed                                      ║
-║      └─> Webhook fired: payment.confirmed                    ║
-║                                                                ║
+║                                                               ║
+║  2. Sign Transaction (Device-Bound)                           ║
+║      └─> Client-side signing with cached keypair              ║
+║                                                               ║
+║  3. Submit Signed Transaction                                 ║
+║      └─> POST /api/v1/ai/payments/{id}/submit-signed          ║
+║                                                               ║
+║  4. Wait for Blockchain Confirmation                          ║
+║      └─> Poll Solana RPC (~30-60 seconds)                     ║
+║                                                               ║
+║  5. Payment Confirmed                                         ║
+║      └─> Webhook fired: payment.confirmed                     ║
+║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
     `);
   }
@@ -294,7 +292,6 @@ export class DevTools {
     let successful = 0;
     let failed = 0;
 
-    // Run in batches
     for (let i = 0; i < iterations; i += concurrency) {
       const batch = Array(Math.min(concurrency, iterations - i))
         .fill(null)
