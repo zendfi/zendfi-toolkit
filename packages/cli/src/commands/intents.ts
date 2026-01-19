@@ -15,10 +15,6 @@ import inquirer from 'inquirer';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
-// ============================================
-// Types
-// ============================================
-
 interface PaymentIntent {
   id: string;
   client_secret: string;
@@ -32,10 +28,6 @@ interface PaymentIntent {
   created_at: string;
   expires_at: string;
 }
-
-// ============================================
-// Utilities
-// ============================================
 
 function getApiKey(): string | null {
   return process.env.ZENDFI_API_KEY || null;
@@ -70,10 +62,6 @@ function getStatusBadge(status: string): string {
   }
 }
 
-// ============================================
-// Create Intent
-// ============================================
-
 export async function createIntent(options: {
   amount?: number;
   description?: string;
@@ -91,7 +79,6 @@ export async function createIntent(options: {
     return;
   }
 
-  // Interactive prompts if not provided
   let amount = options.amount;
   let description = options.description;
   let captureMethod = options.captureMethod || 'automatic';
@@ -183,19 +170,15 @@ export async function createIntent(options: {
   }
 }
 
-// ============================================
-// List Intents
-// ============================================
-
 export async function listIntents(options: {
   status?: string;
   limit?: number;
 } = {}): Promise<void> {
-  console.log(chalk.cyan.bold('\n💳 Payment Intents\n'));
+  console.log(chalk.cyan.bold('\nPayment Intents\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.log(chalk.red('❌ No API key found!'));
+    console.log(chalk.red('No API key found!'));
     return;
   }
 
@@ -249,10 +232,6 @@ export async function listIntents(options: {
     console.error(chalk.gray('\nError:'), error instanceof Error ? error.message : error);
   }
 }
-
-// ============================================
-// Get Intent
-// ============================================
 
 export async function getIntent(intentId: string): Promise<void> {
   console.log(chalk.cyan.bold('\n💳 Payment Intent Details\n'));
@@ -311,10 +290,6 @@ export async function getIntent(intentId: string): Promise<void> {
   }
 }
 
-// ============================================
-// Confirm Intent
-// ============================================
-
 export async function confirmIntent(
   intentId: string,
   options: {
@@ -323,15 +298,14 @@ export async function confirmIntent(
     gasless?: boolean;
   }
 ): Promise<void> {
-  console.log(chalk.cyan.bold('\n💳 Confirm Payment Intent\n'));
+  console.log(chalk.cyan.bold('\nConfirm Payment Intent\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.log(chalk.red('❌ No API key found!'));
+    console.log(chalk.red('No API key found!'));
     return;
   }
 
-  // Get wallet if not provided
   let wallet = options.wallet;
   let clientSecret = options.secret;
 
@@ -347,7 +321,6 @@ export async function confirmIntent(
     wallet = answers.wallet;
   }
 
-  // If no secret provided, fetch the intent to get it
   if (!clientSecret) {
     const spinner = ora('Fetching intent details...').start();
     try {
@@ -406,16 +379,12 @@ export async function confirmIntent(
   }
 }
 
-// ============================================
-// Cancel Intent
-// ============================================
-
 export async function cancelIntent(intentId: string): Promise<void> {
-  console.log(chalk.cyan.bold('\n💳 Cancel Payment Intent\n'));
+  console.log(chalk.cyan.bold('\nCancel Payment Intent\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.log(chalk.red('❌ No API key found!'));
+    console.log(chalk.red('No API key found!'));
     return;
   }
 

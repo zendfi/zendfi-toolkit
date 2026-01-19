@@ -18,12 +18,12 @@ interface TestPaymentOptions {
 }
 
 interface Payment {
-  id: string;                    // Backend uses 'id' not 'payment_id'
+  id: string;
   status: string;
   amount: number;
   currency: string;
   qr_code: string;
-  payment_url: string;           // Backend uses 'payment_url' not 'checkout_url'
+  payment_url: string;
   expires_at: string;
   mode: string;
   transaction_signature?: string;
@@ -35,7 +35,6 @@ interface Payment {
 export async function testPayment(options: TestPaymentOptions): Promise<void> {
   console.log(chalk.cyan.bold('\nCreate Test Payment\n'));
 
-  // Load API key from environment
   const apiKey = process.env.ZENDFI_API_KEY;
   
   if (!apiKey) {
@@ -46,7 +45,6 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Check if it's a test key
   if (!apiKey.startsWith('zfi_test_')) {
     console.warn(chalk.yellow('Warning: Using a live API key'));
     const { confirm } = await inquirer.prompt([
@@ -64,7 +62,6 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     }
   }
 
-  // Get payment details
   const amount = options.amount || (
     await inquirer.prompt([
       {
@@ -99,7 +96,6 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     ])
   ).email;
 
-  // Create payment
   const spinner = ora('Creating test payment...').start();
 
   try {
@@ -130,7 +126,6 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     
     spinner.succeed(chalk.green('Payment created!'));
 
-    // Display payment details
     console.log('\n' + chalk.cyan('═'.repeat(60)));
     console.log(chalk.bold('\n  Payment Details:\n'));
     console.log(chalk.gray('  Payment ID:   ') + chalk.white(payment.id));
@@ -140,7 +135,7 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     console.log(chalk.gray('  Created:      ') + chalk.white(new Date().toLocaleString()));
     
     if (payment.mode === 'test') {
-      console.log('\n' + chalk.yellow('  💡 This is a test payment (devnet)'));
+      console.log('\n' + chalk.yellow('  This is a test payment (devnet)'));
       console.log(chalk.gray('     Use your test wallet to complete it\n'));
     }
 
@@ -150,15 +145,12 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     console.log(chalk.blue('  ' + checkoutUrl));
     console.log(chalk.cyan('═'.repeat(60)) + '\n');
 
-    // Copy to clipboard
     try {
       await clipboardy.write(checkoutUrl);
       console.log(chalk.green('✓ Copied to clipboard!\n'));
     } catch {
-      // Clipboard not available
     }
 
-    // Offer to open in browser
     const shouldOpen = options.open ?? (
       await inquirer.prompt([
         {
@@ -175,7 +167,6 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
       console.log(chalk.gray('Opened in browser'));
     }
 
-    // Offer to watch status
     const shouldWatch = options.watch ?? (
       await inquirer.prompt([
         {
@@ -201,8 +192,8 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
     console.error(chalk.red('\n❌ Error:'), error.message);
     
     if (error.message.includes('401')) {
-      console.log(chalk.yellow('\n💡 Your API key may be invalid or expired'));
-      console.log(chalk.gray('   Get a new one at: https://app.zendfi.com/settings/api-keys'));
+      console.log(chalk.yellow('\nYour API key may be invalid or expired'));
+      console.log(chalk.gray('   Get a new one at: https://app.zendfi.tech/settings/api-keys'));
     }
     
     process.exit(1);
@@ -219,7 +210,7 @@ async function watchPaymentStatus(paymentId: string, apiKey: string): Promise<vo
   const spinner = ora('Waiting for payment...').start();
   let lastStatus = 'pending';
   let attempts = 0;
-  const maxAttempts = 60; // 5 minutes (5s interval)
+  const maxAttempts = 60;
 
   const checkStatus = async (): Promise<boolean> => {
     try {
@@ -276,7 +267,6 @@ async function watchPaymentStatus(paymentId: string, apiKey: string): Promise<vo
     }
   };
 
-  // Poll every 5 seconds
   const interval = setInterval(async () => {
     attempts++;
     
@@ -293,7 +283,6 @@ async function watchPaymentStatus(paymentId: string, apiKey: string): Promise<vo
     }
   }, 5000);
 
-  // Initial check
   await checkStatus();
 }
 

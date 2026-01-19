@@ -25,11 +25,11 @@ interface ApiKey {
  * List all API keys
  */
 export async function listKeys(): Promise<void> {
-  console.log(chalk.cyan.bold('\n🔑 API Keys\n'));
+  console.log(chalk.cyan.bold('\nAPI Keys\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.log(chalk.red('❌ No API key found!'));
+    console.log(chalk.red('No API key found!'));
     console.log(chalk.gray('\nSet your API key:'));
     console.log(chalk.cyan('  export ZENDFI_API_KEY=your_key_here'));
     console.log(chalk.gray('Or run:'));
@@ -104,7 +104,6 @@ export async function createKey(options: {
     return;
   }
 
-  // Prompt for details
   const answers = await inquirer.prompt([
     {
       type: 'input',
@@ -159,12 +158,16 @@ export async function createKey(options: {
       throw new Error((error as { message?: string }).message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { data?: ApiKey; key?: ApiKey };
     const newKey = data.data || data.key;
 
     spinner.succeed(chalk.green('API key created successfully!'));
 
-    console.log(chalk.cyan('\n📋 Key Details:'));
+    if (!newKey) {
+      throw new Error('No key returned from API');
+    }
+
+    console.log(chalk.cyan('\nKey Details:'));
     console.log(chalk.gray('  Name:  ') + chalk.white(newKey.name));
     console.log(chalk.gray('  Mode:  ') + (newKey.mode === 'live' ? chalk.green('🟢 LIVE') : chalk.yellow('🟡 TEST')));
     console.log(chalk.gray('  ID:    ') + chalk.white(newKey.id));
@@ -172,7 +175,6 @@ export async function createKey(options: {
     console.log(chalk.yellow('\n⚠️  Save your API key - it won\'t be shown again!\n'));
     console.log(chalk.cyan('  ' + newKey.key + '\n'));
 
-    // Offer to save to .env
     const { saveToEnv } = await inquirer.prompt([
       {
         type: 'confirm',
@@ -189,7 +191,6 @@ export async function createKey(options: {
         try {
           envContent = readFileSync(envPath, 'utf-8');
         } catch {
-          // File doesn't exist yet
         }
 
         const keyName = newKey.mode === 'live' ? 'ZENDFI_API_KEY' : 'ZENDFI_TEST_API_KEY';
@@ -269,10 +270,14 @@ export async function rotateKey(keyId: string): Promise<void> {
       throw new Error((error as { message?: string }).message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { data?: ApiKey; key?: ApiKey };
     const newKey = data.data || data.key;
 
     spinner.succeed(chalk.green('API key rotated successfully!'));
+
+    if (!newKey) {
+      throw new Error('No key returned from API');
+    }
 
     console.log(chalk.yellow('\n⚠️  New API key (save it now!):\n'));
     console.log(chalk.cyan('  ' + newKey.key + '\n'));

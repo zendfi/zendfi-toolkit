@@ -17,7 +17,6 @@ const __dirname = dirname(__filename);
 const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 const version = pkg.version;
 
-// ASCII Art Logo
 const logo = `
 ${chalk.hex('#667eea').bold('╔══════════════════════════════════════╗')}
 ${chalk.hex('#667eea').bold('║')}  ${chalk.hex('#764ba2').bold('    ZendFi App Generator')}           ${chalk.hex('#667eea').bold('║')}

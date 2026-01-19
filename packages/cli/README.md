@@ -1,6 +1,6 @@
 # create-zendfi-app
 
-> Payments in 7 lines of code. Built for e-commerce. Ready for AI.
+> Payments in 7 lines of code. Built for Solana e-commerce.
 
 [![npm version](https://img.shields.io/npm/v/create-zendfi-app.svg)](https://www.npmjs.com/package/create-zendfi-app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,7 +14,6 @@ This package includes **two powerful tools**:
 - 0.6% flat fee (vs. Stripe's 2.9% + 30¢) = 81% savings
 - Accept SOL, USDC, USDT on Solana
 - Production-ready templates with Next.js & Express
-- Optional: AI-ready with autonomous agent payments
 
 ---
 
@@ -311,73 +310,33 @@ zendfi keys rotate key_abc123xyz
 
 ---
 
-## 🤖 AI Features (Optional)
+## Payment Intents
 
-**Not building an AI agent? Skip this section!** These commands are for autonomous agent payments - most users won't need them.
-
-### `zendfi ai`
-
-Manage AI agent payments for autonomous spending.
-
-#### AI Agent Keys
-
-```bash
-# Create an AI agent API key
-zendfi ai keys create --name "Shopping Bot"
-
-# List all AI agent keys
-zendfi ai keys list
-
-# Revoke an agent key
-zendfi ai keys revoke <key-id>
-```
-
-#### AI Sessions
-
-```bash
-# Create session with spending limits
-zendfi ai sessions create \
-  --wallet Hx7B...abc \
-  --max-per-day 100 \
-  --max-per-transaction 25 \
-  --duration 24
-
-# List all sessions
-zendfi ai sessions list
-
-# Revoke a session
-zendfi ai sessions revoke <session-id>
-```
-
----
-
-### `zendfi ai intents`
-
-Payment intents for two-phase AI checkout flows.
+Create payment intents for two-phase checkout flows (Stripe-like).
 
 ```bash
 # Create a payment intent
-zendfi ai intents create --amount 99.99
+zendfi intents create --amount 99.99
 
 # Confirm an intent
-zendfi ai intents confirm <intent-id> --wallet Hx7B...abc
+zendfi intents confirm <intent-id> --wallet Hx7B...abc
 
 # List all intents
-zendfi ai intents list
+zendfi intents list
 ```
 
 ---
 
-### `zendfi ai ppp`
+## PPP Pricing
 
 Purchasing Power Parity pricing for global reach.
 
 ```bash
 # Get PPP factor for a country
-zendfi ai ppp check BR --price 99.99
+zendfi ppp check BR --price 99.99
 
 # List all PPP factors
-zendfi ai ppp factors
+zendfi ppp factors
 ```
 
 **Output:**
@@ -390,28 +349,6 @@ zendfi ai ppp factors
   
   Example: $100 → $35.00
 ```
-
----
-
-### `zendfi ai autonomy`
-
-Enable autonomous spending delegation for AI agents.
-
-```bash
-# Enable autonomy
-zendfi ai autonomy enable \
-  --wallet Hx7B...abc \
-  --max-per-day 100 \
-  --max-per-transaction 25
-
-# Check status
-zendfi ai autonomy status <wallet-address>
-
-# Revoke delegation
-zendfi ai autonomy revoke <delegate-id>
-```
-
-**Learn more:** [docs.zendfi.tech/agentic](https://docs.zendfi.tech/agentic)
 
 ---
 

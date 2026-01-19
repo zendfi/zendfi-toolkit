@@ -252,7 +252,6 @@ async function createNewAccount(): Promise<string | null> {
 
     console.log(chalk.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
-    // Return test API key by default (for development)
     return data.api_keys.test;
 
   } catch (error) {
@@ -299,7 +298,6 @@ export async function setupApiKey(): Promise<string | null> {
   if (choice === 'existing') {
     apiKey = await promptExistingKey();
     
-    // If verification failed, offer to create new account
     if (!apiKey) {
       const { retry } = await inquirer.prompt([
         {
@@ -319,7 +317,7 @@ export async function setupApiKey(): Promise<string | null> {
   } else {
     console.log(chalk.yellow('\n  Skipping API key setup'));
     console.log(chalk.gray('You can configure your API key later in the .env file\n'));
-    console.log(chalk.gray('Get your API key at: https://api.zendfi.tech/dashboard\n'));
+    console.log(chalk.gray('Get your API key at: https://dashboard.zendfi.tech\n'));
     return null;
   }
 

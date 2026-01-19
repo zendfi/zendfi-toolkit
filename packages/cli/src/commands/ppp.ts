@@ -12,7 +12,6 @@ import ora from 'ora';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
-// Country flag emoji mapping
 const COUNTRY_FLAGS: Record<string, string> = {
   AR: '🇦🇷', AU: '🇦🇺', BR: '🇧🇷', CA: '🇨🇦', CH: '🇨🇭',
   CL: '🇨🇱', CN: '🇨🇳', CO: '🇨🇴', CZ: '🇨🇿', DE: '🇩🇪',
@@ -26,10 +25,6 @@ const COUNTRY_FLAGS: Record<string, string> = {
   UA: '🇺🇦', US: '🇺🇸', VN: '🇻🇳', ZA: '🇿🇦',
 };
 
-// ============================================
-// Types
-// ============================================
-
 interface PPPFactor {
   country_code: string;
   country_name: string;
@@ -37,10 +32,6 @@ interface PPPFactor {
   currency_code: string;
   adjustment_percentage: number;
 }
-
-// ============================================
-// Utilities
-// ============================================
 
 function getApiKey(): string | null {
   return process.env.ZENDFI_API_KEY || null;
@@ -63,10 +54,6 @@ function getDiscountColor(percentage: number): (str: string) => string {
   if (percentage >= 10) return chalk.cyan;
   return chalk.gray;
 }
-
-// ============================================
-// Check PPP for Country
-// ============================================
 
 export async function checkPPP(countryCode: string, options: {
   price?: number;
@@ -114,7 +101,6 @@ export async function checkPPP(countryCode: string, options: {
     console.log(chalk.gray('  Local Currency:   ') + chalk.white(factor.currency_code));
     console.log('');
 
-    // If price provided, show calculation
     if (options.price && options.price > 0) {
       const localPrice = options.price * factor.ppp_factor;
       const savings = options.price - localPrice;
@@ -140,18 +126,14 @@ export async function checkPPP(countryCode: string, options: {
   }
 }
 
-// ============================================
-// List All PPP Factors
-// ============================================
-
 export async function listPPPFactors(options: {
   sort?: 'discount' | 'country';
 }): Promise<void> {
-  console.log(chalk.cyan.bold('\n🌍 PPP Factors - All Countries\n'));
+  console.log(chalk.cyan.bold('\nPPP Factors - All Countries\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.log(chalk.red('❌ No API key found!'));
+    console.log(chalk.red('No API key found!'));
     return;
   }
 
@@ -180,7 +162,6 @@ export async function listPPPFactors(options: {
       return;
     }
 
-    // Sort by discount or country name
     if (options.sort === 'discount') {
       factors = factors.sort((a, b) => b.adjustment_percentage - a.adjustment_percentage);
     } else {
@@ -212,10 +193,6 @@ export async function listPPPFactors(options: {
     console.error(chalk.gray('\nError:'), error instanceof Error ? error.message : error);
   }
 }
-
-// ============================================
-// Calculate Localized Price
-// ============================================
 
 export async function calculatePPP(options: {
   price: number;

@@ -9,8 +9,6 @@ import type { Framework } from './framework-detector.js';
  * Generate ZendFi client file content
  */
 export function generateClientFile(framework: Framework, hasTypeScript: boolean): string {
-  const ext = hasTypeScript ? 'ts' : 'js';
-  
   const imports = hasTypeScript
     ? `import { ZendFiClient } from '@zendfi/sdk';`
     : `const { ZendFiClient } = require('@zendfi/sdk');`;
@@ -39,7 +37,7 @@ ${exportStatement}${types} = new ZendFiClient();
 /**
  * Generate webhook handler for Next.js App Router
  */
-export function generateNextAppWebhook(hasTypeScript: boolean): string {
+export function generateNextAppWebhook(_hasTypeScript: boolean): string {
   return `import { createNextWebhookHandler } from '@zendfi/sdk/nextjs';
 import { prisma } from '@/lib/db'; // Adjust import based on your setup
 
@@ -53,7 +51,7 @@ import { prisma } from '@/lib/db'; // Adjust import based on your setup
  * - Send confirmation emails
  * - Handle failed payments
  * 
- * Learn more: https://docs.zendfi.com/webhooks
+ * Learn more: https://docs.zendfi.tech/webhooks
  */
 
 export const POST = createNextWebhookHandler({
@@ -191,11 +189,9 @@ ${exportStatement}
 /**
  * Generate environment file content
  */
-export function generateEnvFile(framework: Framework): string {
-  const envFile = framework.startsWith('nextjs') ? '.env.local' : '.env';
-  
+export function generateEnvFile(_framework: Framework): string {
   return `# ZendFi Configuration
-# Get your API key from: https://app.zendfi.com/settings/api-keys
+# Get your API key from: https://app.zendfi.tech/settings/api-keys
 
 # API Key (get from dashboard)
 ZENDFI_API_KEY=zfi_test_your_key_here

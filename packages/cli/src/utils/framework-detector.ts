@@ -47,7 +47,6 @@ export async function detectFramework(projectPath: string): Promise<FrameworkInf
     const majorVersion = parseInt(version.split('.')[0]);
 
     const hasAppDir = await fs.pathExists(path.join(projectPath, 'app'));
-    const hasPagesDir = await fs.pathExists(path.join(projectPath, 'pages'));
 
     if (majorVersion >= 13 && hasAppDir) {
       return {

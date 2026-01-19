@@ -16,7 +16,6 @@ export async function initCommand(options: { yes?: boolean; skipInstall?: boolea
 
   console.log(chalk.cyan('\nInitializing ZendFi in your project...\n'));
 
-  // Step 1: Detect framework
   const spinner = ora('Detecting project framework...').start();
   
   let frameworkInfo;
@@ -28,7 +27,6 @@ export async function initCommand(options: { yes?: boolean; skipInstall?: boolea
     process.exit(1);
   }
 
-  // Show detected info
   console.log(chalk.gray('\n  Project Information:'));
   console.log(chalk.gray('  Framework:'), chalk.white(frameworkInfo.name));
   if (frameworkInfo.version) {
@@ -37,7 +35,6 @@ export async function initCommand(options: { yes?: boolean; skipInstall?: boolea
   console.log(chalk.gray('  TypeScript:'), chalk.white(frameworkInfo.hasTypeScript ? 'Yes' : 'No'));
   console.log(chalk.gray('  Package Manager:'), chalk.white(frameworkInfo.packageManager));
 
-  // Step 2: Confirm installation
   if (!options.yes) {
     const { confirm } = await inquirer.prompt([
       {
@@ -54,20 +51,16 @@ export async function initCommand(options: { yes?: boolean; skipInstall?: boolea
     }
   }
 
-  // Step 3: Install @zendfi/sdk
   if (!options.skipInstall) {
     await installSDK(frameworkInfo.packageManager, projectPath);
   } else {
     console.log(chalk.yellow('\n  ⏭️  Skipped SDK installation'));
   }
 
-  // Step 4: Create files
   await createFiles(projectPath, frameworkInfo);
 
-  // Step 5: Setup environment variables
   await setupEnvironment(projectPath, frameworkInfo);
 
-  // Step 6: Show next steps
   displaySuccessMessage(frameworkInfo);
 }
 
@@ -102,7 +95,6 @@ async function createFiles(
   const paths = getFrameworkPaths(frameworkInfo.framework);
   const { hasTypeScript, framework } = frameworkInfo;
 
-  // Create lib/zendfi file
   const clientFilePath = path.join(projectPath, paths.libPath);
   if (await fs.pathExists(clientFilePath)) {
     console.log(chalk.yellow(`\n  ⏭️  ${paths.libPath} already exists, skipping...`));
@@ -114,7 +106,6 @@ async function createFiles(
     spinner.succeed(`Created ${chalk.green(paths.libPath)}`);
   }
 
-  // Create webhook handler
   const webhookFilePath = path.join(projectPath, paths.webhookPath);
   if (await fs.pathExists(webhookFilePath)) {
     console.log(chalk.yellow(`  ⏭️  ${paths.webhookPath} already exists, skipping...`));
@@ -157,9 +148,9 @@ function displaySuccessMessage(
 ) {
   const paths = getFrameworkPaths(frameworkInfo.framework);
 
-  console.log(chalk.green('\n✨ ZendFi setup complete!\n'));
+  console.log(chalk.green('\nZendFi setup complete!\n'));
 
-  console.log(chalk.bold('📝 Next steps:\n'));
+  console.log(chalk.bold('Next steps:\n'));
 
   console.log(chalk.cyan('  1. Add your API key to ' + paths.envFile));
   console.log(chalk.gray('     Get your API key from: https://app.zendfi.com/settings/api-keys\n'));
@@ -200,8 +191,8 @@ function displaySuccessMessage(
   console.log(chalk.cyan('  4. Test your integration'));
   console.log(chalk.gray('     Run: zendfi test payment --amount 50\n'));
 
-  console.log(chalk.bold('📚 Documentation:'));
-  console.log(chalk.gray('   https://docs.zendfi.com/quickstart\n'));
+  console.log(chalk.bold('Documentation:'));
+  console.log(chalk.gray('   https://docs.zendfi.tech/\n'));
 
   console.log(chalk.green('Happy building! 🚀\n'));
 }

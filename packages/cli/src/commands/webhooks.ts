@@ -23,7 +23,6 @@ export async function listenWebhooks(options: WebhookListenerOptions): Promise<v
   const port = options.port || '3000';
   const forwardTo = options.forwardTo;
 
-  // Check if ngrok is installed
   const hasNgrok = await checkCommandExists('ngrok');
   const hasCloudflared = await checkCommandExists('cloudflared');
 
@@ -36,7 +35,6 @@ export async function listenWebhooks(options: WebhookListenerOptions): Promise<v
     return;
   }
 
-  // Choose tunnel service
   let tunnelService = 'ngrok';
   if (hasNgrok && hasCloudflared) {
     const { service } = await inquirer.prompt([
@@ -55,7 +53,6 @@ export async function listenWebhooks(options: WebhookListenerOptions): Promise<v
     tunnelService = 'cloudflared';
   }
 
-  // Start Express server
   const app = express();
   app.use(express.json());
 
@@ -77,13 +74,12 @@ interface WebhookPayload {
         console.log(chalk.cyan(`\n[${timestamp}] `) + chalk.green(`Webhook #${webhookCount} received`));
         console.log(chalk.gray('  Event:   ') + chalk.white(req.body.event || 'unknown'));
         console.log(chalk.gray('  Payment: ') + chalk.white(req.body.payment_id || 'unknown'));
-        console.log(chalk.gray('  Status:  ') + getStatusBadge(req.body.status));
+        console.log(chalk.gray('  Status:  ') + getStatusBadge(req.body.status || 'unknown'));
         
         if (req.body.amount) {
             console.log(chalk.gray('  Amount:  ') + chalk.white(`$${req.body.amount} ${req.body.currency || 'USD'}`));
         }
 
-        // Forward webhook if needed
         if (forwardTo) {
             forwardWebhook(forwardTo, req.body);
         }
@@ -104,7 +100,6 @@ app.get('/health', (_req: express.Request, res: express.Response<HealthResponse>
     console.log(chalk.green(`✓ Local server started on port ${port}`));
   });
 
-  // Start tunnel
   const spinner = ora(`Starting ${tunnelService} tunnel...`).start();
   
   try {
@@ -121,19 +116,18 @@ app.get('/health', (_req: express.Request, res: express.Response<HealthResponse>
 
     spinner.succeed(chalk.green(`Tunnel active: ${tunnelUrl}`));
 
-    console.log(chalk.cyan('\n📋 Configuration:'));
+    console.log(chalk.cyan('\nConfiguration:'));
     console.log(chalk.gray('  Webhook URL: ') + chalk.white(`${tunnelUrl}/webhooks`));
     console.log(chalk.gray('  Health:      ') + chalk.white(`${tunnelUrl}/health`));
     
-    console.log(chalk.cyan('\n🔧 Setup Instructions:'));
+    console.log(chalk.cyan('\nSetup Instructions:'));
     console.log(chalk.gray('  1. Copy the webhook URL above'));
     console.log(chalk.gray('  2. Go to ZendFi Dashboard → Settings → Webhooks'));
     console.log(chalk.gray('  3. Add the webhook URL'));
     console.log(chalk.gray('  4. Create a test payment to trigger webhooks'));
 
-    console.log(chalk.yellow('\n👂 Listening for webhooks... (Press Ctrl+C to stop)\n'));
+    console.log(chalk.yellow('\nListening for webhooks... (Press Ctrl+C to stop)\n'));
 
-    // Handle graceful shutdown
     process.on('SIGINT', () => {
       console.log(chalk.yellow('\n\n⏸️  Shutting down...'));
       server.close();

@@ -71,7 +71,6 @@ export async function createApp(projectName: string | undefined, options: CliOpt
   
   const apiKey = await setupApiKey();
   if (apiKey) {
-    // Update .env file with API key
     const envPath = path.join(projectPath, '.env');
     try {
       let envContent = await fs.readFile(envPath, 'utf-8');

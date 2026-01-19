@@ -8,7 +8,7 @@ import ora from 'ora';
 
 export async function checkStatus(paymentId: string): Promise<void> {
   if (!paymentId) {
-    console.error(chalk.red('❌ Error: Payment ID is required'));
+    console.error(chalk.red('Error: Payment ID is required'));
     console.log(chalk.gray('\nUsage:'));
     console.log(chalk.cyan('  zendfi status <payment_id>'));
     console.log(chalk.gray('\nExample:'));
@@ -16,7 +16,6 @@ export async function checkStatus(paymentId: string): Promise<void> {
     process.exit(1);
   }
 
-  // Load API key
   const apiKey = process.env.ZENDFI_API_KEY;
   
   if (!apiKey) {
@@ -48,21 +47,17 @@ export async function checkStatus(paymentId: string): Promise<void> {
 
     const result: any = await response.json();
     
-    // Debug logging
     if (process.env.DEBUG) {
       console.log('\nDEBUG - Raw response:', JSON.stringify(result, null, 2));
     }
     
-    // Backend returns payment directly, not wrapped in data
     const payment = result;
     
-    // Normalize field names for display
     payment.amount = payment.amount || parseFloat(payment.amount_usd);
     payment.currency = payment.currency || 'USD';
     
     spinner.succeed(chalk.green('Payment found!'));
 
-    // Display payment details
     displayPaymentDetails(payment);
 
   } catch (error: any) {
@@ -78,29 +73,23 @@ export async function checkStatus(paymentId: string): Promise<void> {
 function displayPaymentDetails(payment: any): void {
   console.log('\n' + chalk.cyan('═'.repeat(70)));
   
-  // Header
   console.log(chalk.bold.white('\n  Payment Details\n'));
   
-  // Basic Info
   console.log(chalk.gray('  Payment ID:      ') + chalk.white(payment.id));
   console.log(chalk.gray('  Status:          ') + getStatusBadge(payment.status));
   console.log(chalk.gray('  Amount:          ') + chalk.white.bold(`$${payment.amount.toFixed(2)} ${payment.currency}`));
   console.log(chalk.gray('  Mode:            ') + chalk.white(payment.mode === 'test' ? '🟡 Test (Devnet)' : '🟢 Live (Mainnet)'));
   
-  // Description
   if (payment.description) {
     console.log(chalk.gray('  Description:     ') + chalk.white(payment.description));
   }
   
-  // Customer
   if (payment.customer_email) {
     console.log(chalk.gray('  Customer:        ') + chalk.white(payment.customer_email));
   }
 
-  // Divider
   console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
   
-  // Timestamps
   console.log(chalk.bold.white('\n  Timeline\n'));
   console.log(chalk.gray('  Created:         ') + chalk.white(formatDate(payment.created_at)));
   
@@ -116,7 +105,6 @@ function displayPaymentDetails(payment: any): void {
     console.log(chalk.gray('  Expires:         ') + chalk.yellow(expiresIn));
   }
 
-  // Transaction Details
   if (payment.transaction_signature) {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
     console.log(chalk.bold.white('\n  Transaction\n'));
@@ -124,7 +112,6 @@ function displayPaymentDetails(payment: any): void {
     console.log(chalk.gray('  Explorer:        ') + chalk.blue.underline(`https://solscan.io/tx/${payment.transaction_signature}`));
   }
 
-  // Wallet Info
   if (payment.merchant_wallet || payment.customer_wallet) {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
     console.log(chalk.bold.white('\n  Wallets\n'));
@@ -138,7 +125,6 @@ function displayPaymentDetails(payment: any): void {
     }
   }
 
-  // Metadata
   if (payment.metadata && Object.keys(payment.metadata).length > 0) {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
     console.log(chalk.bold.white('\n  Metadata\n'));
@@ -149,7 +135,6 @@ function displayPaymentDetails(payment: any): void {
     });
   }
 
-  // Actions
   if (payment.status === 'pending') {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
     console.log(chalk.bold.white('\n  Actions\n'));
@@ -157,20 +142,19 @@ function displayPaymentDetails(payment: any): void {
     console.log(chalk.gray('\n  Share this URL with your customer to complete the payment'));
   }
 
-  // Status-specific messages
   if (payment.status === 'confirmed') {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
     console.log(chalk.green.bold('\n  ✓ Payment successfully completed!\n'));
   } else if (payment.status === 'failed') {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
-    console.log(chalk.red.bold('\n  ✗ Payment failed\n'));
+    console.log(chalk.red.bold('\n  Payment failed\n'));
     
     if (payment.failure_reason) {
       console.log(chalk.gray('  Reason:          ') + chalk.red(payment.failure_reason));
     }
   } else if (payment.status === 'expired') {
     console.log(chalk.cyan('\n  ' + '─'.repeat(66)));
-    console.log(chalk.yellow.bold('\n  ⏱️  Payment expired\n'));
+    console.log(chalk.yellow.bold('\n  Payment expired\n'));
     console.log(chalk.gray('  Create a new payment with: ') + chalk.cyan('zendfi test payment'));
   }
 
