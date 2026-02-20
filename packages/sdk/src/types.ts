@@ -118,6 +118,15 @@ export interface CreatePaymentLinkRequest {
   expires_at?: string;
   metadata?: Record<string, any>;
   onramp?: boolean;
+  /** Original NGN amount for PAJ exact conversion (if using a NGN-denominated link) */
+  amount_ngn?: number;
+  /**
+   * If true, a service charge of max(₦30, ceil(3% × amount_ngn)) is added on top
+   * and shown transparently to the payer on checkout.
+   * If false/absent, no service charge is applied (merchant absorbs PAJ slippage).
+   * Only relevant when `onramp` is true.
+   */
+  payer_service_charge?: boolean;
 }
 
 export interface PaymentLink {
@@ -145,6 +154,8 @@ export interface PaymentLink {
   uses_count?: number;
   is_active?: boolean;
   onramp?: boolean;
+  /** Whether this link applies a service charge to the payer (onramp only) */
+  payer_service_charge?: boolean;
 }
 
 export interface Payment {

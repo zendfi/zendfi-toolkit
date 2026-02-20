@@ -26,6 +26,29 @@
 
 import { ApiKeyMode } from './types';
 
+// Professional SVG Icons
+const Icons = {
+  clipboard: `<svg class="icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>`,
+  
+  checkCircle: `<svg class="icon icon-lg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  
+  xCircle: `<svg class="icon icon-lg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  
+  check: `<svg class="icon icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`,
+  
+  refresh: `<svg class="icon icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`,
+  
+  clock: `<svg class="icon icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  
+  loader: `<svg class="icon icon-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`,
+  
+  bank: `<svg class="icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" /></svg>`,
+  
+  clocklg: `<svg class="icon icon-lg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  
+  hammer: `<svg class="icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" /></svg>`,
+};
+
 export interface EmbeddedCheckoutConfig {
   /** Payment link code or payment ID */
   linkCode?: string;
@@ -106,6 +129,9 @@ interface CheckoutData {
   suggested_amount?: number;
   onramp?: boolean;
   payment_link_id?: string;
+  amount_ngn?: number;
+  service_charge_ngn?: number;
+  payer_service_charge?: boolean;
 }
 
 /**
@@ -383,13 +409,31 @@ export class ZendFiEmbeddedCheckout {
   private renderHeader(): string {
     if (!this.checkoutData) return '';
 
+    const testnetBadge = (this.checkoutData.solana_network === 'devnet' || this.checkoutData.solana_network === 'testnet') 
+      ? `<span style="font-size: 9px; font-weight: 500; color: #d97706; background: #fef3c7; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Testnet</span>` 
+      : '';
+
     return `
-      <div class="zendfi-checkout-header" style="padding: 24px; border-bottom: 1px solid #e5e7eb;">
-        <h2 style="margin: 0; font-size: 24px; font-weight: 600; color: ${this.config.theme.textColor || '#1f2937'};">
-          Pay ${this.checkoutData.merchant_name}
-        </h2>
+      <div class="zendfi-checkout-header" style="padding: 24px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+        <!-- Merchant Badge -->
+        <div style="display: inline-flex; items-center; gap: 8px; padding: 6px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 20px; margin-bottom: 16px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #1f2937; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; font-weight: 600; color: white;">
+              ${this.checkoutData.merchant_name.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <span style="font-size: 12px; font-weight: 500; color: #374151;">${this.checkoutData.merchant_name}</span>
+          ${testnetBadge}
+        </div>
+        
+        <!-- Amount -->
+        <div style="font-size: 40px; font-weight: 600; color: #1f2937; margin-bottom: 4px;">
+          $${this.checkoutData.amount_usd.toFixed(2)}
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #6b7280;">${this.checkoutData.token} on Solana</p>
+        
         ${this.checkoutData.description ? `
-          <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 14px;">
+          <p style="margin: 12px auto 0; color: #9ca3af; font-size: 13px; max-width: 280px;">
             ${this.checkoutData.description}
           </p>
         ` : ''}
@@ -482,21 +526,22 @@ export class ZendFiEmbeddedCheckout {
     if (!this.checkoutData) return '';
 
     return `
-      <div class="zendfi-payment-method" style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px;">
+      <div class="zendfi-payment-method" style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; background: white; transition: all 0.2s;" onmouseover="this.style.borderColor='#d1d5db'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none';">
         <div style="text-align: center;">
-          <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
-            Scan with Solana wallet
+          <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #374151;">Scan QR Code</h4>
+          <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">
+            Use any Solana wallet app
           </p>
-          <div id="zendfi-qr-container" style="display: flex; justify-content: center; margin-bottom: 16px;">
+          <div id="zendfi-qr-container" style="display: flex; justify-content: center; margin-bottom: 16px; padding: 12px; background: #fafbfc; border-radius: 8px;">
             <canvas id="zendfi-qr-code"></canvas>
           </div>
           <button
             id="zendfi-copy-address"
-            style="padding: 10px 20px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.2s;"
+            style="padding: 10px 20px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; font-size: 14px; color: #374151; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;"
             onmouseover="this.style.background='#e5e7eb'"
             onmouseout="this.style.background='#f3f4f6'"
           >
-            📋 Copy Address
+            ${Icons.clipboard} Copy Address
           </button>
         </div>
       </div>
@@ -507,15 +552,17 @@ export class ZendFiEmbeddedCheckout {
    * Render browser wallet method
    */
   private renderWalletMethod(): string {
+    const walletIcon = `<svg style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg>`;
+    
     return `
       <div class="zendfi-payment-method" style="margin-bottom: 16px;">
         <button
           id="zendfi-connect-wallet"
-          style="width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
-          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0, 0, 0, 0.15)';"
-          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)';"
+          style="width: 100%; padding: 16px; background: #1f2937; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center;"
+          onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)'; this.style.background='#111827';"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.1)'; this.style.background='#1f2937';"
         >
-          Connect Wallet
+          ${walletIcon} Connect Wallet
         </button>
       </div>
     `;
@@ -525,15 +572,17 @@ export class ZendFiEmbeddedCheckout {
    * Render WalletConnect method
    */
   private renderWalletConnectMethod(): string {
+    const qrIcon = `<svg style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>`;
+    
     return `
-      <div class="zendfi-payment-method">
+      <div class="zendfi-payment-method" style="margin-bottom: 16px;">
         <button
           id="zendfi-wallet-connect"
-          style="width: 100%; padding: 16px; background: white; color: #1f2937; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
-          onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';"
-          onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white';"
+          style="width: 100%; padding: 16px; background: white; color: #1f2937; border: 2px solid #d1d5db; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+          onmouseover="this.style.borderColor='#9ca3af'; this.style.background='#f9fafb';"
+          onmouseout="this.style.borderColor='#d1d5db'; this.style.background='white';"
         >
-          WalletConnect
+          ${qrIcon} WalletConnect
         </button>
       </div>
     `;
@@ -549,13 +598,13 @@ export class ZendFiEmbeddedCheckout {
     const isBankDetailsStep = !!this.bankPaymentState.bankDetails;
 
     return `
-      <div class="zendfi-payment-method" style="padding: 16px; border: 2px solid #10b981; border-radius: 12px; margin-bottom: 16px; background: #f0fdf4;">
+      <div class="zendfi-payment-method" style="padding: 20px; border: 2px solid #10b981; border-radius: 12px; margin-bottom: 16px; background: #f0fdf4; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(16,185,129,0.15)';" onmouseout="this.style.boxShadow='none';">
         <div style="margin-bottom: 12px;">
-          <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #065f46; display: flex; align-items: center;">
-            Pay with Bank Transfer (Nigeria)
+          <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #065f46; display: flex; align-items: center; gap: 8px;">
+            ${Icons.bank} Pay with Bank Transfer
           </h4>
-          <p style="margin: 0; font-size: 12px; color: #047857;">
-            Pay with your Nigerian bank account • Instant confirmation
+          <p style="margin: 0; font-size: 13px; color: #047857;">
+            Nigerian bank account • Instant confirmation
           </p>
         </div>
         
@@ -624,8 +673,8 @@ export class ZendFiEmbeddedCheckout {
     return `
       <div id="zendfi-bank-details-step">
         <div style="background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151;">
-            📋 Transfer to this account:
+          <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 6px;">
+            ${Icons.bank} Transfer to this account:
           </h5>
           
           <div style="margin-bottom: 8px;">
@@ -668,14 +717,14 @@ export class ZendFiEmbeddedCheckout {
           <div style="color: #6b7280; font-size: 14px;" id="zendfi-bank-status-text">
             Waiting for bank transfer... (<span id="zendfi-bank-timer">0:00</span>)
           </div>
-          <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
-            ⏱️ Usually takes 10-30 seconds
+          <div style="font-size: 12px; color: #9ca3af; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px;">
+            ${Icons.clock} Usually takes 10-30 seconds
           </div>
           <button
             id="zendfi-refresh-status"
-            style="margin-top: 12px; padding: 8px 16px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; color: #6b7280; font-size: 14px;"
+            style="margin-top: 12px; padding: 8px 16px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; color: #6b7280; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;"
           >
-            🔄 Refresh Status
+            ${Icons.refresh} Refresh Status
           </button>
         </div>
       </div>
@@ -686,10 +735,14 @@ export class ZendFiEmbeddedCheckout {
    * Render footer
    */
   private renderFooter(): string {
+    const lockIcon = `<svg style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>`;
+    
     return `
       <div class="zendfi-checkout-footer" style="padding: 16px 24px; border-top: 1px solid #e5e7eb; text-align: center;">
-        <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-          Powered by <a href="https://zendfi.tech" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">ZendFi</a>
+        <p style="margin: 0; font-size: 12px; color: #9ca3af; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          ${lockIcon}
+          <span>Secured by</span>
+          <a href="https://zendfi.tech" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">ZendFi</a>
         </p>
       </div>
     `;
@@ -703,7 +756,7 @@ export class ZendFiEmbeddedCheckout {
 
     this.container.innerHTML = `
       <div class="zendfi-checkout-success" style="${this.getSuccessStyles()}">
-        <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+        <div style="color: #10b981; margin-bottom: 16px;">${Icons.checkCircle}</div>
         <h3 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600; color: #059669;">
           Payment Successful!
         </h3>
@@ -715,6 +768,100 @@ export class ZendFiEmbeddedCheckout {
   }
 
   /**
+   * Render payment under review state
+   */
+  private renderUnderReview(): void {
+    if (!this.container) return;
+
+    const customerEmail = this.bankPaymentState.customerEmail || 'unknown';
+    const orderId = this.bankPaymentState.orderId || 'N/A';
+
+    this.container.innerHTML = `
+      <div class="zendfi-checkout-under-review" style="padding: 32px 24px; text-align: center;">
+        <div style="width: 64px; height: 64px; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #d97706;">
+          ${Icons.clock}
+        </div>
+        
+        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #1f2937;">
+          Payment Under Review
+        </h3>
+        <p style="margin: 0 0 24px 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
+          We're still processing your bank transfer. This is taking longer than usual.
+        </p>
+
+        <!-- What's Happening -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: left;">
+          <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #1e3a8a;">What's happening?</h4>
+          <ul style="margin: 0; padding: 0 0 0 20px; font-size: 13px; color: #1e40af; line-height: 1.6;">
+            <li style="margin-bottom: 8px;">Our team has been notified and is investigating</li>
+            <li style="margin-bottom: 8px;">We're coordinating with our payment partner</li>
+            <li>You'll receive an update via email within 24 hours</li>
+          </ul>
+        </div>
+
+        <!-- Guarantee -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: left;">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="color: #16a34a; flex-shrink: 0;">${Icons.checkCircle}</div>
+            <div>
+              <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #15803d;">You're Protected</h4>
+              <p style="margin: 0; font-size: 13px; color: #166534; line-height: 1.5;">
+                If we can't deliver your USDC, you'll receive a <strong>full refund</strong> to your bank account within 3-5 business days.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Support -->
+        <div style="background: #f9fafb; border-radius: 12px; padding: 16px; text-align: left;">
+          <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #1f2937;">Need help?</h4>
+          <p style="margin: 0 0 12px 0; font-size: 13px; color: #6b7280;">
+            Contact our support team if you have questions:
+          </p>
+          <a 
+            href="mailto:tosinoyinboblessed@gmail.com?subject=Payment%20Review%20-%20${orderId}&body=Order%20ID:%20${orderId}%0AEmail:%20${customerEmail}"
+            style="display: block; width: 100%; padding: 12px; background: #1f2937; color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center; transition: background 0.2s;"
+            onmouseover="this.style.background='#111827'"
+            onmouseout="this.style.background='#1f2937'"
+          >
+            Email Support
+          </a>
+          <p style="margin: 12px 0 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
+            Reference: ${orderId.slice(0, 8)}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Handle payment timeout (15 minutes)
+   */
+  private handlePaymentTimeout(): void {
+    // Stop all polling
+    if (this.bankPaymentState.pollingInterval) {
+      clearInterval(this.bankPaymentState.pollingInterval);
+      this.bankPaymentState.pollingInterval = undefined;
+    }
+    if ((this.bankPaymentState as any).timerInterval) {
+      clearInterval((this.bankPaymentState as any).timerInterval);
+    }
+
+    // Render under review message
+    this.renderUnderReview();
+
+    // Notify via callback
+    this.config.onError({
+      code: 'PAYMENT_TIMEOUT',
+      message: 'Payment is taking longer than expected and is now under review',
+      details: {
+        orderId: this.bankPaymentState.orderId,
+        customerEmail: this.bankPaymentState.customerEmail,
+      },
+    });
+  }
+
+  /**
    * Render error state
    */
   private renderError(message: string): void {
@@ -722,7 +869,7 @@ export class ZendFiEmbeddedCheckout {
 
     this.container.innerHTML = `
       <div class="zendfi-checkout-error" style="${this.getErrorStyles()}">
-        <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
+        <div style="color: #ef4444; margin-bottom: 16px;">${Icons.xCircle}</div>
         <h3 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600; color: #dc2626;">
           Payment Failed
         </h3>
@@ -746,9 +893,9 @@ export class ZendFiEmbeddedCheckout {
     if (copyBtn && this.checkoutData) {
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(this.checkoutData!.wallet_address);
-        copyBtn.textContent = '✓ Copied!';
+        copyBtn.innerHTML = `${Icons.check} Copied!`;
         setTimeout(() => {
-          copyBtn.textContent = 'Copy Address';
+          copyBtn.innerHTML = `${Icons.clipboard} Copy Address`;
         }, 2000);
       });
     }
@@ -803,7 +950,7 @@ export class ZendFiEmbeddedCheckout {
 
       const connectBtn = document.getElementById('zendfi-connect-wallet');
       if (connectBtn) {
-        connectBtn.textContent = '🔄 Connecting...';
+        connectBtn.innerHTML = `${Icons.loader} Connecting...`;
         (connectBtn as HTMLButtonElement).disabled = true;
       }
 
@@ -811,7 +958,7 @@ export class ZendFiEmbeddedCheckout {
       const publicKey = provider.publicKey.toString();
 
       if (connectBtn) {
-        connectBtn.textContent = '🔨 Building transaction...';
+        connectBtn.innerHTML = `${Icons.hammer} Building transaction...`;
       }
 
       const response = await fetch(
@@ -833,7 +980,7 @@ export class ZendFiEmbeddedCheckout {
       const { transaction: transactionBase64, is_gasless } = await response.json();
 
       if (connectBtn) {
-        connectBtn.textContent = 'Sign transaction...';
+        connectBtn.innerHTML = `${Icons.loader} Signing...`;
       }
 
       const solanaWeb3 = (window as any).solanaWeb3;
@@ -843,7 +990,7 @@ export class ZendFiEmbeddedCheckout {
       const signedTransaction = await provider.signTransaction(transaction);
 
       if (connectBtn) {
-        connectBtn.textContent = 'Submitting...';
+        connectBtn.innerHTML = `${Icons.loader} Submitting...`;
       }
 
       if (is_gasless) {
@@ -889,7 +1036,7 @@ export class ZendFiEmbeddedCheckout {
       }
 
       if (connectBtn) {
-        connectBtn.textContent = 'Confirming...';
+        connectBtn.innerHTML = `${Icons.loader} Confirming...`;
       }
 
     } catch (error) {
@@ -969,6 +1116,38 @@ export class ZendFiEmbeddedCheckout {
       @keyframes zendfi-spin {
         to { transform: rotate(360deg); }
       }
+      
+      .zendfi-embedded-checkout .icon {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      
+      .zendfi-embedded-checkout .icon-sm {
+        width: 16px;
+        height: 16px;
+      }
+      
+      .zendfi-embedded-checkout .icon-lg {
+        width: 64px;
+        height: 64px;
+      }
+      
+      .zendfi-embedded-checkout .icon-spin {
+        animation: zendfi-spin 0.8s linear infinite;
+        width: 40px;
+        height: 40px;
+      }
+      
+      .zendfi-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f4f6;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: zendfi-spin 0.8s linear infinite;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -1026,9 +1205,10 @@ export class ZendFiEmbeddedCheckout {
       font-family: ${theme.fontFamily};
       background: ${theme.backgroundColor};
       border-radius: ${theme.borderRadius};
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       overflow: hidden;
-      max-width: 500px;
+      max-width: 480px;
       margin: 0 auto;
     `.replace(/\s+/g, ' ').trim();
   }
@@ -1097,6 +1277,8 @@ export class ZendFiEmbeddedCheckout {
             fiat_amount: this.checkoutData!.amount_usd,
             currency: this.checkoutData!.currency,
             payment_link_id: this.checkoutData!.payment_link_id,
+            amount_ngn: this.checkoutData!.amount_ngn,
+            payer_service_charge: this.checkoutData!.payer_service_charge,
           }),
         });
 
@@ -1135,6 +1317,7 @@ export class ZendFiEmbeddedCheckout {
             customer_email: email,
             fiat_amount: this.checkoutData!.amount_usd,
             payment_link_id: this.checkoutData!.payment_link_id,
+            amount_ngn: this.checkoutData!.amount_ngn,
           }),
         });
 
@@ -1164,6 +1347,7 @@ export class ZendFiEmbeddedCheckout {
     if (!this.bankPaymentState.orderId) return;
 
     let startTime = Date.now();
+    const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
     
     const timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -1172,6 +1356,11 @@ export class ZendFiEmbeddedCheckout {
       const timerEl = document.getElementById('zendfi-bank-timer');
       if (timerEl) {
         timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+
+      // Check if we've exceeded timeout
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        this.handlePaymentTimeout();
       }
     }, 1000);
 
