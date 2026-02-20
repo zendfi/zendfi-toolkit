@@ -121,7 +121,7 @@ export interface CreatePaymentLinkRequest {
   /** Original NGN amount for PAJ exact conversion (if using a NGN-denominated link) */
   amount_ngn?: number;
   /**
-   * If true, a service charge of max(₦30, ceil(3% × amount_ngn)) is added on top
+   * If true, a service charge of max(₦30, ceil(2.1% × amount_ngn)) is added on top
    * and shown transparently to the payer on checkout.
    * If false/absent, no service charge is applied (merchant absorbs PAJ slippage).
    * Only relevant when `onramp` is true.
