@@ -107,6 +107,22 @@ export interface CreatePaymentRequest {
 }
 
 /**
+ * Customer Object for Pre-filled Payment Links
+ */
+export interface PaymentLinkCustomerObject {
+  email: string;
+  name?: string;
+  phone?: string;
+  company?: string;
+  billing_address_line1?: string;
+  billing_address_line2?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_postal_code?: string;
+  billing_country?: string;
+}
+
+/**
  * Payment Link - Shareable checkout links
  */
 export interface CreatePaymentLinkRequest {
@@ -127,6 +143,17 @@ export interface CreatePaymentLinkRequest {
    * Only relevant when `onramp` is true.
    */
   payer_service_charge?: boolean;
+  /**
+   * If true, checkout shows an expanded customer details form before payment.
+   */
+  collect_customer_info?: boolean;
+  /**
+   * Optional pre-filled customer object. When present:
+   * - the checkout page skips email/info collection and shows "Continue to Pay"
+   * - `max_uses` is automatically forced to 1 (single-use link)
+   * - the customer data is stored on the link and forwarded to the onramp flow
+   */
+  customer?: PaymentLinkCustomerObject;
 }
 
 export interface PaymentLink {
