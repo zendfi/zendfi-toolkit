@@ -59,6 +59,13 @@ export type InvoiceStatus = 'draft' | 'sent' | 'paid';
 
 export type SplitStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 
+/**
+ * Recipient type discriminator for split recipients
+ * - 'wallet': Direct blockchain transfer to Solana wallet
+ * - 'bank_account': PAJ offramp (USDC → NGN → bank deposit)
+ */
+export type RecipientType = 'wallet' | 'bank_account';
+
 export type WebhookEvent =
   | 'payment.created'
   | 'payment.confirmed'
@@ -87,13 +94,41 @@ export interface ZendFiConfig {
   debug?: boolean; // Enable request/response logging
 }
 
-export interface SplitRecipient {
-  recipient_wallet: string;
+/**
+ * Split recipient - base configuration shared across both types
+ */
+export interface SplitRecipientBase {
+  recipient_type: RecipientType;
   recipient_name?: string;
-  percentage?: number;
-  fixed_amount_usd?: number;
-  split_order?: number;
+  percentage?: number;          // 0-100, sum of all percentages must equal 100
+  fixed_amount_usd?: number;    // alternative to percentage (not summed)
+  split_order?: number;         // processing order (default: 0)
 }
+
+/**
+ * Wallet recipient: direct blockchain transfer to Solana wallet
+ */
+export interface WalletSplitRecipient extends SplitRecipientBase {
+  recipient_type: 'wallet';
+  recipient_wallet: string;     // Solana wallet address
+}
+
+/**
+ * Bank account recipient: PAJ offramp (USDC → NGN → bank deposit)
+ */
+export interface BankAccountSplitRecipient extends SplitRecipientBase {
+  recipient_type: 'bank_account';
+  recipient_account_name: string;   // Account holder name
+  recipient_bank_account: string;   // Account number
+  recipient_bank_id: string;        // Bank routing code
+  recipient_email: string;          // For OTP verification
+}
+
+/**
+ * Discriminated union type for split recipients
+ * Use the `recipient_type` field to determine which fields are available
+ */
+export type SplitRecipient = WalletSplitRecipient | BankAccountSplitRecipient;
 
 export interface CreatePaymentRequest {
   amount: number;
@@ -154,6 +189,12 @@ export interface CreatePaymentLinkRequest {
    * - the customer data is stored on the link and forwarded to the onramp flow
    */
   customer?: PaymentLinkCustomerObject;
+  /**
+   * Optional split recipients for this link. When present, all payments created from this link
+   * will automatically apply the splits during settlement. Supports both wallet (direct blockchain transfer)
+   * and bank_account (PAJ offramp: USDC → NGN → bank) recipient types.
+   */
+  split_recipients?: SplitRecipient[];
 }
 
 export interface PaymentLink {
@@ -183,6 +224,20 @@ export interface PaymentLink {
   onramp?: boolean;
   /** Whether this link applies a service charge to the payer (onramp only) */
   payer_service_charge?: boolean;
+  /** Whether the checkout page collects full customer details before payment */
+  collect_customer_info?: boolean;
+  /**
+   * Present only on customer-scoped links (created with a `customer` object).
+   * Forwarded to the checkout and onramp flow so no manual input is needed.
+   */
+  customer_data?: PaymentLinkCustomerObject;
+  /**
+   * Split recipients associated with this payment link.
+   * When split_recipients are present, all payments created from this link
+   * will automatically apply the splits. Supports both wallet (direct blockchain transfer)
+   * and bank_account (PAJ offramp: USDC → NGN → bank) recipient types.
+   */
+  split_recipients?: SplitRecipient[];
 }
 
 export interface Payment {
@@ -203,7 +258,17 @@ export interface Payment {
   confirmed_at?: string;
   transaction_signature?: string;
   metadata?: Record<string, any>;
-  split_ids?: string[];
+  /**
+   * Split recipient statuses (if splits were applied to this payment).
+   * Includes split ID, recipient type, amount, and settlement status.
+   */
+  split_statuses?: Array<{
+    split_id: string;
+    recipient_type: RecipientType;
+    amount_usd: number;
+    status: SplitStatus;
+    transaction_signature?: string;
+  }>;
   created_at?: string;
   updated_at?: string;
 }
