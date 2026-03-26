@@ -260,6 +260,103 @@ export async function withdrawSubAccount(id: string, options: {
   console.log('');
 }
 
+export async function withdrawSubAccountToBank(id: string, options: {
+  amount: number;
+  bankId: string;
+  accountNumber: string;
+  mode?: 'test' | 'live';
+  passkeyFile?: string;
+  delegationToken?: string;
+  automationToken?: string;
+}): Promise<void> {
+  if (options.automationToken && options.delegationToken) {
+    throw new Error('Use either --automation-token or --delegation-token, not both.');
+  }
+
+  const passkey = parsePasskeyFile(options.passkeyFile);
+  const spinner = ora('Submitting sub-account bank withdrawal...').start();
+  const result = await request<any>(`/subaccounts/${id}/withdraw-bank`, {
+    method: 'POST',
+    body: {
+      amount_usdc: options.amount,
+      bank_id: options.bankId,
+      account_number: options.accountNumber,
+      mode: options.mode,
+      delegation_token: options.delegationToken,
+      automation_token: options.automationToken,
+      passkey_signature: passkey,
+    },
+  });
+  spinner.succeed('Bank withdrawal submitted');
+
+  console.log(chalk.cyan('\nBank Withdrawal Result'));
+  console.log(chalk.gray('  TX:           ') + chalk.white(result.transaction_signature));
+  console.log(chalk.gray('  Sub-account:  ') + chalk.white(result.subaccount_id));
+  console.log(chalk.gray('  Order ID:     ') + chalk.white(result.order_id));
+  console.log(chalk.gray('  PAJ Order ID: ') + chalk.white(result.paj_order_id));
+  console.log(chalk.gray('  PAJ Wallet:   ') + chalk.white(result.paj_deposit_address));
+  console.log(chalk.gray('  Bank Account: ') + chalk.white(result.bank_account_number));
+  console.log(chalk.gray('  Account Name: ') + chalk.white(result.bank_account_name));
+  console.log(chalk.gray('  Amount USDC:  ') + chalk.white(String(result.amount_usdc)));
+  console.log(chalk.gray('  Amount NGN:   ') + chalk.white(String(result.fiat_amount)));
+  console.log(chalk.gray('  Rate:         ') + chalk.white(String(result.exchange_rate)));
+  console.log(chalk.gray('  Fee:          ') + chalk.white(String(result.fee)));
+  console.log(chalk.gray('  Status:       ') + chalk.white(String(result.status)));
+  console.log('');
+}
+
+export async function mintSubAccountAutomationToken(options: {
+  subAccountId?: string;
+  ttl: number;
+  maxUses: number;
+  totalLimit: number;
+  perTxLimit: number;
+  bankIds?: string;
+  accountNumbers?: string;
+  mode?: 'test' | 'live';
+}): Promise<void> {
+  const spinner = ora('Minting sub-account automation token...').start();
+  const result = await request<any>('/merchants/me/subaccounts/automation-tokens', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      ttl_seconds: options.ttl,
+      max_uses: options.maxUses,
+      total_limit_usdc: options.totalLimit,
+      per_tx_limit_usdc: options.perTxLimit,
+      allowed_bank_ids: options.bankIds
+        ? options.bankIds.split(',').map((v) => v.trim()).filter(Boolean)
+        : undefined,
+      allowed_account_numbers: options.accountNumbers
+        ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
+        : undefined,
+      mode: options.mode,
+    },
+  });
+  spinner.succeed('Automation token minted');
+
+  console.log(chalk.cyan('\nAutomation Token'));
+  console.log(chalk.gray('  Token ID:       ') + chalk.white(result.token_id));
+  console.log(chalk.gray('  Sub-account:    ') + chalk.white(result.sub_account_id ?? 'all merchant sub-accounts'));
+  console.log(chalk.gray('  Expires At:     ') + chalk.white(result.expires_at));
+  console.log(chalk.gray('  Max Uses:       ') + chalk.white(String(result.max_uses)));
+  console.log(chalk.gray('  Total Limit:    ') + chalk.white(String(result.total_limit_usdc)));
+  console.log(chalk.gray('  Per-Tx Limit:   ') + chalk.white(String(result.per_tx_limit_usdc)));
+  console.log(chalk.gray('  Mode:           ') + chalk.white(String(result.mode ?? 'live')));
+  console.log(chalk.gray('  Token (one-time): ') + chalk.yellow(result.automation_token));
+  console.log('');
+}
+
+export async function revokeSubAccountAutomationToken(tokenId: string): Promise<void> {
+  const spinner = ora('Revoking sub-account automation token...').start();
+  const result = await request<any>(`/merchants/me/subaccounts/automation-tokens/${tokenId}/revoke`, {
+    method: 'POST',
+  });
+  spinner.succeed('Automation token revoked');
+
+  console.log(chalk.green(`\nToken ${result.token_id} is now ${result.status}.\n`));
+}
+
 export async function closeSubAccount(id: string): Promise<void> {
   const spinner = ora('Closing sub-account...').start();
   const result = await request<any>(`/subaccounts/${id}`, { method: 'DELETE' });

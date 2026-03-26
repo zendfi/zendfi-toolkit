@@ -336,6 +336,13 @@ zendfi subaccounts drain sa_xxxxx --amount 25 --token Usdc --mode live --passkey
 # Withdraw to external wallet (with optional delegated token)
 zendfi subaccounts withdraw sa_xxxxx --to 7xKX...AsU --amount 10 --token Usdc --delegation-token satk_xxxxx --passkey-file ./passkey-signature.json
 
+# Withdraw to bank with automated proxy-email OTP
+zendfi subaccounts withdraw-bank sa_xxxxx --amount 25 --bank-id 9PSB7A2A2LJZ3H6Q4G8XJ6A4 --account-number 0123456789 --automation-token saatk_xxxxx --passkey-file ./passkey-signature.json
+
+# Mint and revoke bounded automation token
+zendfi subaccounts automation-token-mint --subaccount-id sa_xxxxx --ttl 3600 --max-uses 25 --total-limit 500 --per-tx-limit 50 --bank-ids 9PSB7A2A2LJZ3H6Q4G8XJ6A4 --account-numbers 0123456789
+zendfi subaccounts automation-token-revoke 0f8fad5b-d9cb-469f-a165-70867728950e
+
 # Freeze and close
 zendfi subaccounts freeze sa_xxxxx --reason "fraud-review"
 zendfi subaccounts close sa_xxxxx
@@ -346,7 +353,10 @@ Sensitive operations require WebAuthn proof payload file:
 ```bash
 zendfi subaccounts drain sa_xxxxx --passkey-file ./passkey-signature.json
 zendfi subaccounts withdraw sa_xxxxx --to <wallet> --amount 25 --passkey-file ./passkey-signature.json
+zendfi subaccounts withdraw-bank sa_xxxxx --amount 25 --bank-id <bank_id> --account-number <acct> --passkey-file ./passkey-signature.json
 ```
+
+Use either `--automation-token` or `--delegation-token` for `withdraw-bank`, not both.
 
 Passkey payload file format:
 

@@ -223,6 +223,16 @@ export interface SubAccountWithdrawRequest {
   delegation_token?: string;
 }
 
+export interface SubAccountWithdrawToBankRequest {
+  amount_usdc: number;
+  bank_id: string;
+  account_number: string;
+  passkey_signature: PasskeySignaturePayload;
+  mode?: ApiKeyMode;
+  delegation_token?: string;
+  automation_token?: string;
+}
+
 export interface SubAccountTransferResponse {
   success: boolean;
   transaction_signature: string;
@@ -230,6 +240,54 @@ export interface SubAccountTransferResponse {
   to_address: string;
   amount: number;
   token: string;
+}
+
+export interface SubAccountWithdrawToBankResponse {
+  success: boolean;
+  subaccount_id: string;
+  order_id: string;
+  paj_order_id: string;
+  paj_deposit_address: string;
+  bank_account_number: string;
+  bank_account_name: string;
+  amount_usdc: number;
+  fiat_amount: number;
+  exchange_rate: number;
+  fee: number;
+  status: string;
+  transaction_signature: string;
+}
+
+export interface CreateSubAccountAutomationTokenRequest {
+  sub_account_id?: string;
+  ttl_seconds: number;
+  max_uses: number;
+  total_limit_usdc: number;
+  per_tx_limit_usdc: number;
+  allowed_bank_ids?: string[];
+  allowed_account_numbers?: string[];
+  mode?: ApiKeyMode;
+}
+
+export interface CreateSubAccountAutomationTokenResponse {
+  token_id: string;
+  automation_token: string;
+  merchant_id: string;
+  sub_account_id?: string;
+  expires_at: string;
+  max_uses: number;
+  total_limit_usdc: number;
+  per_tx_limit_usdc: number;
+  allowed_bank_ids?: string[];
+  allowed_account_numbers?: string[];
+  mode?: ApiKeyMode;
+  created_at: string;
+}
+
+export interface RevokeSubAccountAutomationTokenResponse {
+  success: boolean;
+  token_id: string;
+  status: string;
 }
 
 export interface CreatePaymentRequest {

@@ -13,6 +13,9 @@ describe('ZendFiClient subaccounts surface', () => {
     expect(typeof client.freezeSubAccount).toBe('function');
     expect(typeof client.drainSubAccount).toBe('function');
     expect(typeof client.withdrawFromSubAccount).toBe('function');
+    expect(typeof client.withdrawSubAccountToBank).toBe('function');
+    expect(typeof client.createSubAccountAutomationToken).toBe('function');
+    expect(typeof client.revokeSubAccountAutomationToken).toBe('function');
     expect(typeof client.closeSubAccount).toBe('function');
   });
 });

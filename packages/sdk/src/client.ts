@@ -25,7 +25,12 @@ import type {
   FreezeSubAccountRequest,
   DrainSubAccountRequest,
   SubAccountWithdrawRequest,
+  SubAccountWithdrawToBankRequest,
   SubAccountTransferResponse,
+  SubAccountWithdrawToBankResponse,
+  CreateSubAccountAutomationTokenRequest,
+  CreateSubAccountAutomationTokenResponse,
+  RevokeSubAccountAutomationTokenResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -340,6 +345,48 @@ export class ZendFiClient {
       'POST',
       `/api/v1/subaccounts/${subAccountId}/withdraw`,
       request
+    );
+  }
+
+  /**
+   * Withdraw from sub-account directly to a bank account via PAJ offramp.
+   * This endpoint mirrors split-flow proxy-email OTP automation server-side.
+   */
+  async withdrawSubAccountToBank(
+    subAccountId: string,
+    request: SubAccountWithdrawToBankRequest
+  ): Promise<SubAccountWithdrawToBankResponse> {
+    return this.request<SubAccountWithdrawToBankResponse>(
+      'POST',
+      `/api/v1/subaccounts/${subAccountId}/withdraw-bank`,
+      request
+    );
+  }
+
+  /**
+   * Mint an automation token for bounded headless sub-account bank withdrawals.
+   * This endpoint requires merchant session auth (dashboard context).
+   */
+  async createSubAccountAutomationToken(
+    request: CreateSubAccountAutomationTokenRequest
+  ): Promise<CreateSubAccountAutomationTokenResponse> {
+    return this.request<CreateSubAccountAutomationTokenResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/automation-tokens',
+      request
+    );
+  }
+
+  /**
+   * Revoke a previously minted sub-account automation token.
+   * This endpoint requires merchant session auth (dashboard context).
+   */
+  async revokeSubAccountAutomationToken(
+    tokenId: string
+  ): Promise<RevokeSubAccountAutomationTokenResponse> {
+    return this.request<RevokeSubAccountAutomationTokenResponse>(
+      'POST',
+      `/api/v1/merchants/me/subaccounts/automation-tokens/${tokenId}/revoke`
     );
   }
 

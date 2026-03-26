@@ -46,6 +46,9 @@ import {
   freezeSubAccount,
   drainSubAccount,
   withdrawSubAccount,
+  withdrawSubAccountToBank,
+  mintSubAccountAutomationToken,
+  revokeSubAccountAutomationToken,
   closeSubAccount,
 } from './commands/subaccounts.js';
 
@@ -363,6 +366,57 @@ subAccountsCmd
   .action(async (id, options) => {
     try {
       await withdrawSubAccount(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('withdraw-bank <id>')
+  .description('Withdraw from sub-account to bank account (proxy-email OTP automation)')
+  .requiredOption('--amount <amount>', 'Withdrawal amount in USDC', parseFloat)
+  .requiredOption('--bank-id <bankId>', 'PAJ bank identifier')
+  .requiredOption('--account-number <accountNumber>', 'Recipient bank account number')
+  .option('--mode <mode>', 'test or live', 'live')
+  .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
+  .option('--automation-token <token>', 'Automation token minted via merchant session endpoint')
+  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .action(async (id, options) => {
+    try {
+      await withdrawSubAccountToBank(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('automation-token-mint')
+  .description('Mint bounded automation token for headless sub-account bank withdrawals')
+  .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
+  .option('--ttl <seconds>', 'Token TTL in seconds (60 to 604800)', parseInt, 3600)
+  .option('--max-uses <count>', 'Maximum number of uses', parseInt, 25)
+  .option('--total-limit <amount>', 'Total spend limit in USDC', parseFloat, 500)
+  .option('--per-tx-limit <amount>', 'Per transaction limit in USDC', parseFloat, 50)
+  .option('--bank-ids <ids>', 'Comma-separated allowed bank IDs')
+  .option('--account-numbers <accounts>', 'Comma-separated allowed account numbers')
+  .option('--mode <mode>', 'test or live', 'live')
+  .action(async (options) => {
+    try {
+      await mintSubAccountAutomationToken(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('automation-token-revoke <token-id>')
+  .description('Revoke an automation token immediately')
+  .action(async (tokenId) => {
+    try {
+      await revokeSubAccountAutomationToken(tokenId);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
