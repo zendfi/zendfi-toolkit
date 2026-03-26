@@ -16,6 +16,16 @@ import type {
   InstallmentPlan,
   CreateInvoiceRequest,
   Invoice,
+  CreateSubAccountRequest,
+  SubAccount,
+  ListSubAccountsResponse,
+  SubAccountBalance,
+  MintDelegationTokenRequest,
+  MintDelegationTokenResponse,
+  FreezeSubAccountRequest,
+  DrainSubAccountRequest,
+  SubAccountWithdrawRequest,
+  SubAccountTransferResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -249,6 +259,99 @@ export class ZendFiClient {
       payment_url: string;
       status: string;
     }>('POST', `/api/v1/invoices/${invoiceId}/send`);
+  }
+
+  /**
+   * Create a sub-account with dedicated MPC wallet.
+   */
+  async createSubAccount(request: CreateSubAccountRequest): Promise<SubAccount> {
+    return this.request<SubAccount>('POST', '/api/v1/subaccounts', request);
+  }
+
+  /**
+   * List all sub-accounts for authenticated merchant.
+   */
+  async listSubAccounts(): Promise<SubAccount[]> {
+    const response = await this.request<ListSubAccountsResponse>('GET', '/api/v1/subaccounts');
+    return response.subaccounts || [];
+  }
+
+  /**
+   * Get sub-account details by id or external id.
+   */
+  async getSubAccount(subAccountId: string): Promise<SubAccount> {
+    return this.request<SubAccount>('GET', `/api/v1/subaccounts/${subAccountId}`);
+  }
+
+  /**
+   * Get sub-account balances and accrued yield snapshot.
+   */
+  async getSubAccountBalance(subAccountId: string): Promise<SubAccountBalance> {
+    return this.request<SubAccountBalance>('GET', `/api/v1/subaccounts/${subAccountId}/balance`);
+  }
+
+  /**
+   * Mint a scoped delegation token for a sub-account.
+   */
+  async mintSubAccountDelegationToken(
+    subAccountId: string,
+    request: MintDelegationTokenRequest
+  ): Promise<MintDelegationTokenResponse> {
+    return this.request<MintDelegationTokenResponse>(
+      'POST',
+      `/api/v1/subaccounts/${subAccountId}/session-key`,
+      request
+    );
+  }
+
+  /**
+   * Freeze sub-account. Frozen accounts block all activity.
+   */
+  async freezeSubAccount(subAccountId: string, request: FreezeSubAccountRequest = {}): Promise<{
+    success: boolean;
+    status: string;
+    subaccount_id: string;
+  }> {
+    return this.request('POST', `/api/v1/subaccounts/${subAccountId}/freeze`, request);
+  }
+
+  /**
+   * Drain funds from sub-account back to merchant wallet.
+   */
+  async drainSubAccount(
+    subAccountId: string,
+    request: DrainSubAccountRequest
+  ): Promise<SubAccountTransferResponse> {
+    return this.request<SubAccountTransferResponse>(
+      'POST',
+      `/api/v1/subaccounts/${subAccountId}/drain`,
+      request
+    );
+  }
+
+  /**
+   * Withdraw from sub-account to external address.
+   */
+  async withdrawFromSubAccount(
+    subAccountId: string,
+    request: SubAccountWithdrawRequest
+  ): Promise<SubAccountTransferResponse> {
+    return this.request<SubAccountTransferResponse>(
+      'POST',
+      `/api/v1/subaccounts/${subAccountId}/withdraw`,
+      request
+    );
+  }
+
+  /**
+   * Close sub-account and revoke active delegation tokens.
+   */
+  async closeSubAccount(subAccountId: string): Promise<{
+    success: boolean;
+    status: string;
+    subaccount_id: string;
+  }> {
+    return this.request('DELETE', `/api/v1/subaccounts/${subAccountId}`);
   }
 
   /**

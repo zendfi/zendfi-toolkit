@@ -247,7 +247,49 @@ zendfi.cancelSubscription(...)
 // Invoices
 zendfi.createInvoice(...)
 zendfi.sendInvoice(...)
+
+// Sub-Accounts (merchant-controlled MPC wallets)
+zendfi.createSubAccount(...)
+zendfi.listSubAccounts(...)
+zendfi.getSubAccount(...)
+zendfi.getSubAccountBalance(...)
+zendfi.mintSubAccountDelegationToken(...)
+zendfi.freezeSubAccount(...)
+zendfi.drainSubAccount(...)
+zendfi.withdrawFromSubAccount(...)
+zendfi.closeSubAccount(...)
 ```
+
+### Sub-Accounts
+
+Create and manage merchant-controlled sub-accounts with dedicated MPC wallets and scoped delegation tokens.
+
+```typescript
+const sub = await zendfi.createSubAccount({
+  label: 'user_paschal_001',
+  spend_limit_usdc: 500,
+  access_mode: 'delegated',
+  yield_enabled: false,
+});
+
+const token = await zendfi.mintSubAccountDelegationToken(sub.id, {
+  scope: 'withdraw_only',
+  spend_limit_usdc: 50,
+  expires_in_seconds: 900,
+  whitelist: ['7xKm...4fVz'],
+  single_use: true,
+});
+```
+
+Sensitive sub-account operations such as `drainSubAccount` and `withdrawFromSubAccount` require `passkey_signature` payloads from your WebAuthn flow.
+
+Sub-account flows emit webhook lifecycle and transfer events:
+
+- `SubAccountCreated`
+- `SubAccountDelegationTokenMinted`
+- `SubAccountFrozen`
+- `SubAccountClosed`
+- `WithdrawalInitiated` / `WithdrawalFailed` / `WithdrawalCompleted` (including scoped withdrawals)
 
 ### Payments
 

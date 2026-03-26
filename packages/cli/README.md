@@ -310,6 +310,57 @@ zendfi keys rotate key_abc123xyz
 
 ---
 
+## Sub-Accounts
+
+Manage merchant-controlled sub-accounts and delegation tokens from the CLI.
+
+```bash
+# Create sub-account
+zendfi subaccounts create --label user_paschal_001 --spend-limit 500
+
+# List sub-accounts
+zendfi subaccounts list
+
+# Inspect one sub-account
+zendfi subaccounts get sa_xxxxx
+
+# Get balances
+zendfi subaccounts balance sa_xxxxx
+
+# Mint delegated token
+zendfi subaccounts token sa_xxxxx --scope withdraw_only --spend-limit 100 --ttl 900 --single-use
+
+# Drain to merchant wallet
+zendfi subaccounts drain sa_xxxxx --amount 25 --token Usdc --mode live --passkey-file ./passkey-signature.json
+
+# Withdraw to external wallet (with optional delegated token)
+zendfi subaccounts withdraw sa_xxxxx --to 7xKX...AsU --amount 10 --token Usdc --delegation-token satk_xxxxx --passkey-file ./passkey-signature.json
+
+# Freeze and close
+zendfi subaccounts freeze sa_xxxxx --reason "fraud-review"
+zendfi subaccounts close sa_xxxxx
+```
+
+Sensitive operations require WebAuthn proof payload file:
+
+```bash
+zendfi subaccounts drain sa_xxxxx --passkey-file ./passkey-signature.json
+zendfi subaccounts withdraw sa_xxxxx --to <wallet> --amount 25 --passkey-file ./passkey-signature.json
+```
+
+Passkey payload file format:
+
+```json
+{
+  "credential_id": "...",
+  "authenticator_data": [1, 2, 3],
+  "signature": [4, 5, 6],
+  "client_data_json": [7, 8, 9]
+}
+```
+
+---
+
 ## Payment Intents
 
 Create payment intents for two-phase checkout flows (Stripe-like).

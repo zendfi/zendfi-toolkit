@@ -37,6 +37,17 @@ import {
   listPPPFactors,
   calculatePPP,
 } from './commands/ppp.js';
+import {
+  createSubAccount,
+  listSubAccounts,
+  getSubAccount,
+  getSubAccountBalance,
+  mintSubAccountToken,
+  freezeSubAccount,
+  drainSubAccount,
+  withdrawSubAccount,
+  closeSubAccount,
+} from './commands/subaccounts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -236,6 +247,139 @@ intentsCmd
 const pppCmd = program
   .command('ppp')
   .description('Purchasing Power Parity pricing');
+
+const subAccountsCmd = program
+  .command('subaccounts')
+  .description('Sub-account management and delegated access controls')
+  .alias('sa');
+
+subAccountsCmd
+  .command('create')
+  .description('Create a new sub-account with dedicated MPC wallet')
+  .requiredOption('--label <label>', 'Immutable sub-account label')
+  .option('--spend-limit <amount>', 'Sub-account spend limit in USDC', parseFloat)
+  .option('--access-mode <mode>', 'delegated or merchant_managed', 'delegated')
+  .option('--yield-enabled', 'Enable yield for this sub-account')
+  .action(async (options) => {
+    try {
+      await createSubAccount(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('list')
+  .description('List all sub-accounts')
+  .action(async () => {
+    try {
+      await listSubAccounts();
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('get <id>')
+  .description('Get sub-account details by id or external id')
+  .action(async (id) => {
+    try {
+      await getSubAccount(id);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('balance <id>')
+  .description('Get current balance and yield snapshot for sub-account')
+  .action(async (id) => {
+    try {
+      await getSubAccountBalance(id);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('token <id>')
+  .description('Mint a scoped delegation token for a sub-account')
+  .option('--scope <scope>', 'deposit_only|withdraw_only|spend_only|read_only|full_access', 'deposit_only')
+  .option('--spend-limit <amount>', 'Maximum spendable USDC', parseFloat)
+  .option('--ttl <seconds>', 'Token TTL in seconds', parseInt)
+  .option('--whitelist <addresses>', 'Comma-separated whitelisted destination addresses')
+  .option('--single-use', 'Revoke token automatically after first use')
+  .action(async (id, options) => {
+    try {
+      await mintSubAccountToken(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('freeze <id>')
+  .description('Freeze a sub-account and revoke active delegation tokens')
+  .option('--reason <reason>', 'Freeze reason for audit trail')
+  .action(async (id, options) => {
+    try {
+      await freezeSubAccount(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('drain <id>')
+  .description('Drain sub-account funds back to merchant main wallet')
+  .option('--amount <amount>', 'Optional amount to drain', parseFloat)
+  .option('--token <token>', 'Sol or Usdc', 'Usdc')
+  .option('--mode <mode>', 'test or live', 'live')
+  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .action(async (id, options) => {
+    try {
+      await drainSubAccount(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('withdraw <id>')
+  .description('Withdraw from sub-account to external address')
+  .requiredOption('--to <address>', 'Destination Solana address')
+  .requiredOption('--amount <amount>', 'Withdrawal amount', parseFloat)
+  .option('--token <token>', 'Sol or Usdc', 'Usdc')
+  .option('--mode <mode>', 'test or live', 'live')
+  .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
+  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .action(async (id, options) => {
+    try {
+      await withdrawSubAccount(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('close <id>')
+  .description('Close a sub-account and revoke all delegation tokens')
+  .action(async (id) => {
+    try {
+      await closeSubAccount(id);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
 
 pppCmd
   .command('check <country>')

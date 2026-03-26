@@ -59,6 +59,19 @@ export type InvoiceStatus = 'draft' | 'sent' | 'paid';
 
 export type SplitStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 
+export type SubAccountStatus = 'active' | 'frozen' | 'draining' | 'closed';
+
+export type SubAccountAccessMode = 'delegated' | 'merchant_managed';
+
+export type DelegationScope =
+  | 'deposit_only'
+  | 'withdraw_only'
+  | 'spend_only'
+  | 'read_only'
+  | 'full_access';
+
+export type SubAccountTransferToken = 'Sol' | 'Usdc';
+
 /**
  * Recipient type discriminator for split recipients
  * - 'wallet': Direct blockchain transfer to Solana wallet
@@ -110,7 +123,8 @@ export interface SplitRecipientBase {
  */
 export interface WalletSplitRecipient extends SplitRecipientBase {
   recipient_type: 'wallet';
-  recipient_wallet: string;     // Solana wallet address
+  recipient_wallet?: string;     // Solana wallet address
+  sub_account_id?: string;       // sub-account external_id or UUID
 }
 
 /**
@@ -129,6 +143,94 @@ export interface BankAccountSplitRecipient extends SplitRecipientBase {
  * Use the `recipient_type` field to determine which fields are available
  */
 export type SplitRecipient = WalletSplitRecipient | BankAccountSplitRecipient;
+
+export interface PasskeySignaturePayload {
+  credential_id: string;
+  authenticator_data: number[];
+  signature: number[];
+  client_data_json: number[];
+}
+
+export interface SubAccount {
+  id: string;
+  merchant_id: string;
+  wallet_address: string;
+  label: string;
+  status: SubAccountStatus | string;
+  spend_limit_usdc: number;
+  access_mode: SubAccountAccessMode | string;
+  session_key?: Record<string, any> | null;
+  yield_enabled: boolean;
+  created_at: string;
+}
+
+export interface CreateSubAccountRequest {
+  label: string;
+  spend_limit_usdc?: number;
+  access_mode?: SubAccountAccessMode;
+  yield_enabled?: boolean;
+}
+
+export interface ListSubAccountsResponse {
+  subaccounts: SubAccount[];
+  count: number;
+}
+
+export interface SubAccountBalance {
+  subaccount_id: string;
+  wallet_address: string;
+  usdc_balance: number;
+  sol_balance: number;
+  accrued_yield: number;
+  yield_enabled: boolean;
+  status: SubAccountStatus | string;
+}
+
+export interface MintDelegationTokenRequest {
+  scope: DelegationScope;
+  spend_limit_usdc?: number;
+  expires_in_seconds?: number;
+  whitelist?: string[];
+  single_use?: boolean;
+}
+
+export interface MintDelegationTokenResponse {
+  token_id: string;
+  subaccount_id: string;
+  scope: DelegationScope | string;
+  expires_at: string;
+  spend_limit_usdc: number;
+  delegation_token: string;
+}
+
+export interface FreezeSubAccountRequest {
+  reason?: string;
+}
+
+export interface DrainSubAccountRequest {
+  token?: SubAccountTransferToken;
+  amount?: number;
+  passkey_signature: PasskeySignaturePayload;
+  mode?: ApiKeyMode;
+}
+
+export interface SubAccountWithdrawRequest {
+  to_address: string;
+  amount: number;
+  token?: SubAccountTransferToken;
+  passkey_signature: PasskeySignaturePayload;
+  mode?: ApiKeyMode;
+  delegation_token?: string;
+}
+
+export interface SubAccountTransferResponse {
+  success: boolean;
+  transaction_signature: string;
+  from_address?: string;
+  to_address: string;
+  amount: number;
+  token: string;
+}
 
 export interface CreatePaymentRequest {
   amount: number;
