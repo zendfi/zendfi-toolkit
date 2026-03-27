@@ -44,6 +44,7 @@ import {
   getSubAccountBalance,
   mintSubAccountToken,
   freezeSubAccount,
+  unfreezeSubAccount,
   drainSubAccount,
   withdrawSubAccount,
   withdrawSubAccountToBank,
@@ -332,6 +333,19 @@ subAccountsCmd
   .action(async (id, options) => {
     try {
       await freezeSubAccount(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('unfreeze <id>')
+  .description('Unfreeze a frozen sub-account and restore active status')
+  .option('--reason <reason>', 'Unfreeze reason for audit trail')
+  .action(async (id, options) => {
+    try {
+      await unfreezeSubAccount(id, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);

@@ -345,6 +345,7 @@ zendfi subaccounts automation-token-revoke 0f8fad5b-d9cb-469f-a165-70867728950e
 
 # Freeze and close
 zendfi subaccounts freeze sa_xxxxx --reason "fraud-review"
+zendfi subaccounts unfreeze sa_xxxxx --reason "manual-review-cleared"
 zendfi subaccounts close sa_xxxxx
 ```
 

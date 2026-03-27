@@ -201,6 +201,21 @@ export async function freezeSubAccount(id: string, options: { reason?: string })
   console.log(chalk.green(`\n${result.subaccount_id} is now ${result.status}.\n`));
 }
 
+export async function unfreezeSubAccount(id: string, options: { reason?: string }): Promise<void> {
+  const spinner = ora('Unfreezing sub-account...').start();
+  const result = await request<any>(`/subaccounts/${id}/unfreeze`, {
+    method: 'POST',
+    body: { reason: options.reason },
+  });
+  spinner.succeed('Sub-account unfrozen');
+
+  console.log(chalk.green(`\n${result.subaccount_id} is now ${result.status}.`));
+  if (result.note) {
+    console.log(chalk.yellow(`  Note: ${result.note}`));
+  }
+  console.log('');
+}
+
 export async function drainSubAccount(id: string, options: {
   amount?: number;
   token?: 'Sol' | 'Usdc';

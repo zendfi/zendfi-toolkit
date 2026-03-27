@@ -207,6 +207,10 @@ export interface FreezeSubAccountRequest {
   reason?: string;
 }
 
+export interface UnfreezeSubAccountRequest {
+  reason?: string;
+}
+
 export interface DrainSubAccountRequest {
   token?: SubAccountTransferToken;
   amount?: number;

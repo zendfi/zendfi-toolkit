@@ -23,6 +23,7 @@ import type {
   MintDelegationTokenRequest,
   MintDelegationTokenResponse,
   FreezeSubAccountRequest,
+  UnfreezeSubAccountRequest,
   DrainSubAccountRequest,
   SubAccountWithdrawRequest,
   SubAccountWithdrawToBankRequest,
@@ -318,6 +319,18 @@ export class ZendFiClient {
     subaccount_id: string;
   }> {
     return this.request('POST', `/api/v1/subaccounts/${subAccountId}/freeze`, request);
+  }
+
+  /**
+   * Unfreeze sub-account and return it to active state.
+   */
+  async unfreezeSubAccount(subAccountId: string, request: UnfreezeSubAccountRequest = {}): Promise<{
+    success: boolean;
+    status: string;
+    subaccount_id: string;
+    note: string;
+  }> {
+    return this.request('POST', `/api/v1/subaccounts/${subAccountId}/unfreeze`, request);
   }
 
   /**

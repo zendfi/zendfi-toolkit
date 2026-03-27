@@ -11,6 +11,7 @@ describe('ZendFiClient subaccounts surface', () => {
     expect(typeof client.getSubAccountBalance).toBe('function');
     expect(typeof client.mintSubAccountDelegationToken).toBe('function');
     expect(typeof client.freezeSubAccount).toBe('function');
+    expect(typeof client.unfreezeSubAccount).toBe('function');
     expect(typeof client.drainSubAccount).toBe('function');
     expect(typeof client.withdrawFromSubAccount).toBe('function');
     expect(typeof client.withdrawSubAccountToBank).toBe('function');
