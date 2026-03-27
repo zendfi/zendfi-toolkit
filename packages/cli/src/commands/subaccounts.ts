@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { readFileSync } from 'fs';
+import open from 'open';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
@@ -21,6 +22,34 @@ interface PasskeySignaturePayload {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'DELETE';
   body?: Record<string, unknown>;
+}
+
+interface StartSigningGrantBrowserIntentResponse {
+  intent_id: string;
+  intent_token: string;
+  approval_url: string;
+  expires_at: string;
+}
+
+interface PollSigningGrantBrowserIntentResponse {
+  status: string;
+  completed: boolean;
+  expires_at: string;
+  grant?: {
+    grant_id: string;
+    signing_grant: string;
+    sub_account_id?: string;
+    expires_at: string;
+    max_uses: number;
+    total_limit_usdc: number;
+    per_tx_limit_usdc: number;
+    mode?: 'test' | 'live';
+  };
+  error?: string;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getApiKey(): string {
@@ -409,39 +438,115 @@ export async function mintSubAccountSigningGrant(options: {
   accountNumbers?: string;
   mode?: 'test' | 'live';
   passkeyFile?: string;
+  open?: boolean;
 }): Promise<void> {
-  const passkey = parsePasskeyFile(options.passkeyFile);
-  const spinner = ora('Minting sub-account signing grant...').start();
-  const result = await request<any>('/merchants/me/subaccounts/signing-grants', {
-    method: 'POST',
-    body: {
-      sub_account_id: options.subAccountId,
-      ttl_seconds: options.ttl,
-      max_uses: options.maxUses,
-      total_limit_usdc: options.totalLimit,
-      per_tx_limit_usdc: options.perTxLimit,
-      allowed_bank_ids: options.bankIds
-        ? options.bankIds.split(',').map((v) => v.trim()).filter(Boolean)
-        : undefined,
-      allowed_account_numbers: options.accountNumbers
-        ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
-        : undefined,
-      mode: options.mode,
-      passkey_signature: passkey,
-    },
-  });
-  spinner.succeed('Signing grant minted');
+  const requestBody = {
+    sub_account_id: options.subAccountId,
+    ttl_seconds: options.ttl,
+    max_uses: options.maxUses,
+    total_limit_usdc: options.totalLimit,
+    per_tx_limit_usdc: options.perTxLimit,
+    allowed_bank_ids: options.bankIds
+      ? options.bankIds.split(',').map((v) => v.trim()).filter(Boolean)
+      : undefined,
+    allowed_account_numbers: options.accountNumbers
+      ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
+      : undefined,
+    mode: options.mode,
+  };
 
-  console.log(chalk.cyan('\nSigning Grant'));
-  console.log(chalk.gray('  Grant ID:       ') + chalk.white(result.grant_id));
-  console.log(chalk.gray('  Sub-account:    ') + chalk.white(result.sub_account_id ?? 'all merchant sub-accounts'));
-  console.log(chalk.gray('  Expires At:     ') + chalk.white(result.expires_at));
-  console.log(chalk.gray('  Max Uses:       ') + chalk.white(String(result.max_uses)));
-  console.log(chalk.gray('  Total Limit:    ') + chalk.white(String(result.total_limit_usdc)));
-  console.log(chalk.gray('  Per-Tx Limit:   ') + chalk.white(String(result.per_tx_limit_usdc)));
-  console.log(chalk.gray('  Mode:           ') + chalk.white(String(result.mode ?? 'live')));
-  console.log(chalk.gray('  Grant (one-time): ') + chalk.yellow(result.signing_grant));
+  if (options.passkeyFile) {
+    const passkey = parsePasskeyFile(options.passkeyFile);
+    const spinner = ora('Minting sub-account signing grant (legacy passkey payload flow)...').start();
+    const result = await request<any>('/merchants/me/subaccounts/signing-grants', {
+      method: 'POST',
+      body: {
+        ...requestBody,
+        passkey_signature: passkey,
+      },
+    });
+    spinner.succeed('Signing grant minted');
+
+    console.log(chalk.cyan('\nSigning Grant'));
+    console.log(chalk.gray('  Grant ID:       ') + chalk.white(result.grant_id));
+    console.log(chalk.gray('  Sub-account:    ') + chalk.white(result.sub_account_id ?? 'all merchant sub-accounts'));
+    console.log(chalk.gray('  Expires At:     ') + chalk.white(result.expires_at));
+    console.log(chalk.gray('  Max Uses:       ') + chalk.white(String(result.max_uses)));
+    console.log(chalk.gray('  Total Limit:    ') + chalk.white(String(result.total_limit_usdc)));
+    console.log(chalk.gray('  Per-Tx Limit:   ') + chalk.white(String(result.per_tx_limit_usdc)));
+    console.log(chalk.gray('  Mode:           ') + chalk.white(String(result.mode ?? 'live')));
+    console.log(chalk.gray('  Grant (one-time): ') + chalk.yellow(result.signing_grant));
+    console.log('');
+    return;
+  }
+
+  const startSpinner = ora('Starting browser passkey approval for signing grant...').start();
+  const intent = await request<StartSigningGrantBrowserIntentResponse>(
+    '/subaccounts/signing-grants/browser-intents/start',
+    {
+      method: 'POST',
+      body: requestBody,
+    }
+  );
+  startSpinner.succeed('Approval intent created');
+
+  console.log(chalk.cyan('\nSigning Grant Browser Approval'));
+  console.log(chalk.gray('  Intent ID:      ') + chalk.white(intent.intent_id));
+  console.log(chalk.gray('  Approval URL:   ') + chalk.white(intent.approval_url));
+  console.log(chalk.gray('  Expires At:     ') + chalk.white(intent.expires_at));
+
+  if (options.open !== false) {
+    try {
+      await open(intent.approval_url);
+      console.log(chalk.green('  Browser:        opened successfully'));
+    } catch (error) {
+      console.log(chalk.yellow(`  Browser:        could not auto-open (${error instanceof Error ? error.message : 'unknown error'})`));
+      console.log(chalk.yellow('                   Open the approval URL manually.'));
+    }
+  } else {
+    console.log(chalk.yellow('  Browser:        disabled via --no-open (open URL manually).'));
+  }
   console.log('');
+
+  const pollSpinner = ora('Waiting for passkey approval in browser...').start();
+  const maxAttempts = 180;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const poll = await request<PollSigningGrantBrowserIntentResponse>(
+      '/subaccounts/signing-grants/browser-intents/poll',
+      {
+        method: 'POST',
+        body: {
+          intent_id: intent.intent_id,
+          intent_token: intent.intent_token,
+        },
+      }
+    );
+
+    if (poll.completed) {
+      if (poll.status === 'approved' && poll.grant) {
+        pollSpinner.succeed('Signing grant approved');
+        console.log(chalk.cyan('\nSigning Grant'));
+        console.log(chalk.gray('  Grant ID:       ') + chalk.white(poll.grant.grant_id));
+        console.log(chalk.gray('  Sub-account:    ') + chalk.white(poll.grant.sub_account_id ?? 'all merchant sub-accounts'));
+        console.log(chalk.gray('  Expires At:     ') + chalk.white(poll.grant.expires_at));
+        console.log(chalk.gray('  Max Uses:       ') + chalk.white(String(poll.grant.max_uses)));
+        console.log(chalk.gray('  Total Limit:    ') + chalk.white(String(poll.grant.total_limit_usdc)));
+        console.log(chalk.gray('  Per-Tx Limit:   ') + chalk.white(String(poll.grant.per_tx_limit_usdc)));
+        console.log(chalk.gray('  Mode:           ') + chalk.white(String(poll.grant.mode ?? 'live')));
+        console.log(chalk.gray('  Grant (one-time): ') + chalk.yellow(poll.grant.signing_grant));
+        console.log('');
+        return;
+      }
+
+      pollSpinner.fail(`Signing grant approval ${poll.status}`);
+      throw new Error(poll.error || `Signing grant approval ended with status: ${poll.status}`);
+    }
+
+    await sleep(2000);
+  }
+
+  pollSpinner.fail('Signing grant approval timed out');
+  throw new Error('Timed out waiting for browser approval. Re-run command and complete passkey approval before intent expiry.');
 }
 
 export async function revokeSubAccountSigningGrant(grantId: string): Promise<void> {

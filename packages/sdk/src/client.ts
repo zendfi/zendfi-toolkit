@@ -35,6 +35,10 @@ import type {
   CreateSubAccountSigningGrantRequest,
   CreateSubAccountSigningGrantResponse,
   RevokeSubAccountSigningGrantResponse,
+  StartSubAccountSigningGrantBrowserIntentRequest,
+  StartSubAccountSigningGrantBrowserIntentResponse,
+  PollSubAccountSigningGrantBrowserIntentRequest,
+  PollSubAccountSigningGrantBrowserIntentResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -416,6 +420,34 @@ export class ZendFiClient {
     return this.request<CreateSubAccountSigningGrantResponse>(
       'POST',
       '/api/v1/merchants/me/subaccounts/signing-grants',
+      request
+    );
+  }
+
+  /**
+   * Start browser-mediated passkey approval intent for signing grant minting.
+   * Recommended flow for CLI/SDK integrations.
+   */
+  async startSubAccountSigningGrantBrowserIntent(
+    request: StartSubAccountSigningGrantBrowserIntentRequest
+  ): Promise<StartSubAccountSigningGrantBrowserIntentResponse> {
+    return this.request<StartSubAccountSigningGrantBrowserIntentResponse>(
+      'POST',
+      '/api/v1/subaccounts/signing-grants/browser-intents/start',
+      request
+    );
+  }
+
+  /**
+   * Poll signing-grant browser intent until completed.
+   * Returns approved grant material exactly once when available.
+   */
+  async pollSubAccountSigningGrantBrowserIntent(
+    request: PollSubAccountSigningGrantBrowserIntentRequest
+  ): Promise<PollSubAccountSigningGrantBrowserIntentResponse> {
+    return this.request<PollSubAccountSigningGrantBrowserIntentResponse>(
+      'POST',
+      '/api/v1/subaccounts/signing-grants/browser-intents/poll',
       request
     );
   }

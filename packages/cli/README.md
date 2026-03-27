@@ -344,7 +344,7 @@ zendfi subaccounts automation-token-mint --subaccount-id sa_xxxxx --ttl 3600 --m
 zendfi subaccounts automation-token-revoke 0f8fad5b-d9cb-469f-a165-70867728950e
 
 # Mint and revoke bounded signing grant (signing authorization)
-zendfi subaccounts signing-grant-mint --subaccount-id sa_xxxxx --ttl 3600 --max-uses 25 --total-limit 500 --per-tx-limit 50 --bank-ids 9PSB7A2A2LJZ3H6Q4G8XJ6A4 --account-numbers 0123456789 --passkey-file ./passkey-signature.json
+zendfi subaccounts signing-grant-mint --subaccount-id sa_xxxxx --ttl 3600 --max-uses 25 --total-limit 500 --per-tx-limit 50 --bank-ids 9PSB7A2A2LJZ3H6Q4G8XJ6A4 --account-numbers 0123456789
 zendfi subaccounts signing-grant-revoke 2f8fad5b-d9cb-469f-a165-70867728950e
 
 # Freeze and close
@@ -358,8 +358,10 @@ Sensitive operations require WebAuthn proof payload file:
 ```bash
 zendfi subaccounts drain sa_xxxxx --passkey-file ./passkey-signature.json
 zendfi subaccounts withdraw sa_xxxxx --to <wallet> --amount 25 --signing-grant <grant>
-zendfi subaccounts signing-grant-mint --subaccount-id <id> --passkey-file ./passkey-signature.json
+zendfi subaccounts signing-grant-mint --subaccount-id <id> --passkey-file ./passkey-signature.json # legacy fallback
 ```
+
+`signing-grant-mint` is browser-first by default: it starts an approval intent, opens your browser, and polls for completion. Use `--no-open` to print URL without auto-opening.
 
 Use either `--automation-token` or `--delegation-token` for `withdraw-bank`, not both.
 Use either `--signing-grant` or `--passkey-file` for `withdraw`, not both.

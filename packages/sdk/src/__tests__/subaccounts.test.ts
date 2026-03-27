@@ -18,6 +18,8 @@ describe('ZendFiClient subaccounts surface', () => {
     expect(typeof client.createSubAccountAutomationToken).toBe('function');
     expect(typeof client.revokeSubAccountAutomationToken).toBe('function');
     expect(typeof client.createSubAccountSigningGrant).toBe('function');
+    expect(typeof client.startSubAccountSigningGrantBrowserIntent).toBe('function');
+    expect(typeof client.pollSubAccountSigningGrantBrowserIntent).toBe('function');
     expect(typeof client.revokeSubAccountSigningGrant).toBe('function');
     expect(typeof client.closeSubAccount).toBe('function');
   });

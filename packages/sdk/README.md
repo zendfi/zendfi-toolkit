@@ -262,6 +262,8 @@ zendfi.withdrawSubAccountToBank(...)
 zendfi.createSubAccountAutomationToken(...)
 zendfi.revokeSubAccountAutomationToken(...)
 zendfi.createSubAccountSigningGrant(...)
+zendfi.startSubAccountSigningGrantBrowserIntent(...)
+zendfi.pollSubAccountSigningGrantBrowserIntent(...)
 zendfi.revokeSubAccountSigningGrant(...)
 zendfi.closeSubAccount(...)
 ```
@@ -292,8 +294,61 @@ Sensitive sub-account operations such as `drainSubAccount` require `passkey_sign
 For `withdrawFromSubAccount` and `withdrawSubAccountToBank`, the recommended headless path is:
 
 1. Mint policy token via `createSubAccountAutomationToken` (or use delegation token).
-2. Mint signing authorization via `createSubAccountSigningGrant` (one interactive passkey ceremony).
-3. Execute `withdrawFromSubAccount` or `withdrawSubAccountToBank` using `delegation_token` (or `automation_token` for bank) + `signing_grant`.
+2. Start browser intent via `startSubAccountSigningGrantBrowserIntent`.
+3. Open `approval_url` in a browser and complete passkey approval.
+4. Poll with `pollSubAccountSigningGrantBrowserIntent` until approved; consume returned `signing_grant`.
+5. Execute `withdrawFromSubAccount` or `withdrawSubAccountToBank` using `delegation_token` (or `automation_token` for bank) + `signing_grant`.
+
+Legacy direct mint (`createSubAccountSigningGrant` with `passkey_signature`) remains available as fallback.
+
+Example browser-intent flow (Node/CLI app):
+
+```typescript
+import open from 'open';
+import { zendfi } from '@zendfi/sdk';
+
+const intent = await zendfi.startSubAccountSigningGrantBrowserIntent({
+  sub_account_id: 'sa_7b1w9j2k4m8p',
+  ttl_seconds: 3600,
+  max_uses: 25,
+  total_limit_usdc: 500,
+  per_tx_limit_usdc: 50,
+  mode: 'live',
+});
+
+await open(intent.approval_url);
+
+let grant: string | undefined;
+for (let i = 0; i < 180; i += 1) {
+  const poll = await zendfi.pollSubAccountSigningGrantBrowserIntent({
+    intent_id: intent.intent_id,
+    intent_token: intent.intent_token,
+  });
+
+  if (poll.completed) {
+    if (poll.status !== 'approved' || !poll.grant) {
+      throw new Error(poll.error || `intent ended in ${poll.status}`);
+    }
+    grant = poll.grant.signing_grant;
+    break;
+  }
+
+  await new Promise((r) => setTimeout(r, 2000));
+}
+
+if (!grant) {
+  throw new Error('Timed out waiting for browser approval');
+}
+
+await zendfi.withdrawSubAccountToBank('sa_7b1w9j2k4m8p', {
+  amount_usdc: 25,
+  bank_id: '9PSB7A2A2LJZ3H6Q4G8XJ6A4',
+  account_number: '0123456789',
+  mode: 'live',
+  automation_token: 'saatk_xxxxx',
+  signing_grant: grant,
+});
+```
 
 `withdrawSubAccountToBank` executes PAJ offramp with server-side proxy-email OTP automation (same pattern as split bank withdrawals), so your integration does not need to collect OTP manually.
 

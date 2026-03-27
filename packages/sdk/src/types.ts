@@ -329,6 +329,37 @@ export interface RevokeSubAccountSigningGrantResponse {
   status: string;
 }
 
+export interface StartSubAccountSigningGrantBrowserIntentRequest {
+  sub_account_id?: string;
+  ttl_seconds: number;
+  max_uses: number;
+  total_limit_usdc: number;
+  per_tx_limit_usdc: number;
+  allowed_bank_ids?: string[];
+  allowed_account_numbers?: string[];
+  mode?: ApiKeyMode;
+}
+
+export interface StartSubAccountSigningGrantBrowserIntentResponse {
+  intent_id: string;
+  intent_token: string;
+  approval_url: string;
+  expires_at: string;
+}
+
+export interface PollSubAccountSigningGrantBrowserIntentRequest {
+  intent_id: string;
+  intent_token: string;
+}
+
+export interface PollSubAccountSigningGrantBrowserIntentResponse {
+  status: string;
+  completed: boolean;
+  expires_at: string;
+  grant?: CreateSubAccountSigningGrantResponse;
+  error?: string;
+}
+
 export interface CreatePaymentRequest {
   amount: number;
   currency?: Currency;

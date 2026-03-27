@@ -443,7 +443,7 @@ subAccountsCmd
 
 subAccountsCmd
   .command('signing-grant-mint')
-  .description('Mint bounded signing grant for headless sub-account signing')
+  .description('Mint bounded signing grant for headless sub-account signing (browser passkey flow)')
   .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
   .option('--ttl <seconds>', 'Grant TTL in seconds (60 to 604800)', parseInt, 3600)
   .option('--max-uses <count>', 'Maximum number of uses', parseInt, 25)
@@ -452,7 +452,8 @@ subAccountsCmd
   .option('--bank-ids <ids>', 'Comma-separated allowed bank IDs')
   .option('--account-numbers <accounts>', 'Comma-separated allowed account numbers')
   .option('--mode <mode>', 'test or live', 'live')
-  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .option('--passkey-file <path>', 'Legacy manual passkey payload fallback (deprecated)')
+  .option('--no-open', 'Do not auto-open browser; print approval URL and poll only')
   .action(async (options) => {
     try {
       await mintSubAccountSigningGrant(options);
