@@ -50,6 +50,8 @@ import {
   withdrawSubAccountToBank,
   mintSubAccountAutomationToken,
   revokeSubAccountAutomationToken,
+  mintSubAccountSigningGrant,
+  revokeSubAccountSigningGrant,
   closeSubAccount,
 } from './commands/subaccounts.js';
 
@@ -395,7 +397,8 @@ subAccountsCmd
   .option('--mode <mode>', 'test or live', 'live')
   .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
   .option('--automation-token <token>', 'Automation token minted via merchant session endpoint')
-  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
+  .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
   .action(async (id, options) => {
     try {
       await withdrawSubAccountToBank(id, options);
@@ -431,6 +434,39 @@ subAccountsCmd
   .action(async (tokenId) => {
     try {
       await revokeSubAccountAutomationToken(tokenId);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('signing-grant-mint')
+  .description('Mint bounded signing grant for headless sub-account signing')
+  .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
+  .option('--ttl <seconds>', 'Grant TTL in seconds (60 to 604800)', parseInt, 3600)
+  .option('--max-uses <count>', 'Maximum number of uses', parseInt, 25)
+  .option('--total-limit <amount>', 'Total spend limit in USDC', parseFloat, 500)
+  .option('--per-tx-limit <amount>', 'Per transaction limit in USDC', parseFloat, 50)
+  .option('--bank-ids <ids>', 'Comma-separated allowed bank IDs')
+  .option('--account-numbers <accounts>', 'Comma-separated allowed account numbers')
+  .option('--mode <mode>', 'test or live', 'live')
+  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .action(async (options) => {
+    try {
+      await mintSubAccountSigningGrant(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('signing-grant-revoke <grant-id>')
+  .description('Revoke a signing grant immediately')
+  .action(async (grantId) => {
+    try {
+      await revokeSubAccountSigningGrant(grantId);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);

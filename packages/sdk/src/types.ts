@@ -231,10 +231,11 @@ export interface SubAccountWithdrawToBankRequest {
   amount_usdc: number;
   bank_id: string;
   account_number: string;
-  passkey_signature: PasskeySignaturePayload;
+  passkey_signature?: PasskeySignaturePayload;
   mode?: ApiKeyMode;
   delegation_token?: string;
   automation_token?: string;
+  signing_grant?: string;
 }
 
 export interface SubAccountTransferResponse {
@@ -291,6 +292,39 @@ export interface CreateSubAccountAutomationTokenResponse {
 export interface RevokeSubAccountAutomationTokenResponse {
   success: boolean;
   token_id: string;
+  status: string;
+}
+
+export interface CreateSubAccountSigningGrantRequest {
+  sub_account_id?: string;
+  ttl_seconds: number;
+  max_uses: number;
+  total_limit_usdc: number;
+  per_tx_limit_usdc: number;
+  allowed_bank_ids?: string[];
+  allowed_account_numbers?: string[];
+  mode?: ApiKeyMode;
+  passkey_signature: PasskeySignaturePayload;
+}
+
+export interface CreateSubAccountSigningGrantResponse {
+  grant_id: string;
+  signing_grant: string;
+  merchant_id: string;
+  sub_account_id?: string;
+  expires_at: string;
+  max_uses: number;
+  total_limit_usdc: number;
+  per_tx_limit_usdc: number;
+  allowed_bank_ids?: string[];
+  allowed_account_numbers?: string[];
+  mode?: ApiKeyMode;
+  created_at: string;
+}
+
+export interface RevokeSubAccountSigningGrantResponse {
+  success: boolean;
+  grant_id: string;
   status: string;
 }
 

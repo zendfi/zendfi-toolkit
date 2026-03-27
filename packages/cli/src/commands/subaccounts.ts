@@ -74,6 +74,13 @@ function parsePasskeyFile(filePath?: string): PasskeySignaturePayload {
   return parsed as PasskeySignaturePayload;
 }
 
+function parseOptionalPasskeyFile(filePath?: string): PasskeySignaturePayload | undefined {
+  if (!filePath) {
+    return undefined;
+  }
+  return parsePasskeyFile(filePath);
+}
+
 function parseScope(input?: string): DelegationScope {
   const value = (input || 'deposit_only').toLowerCase();
   const allowed: DelegationScope[] = ['deposit_only', 'withdraw_only', 'spend_only', 'read_only', 'full_access'];
@@ -283,12 +290,21 @@ export async function withdrawSubAccountToBank(id: string, options: {
   passkeyFile?: string;
   delegationToken?: string;
   automationToken?: string;
+  signingGrant?: string;
 }): Promise<void> {
   if (options.automationToken && options.delegationToken) {
     throw new Error('Use either --automation-token or --delegation-token, not both.');
   }
 
-  const passkey = parsePasskeyFile(options.passkeyFile);
+  const passkey = parseOptionalPasskeyFile(options.passkeyFile);
+  if (!options.signingGrant && !passkey) {
+    throw new Error('Provide --signing-grant for headless execution or --passkey-file for interactive signing.');
+  }
+
+  if (options.signingGrant && passkey) {
+    throw new Error('Use either --signing-grant or --passkey-file, not both.');
+  }
+
   const spinner = ora('Submitting sub-account bank withdrawal...').start();
   const result = await request<any>(`/subaccounts/${id}/withdraw-bank`, {
     method: 'POST',
@@ -299,6 +315,7 @@ export async function withdrawSubAccountToBank(id: string, options: {
       mode: options.mode,
       delegation_token: options.delegationToken,
       automation_token: options.automationToken,
+      signing_grant: options.signingGrant,
       passkey_signature: passkey,
     },
   });
@@ -370,6 +387,61 @@ export async function revokeSubAccountAutomationToken(tokenId: string): Promise<
   spinner.succeed('Automation token revoked');
 
   console.log(chalk.green(`\nToken ${result.token_id} is now ${result.status}.\n`));
+}
+
+export async function mintSubAccountSigningGrant(options: {
+  subAccountId?: string;
+  ttl: number;
+  maxUses: number;
+  totalLimit: number;
+  perTxLimit: number;
+  bankIds?: string;
+  accountNumbers?: string;
+  mode?: 'test' | 'live';
+  passkeyFile?: string;
+}): Promise<void> {
+  const passkey = parsePasskeyFile(options.passkeyFile);
+  const spinner = ora('Minting sub-account signing grant...').start();
+  const result = await request<any>('/merchants/me/subaccounts/signing-grants', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      ttl_seconds: options.ttl,
+      max_uses: options.maxUses,
+      total_limit_usdc: options.totalLimit,
+      per_tx_limit_usdc: options.perTxLimit,
+      allowed_bank_ids: options.bankIds
+        ? options.bankIds.split(',').map((v) => v.trim()).filter(Boolean)
+        : undefined,
+      allowed_account_numbers: options.accountNumbers
+        ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
+        : undefined,
+      mode: options.mode,
+      passkey_signature: passkey,
+    },
+  });
+  spinner.succeed('Signing grant minted');
+
+  console.log(chalk.cyan('\nSigning Grant'));
+  console.log(chalk.gray('  Grant ID:       ') + chalk.white(result.grant_id));
+  console.log(chalk.gray('  Sub-account:    ') + chalk.white(result.sub_account_id ?? 'all merchant sub-accounts'));
+  console.log(chalk.gray('  Expires At:     ') + chalk.white(result.expires_at));
+  console.log(chalk.gray('  Max Uses:       ') + chalk.white(String(result.max_uses)));
+  console.log(chalk.gray('  Total Limit:    ') + chalk.white(String(result.total_limit_usdc)));
+  console.log(chalk.gray('  Per-Tx Limit:   ') + chalk.white(String(result.per_tx_limit_usdc)));
+  console.log(chalk.gray('  Mode:           ') + chalk.white(String(result.mode ?? 'live')));
+  console.log(chalk.gray('  Grant (one-time): ') + chalk.yellow(result.signing_grant));
+  console.log('');
+}
+
+export async function revokeSubAccountSigningGrant(grantId: string): Promise<void> {
+  const spinner = ora('Revoking sub-account signing grant...').start();
+  const result = await request<any>(`/merchants/me/subaccounts/signing-grants/${grantId}/revoke`, {
+    method: 'POST',
+  });
+  spinner.succeed('Signing grant revoked');
+
+  console.log(chalk.green(`\nGrant ${result.grant_id} is now ${result.status}.\n`));
 }
 
 export async function closeSubAccount(id: string): Promise<void> {

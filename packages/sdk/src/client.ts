@@ -32,6 +32,9 @@ import type {
   CreateSubAccountAutomationTokenRequest,
   CreateSubAccountAutomationTokenResponse,
   RevokeSubAccountAutomationTokenResponse,
+  CreateSubAccountSigningGrantRequest,
+  CreateSubAccountSigningGrantResponse,
+  RevokeSubAccountSigningGrantResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -400,6 +403,33 @@ export class ZendFiClient {
     return this.request<RevokeSubAccountAutomationTokenResponse>(
       'POST',
       `/api/v1/merchants/me/subaccounts/automation-tokens/${tokenId}/revoke`
+    );
+  }
+
+  /**
+   * Mint a signing grant for bounded headless sub-account signing.
+   * This endpoint requires merchant session auth (dashboard context).
+   */
+  async createSubAccountSigningGrant(
+    request: CreateSubAccountSigningGrantRequest
+  ): Promise<CreateSubAccountSigningGrantResponse> {
+    return this.request<CreateSubAccountSigningGrantResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/signing-grants',
+      request
+    );
+  }
+
+  /**
+   * Revoke a previously minted signing grant.
+   * This endpoint requires merchant session auth (dashboard context).
+   */
+  async revokeSubAccountSigningGrant(
+    grantId: string
+  ): Promise<RevokeSubAccountSigningGrantResponse> {
+    return this.request<RevokeSubAccountSigningGrantResponse>(
+      'POST',
+      `/api/v1/merchants/me/subaccounts/signing-grants/${grantId}/revoke`
     );
   }
 
