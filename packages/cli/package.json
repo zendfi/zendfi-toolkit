@@ -1,6 +1,6 @@
 {
   "name": "zendfi",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "CLI tool to scaffold ZendFi-powered applications quickly and easily.",
   "type": "module",
   "bin": {

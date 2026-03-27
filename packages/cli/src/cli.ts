@@ -378,7 +378,8 @@ subAccountsCmd
   .option('--token <token>', 'Sol or Usdc', 'Usdc')
   .option('--mode <mode>', 'test or live', 'live')
   .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
-  .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
+  .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
   .action(async (id, options) => {
     try {
       await withdrawSubAccount(id, options);

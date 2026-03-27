@@ -333,8 +333,8 @@ zendfi subaccounts token sa_xxxxx --scope withdraw_only --spend-limit 100 --ttl 
 # Drain to merchant wallet
 zendfi subaccounts drain sa_xxxxx --amount 25 --token Usdc --mode live --passkey-file ./passkey-signature.json
 
-# Withdraw to external wallet (with optional delegated token)
-zendfi subaccounts withdraw sa_xxxxx --to 7xKX...AsU --amount 10 --token Usdc --delegation-token satk_xxxxx --passkey-file ./passkey-signature.json
+# Withdraw to external wallet (headless)
+zendfi subaccounts withdraw sa_xxxxx --to 7xKX...AsU --amount 10 --token Usdc --delegation-token satk_xxxxx --signing-grant ssgt_xxxxx
 
 # Withdraw to bank with automated proxy-email OTP (headless)
 zendfi subaccounts withdraw-bank sa_xxxxx --amount 25 --bank-id 9PSB7A2A2LJZ3H6Q4G8XJ6A4 --account-number 0123456789 --automation-token saatk_xxxxx --signing-grant ssgt_xxxxx
@@ -357,11 +357,12 @@ Sensitive operations require WebAuthn proof payload file:
 
 ```bash
 zendfi subaccounts drain sa_xxxxx --passkey-file ./passkey-signature.json
-zendfi subaccounts withdraw sa_xxxxx --to <wallet> --amount 25 --passkey-file ./passkey-signature.json
+zendfi subaccounts withdraw sa_xxxxx --to <wallet> --amount 25 --signing-grant <grant>
 zendfi subaccounts signing-grant-mint --subaccount-id <id> --passkey-file ./passkey-signature.json
 ```
 
 Use either `--automation-token` or `--delegation-token` for `withdraw-bank`, not both.
+Use either `--signing-grant` or `--passkey-file` for `withdraw`, not both.
 Use either `--signing-grant` or `--passkey-file` for `withdraw-bank`, not both.
 
 Passkey payload file format:

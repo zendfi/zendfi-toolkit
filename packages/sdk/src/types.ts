@@ -222,9 +222,10 @@ export interface SubAccountWithdrawRequest {
   to_address: string;
   amount: number;
   token?: SubAccountTransferToken;
-  passkey_signature: PasskeySignaturePayload;
+  passkey_signature?: PasskeySignaturePayload;
   mode?: ApiKeyMode;
   delegation_token?: string;
+  signing_grant?: string;
 }
 
 export interface SubAccountWithdrawToBankRequest {

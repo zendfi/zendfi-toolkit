@@ -257,8 +257,17 @@ export async function withdrawSubAccount(id: string, options: {
   mode?: 'test' | 'live';
   passkeyFile?: string;
   delegationToken?: string;
+  signingGrant?: string;
 }): Promise<void> {
-  const passkey = parsePasskeyFile(options.passkeyFile);
+  const passkey = parseOptionalPasskeyFile(options.passkeyFile);
+  if (!options.signingGrant && !passkey) {
+    throw new Error('Provide --signing-grant for headless execution or --passkey-file for interactive signing.');
+  }
+
+  if (options.signingGrant && passkey) {
+    throw new Error('Use either --signing-grant or --passkey-file, not both.');
+  }
+
   const spinner = ora('Submitting sub-account withdrawal...').start();
   const result = await request<any>(`/subaccounts/${id}/withdraw`, {
     method: 'POST',
@@ -268,6 +277,7 @@ export async function withdrawSubAccount(id: string, options: {
       token: options.token,
       mode: options.mode,
       delegation_token: options.delegationToken,
+      signing_grant: options.signingGrant,
       passkey_signature: passkey,
     },
   });

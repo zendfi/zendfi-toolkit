@@ -287,17 +287,17 @@ const token = await zendfi.mintSubAccountDelegationToken(sub.id, {
 });
 ```
 
-Sensitive sub-account operations such as `drainSubAccount` and `withdrawFromSubAccount` require `passkey_signature` payloads from your WebAuthn flow.
+Sensitive sub-account operations such as `drainSubAccount` require `passkey_signature` payloads from your WebAuthn flow.
 
-For `withdrawSubAccountToBank`, the recommended headless path is:
+For `withdrawFromSubAccount` and `withdrawSubAccountToBank`, the recommended headless path is:
 
 1. Mint policy token via `createSubAccountAutomationToken` (or use delegation token).
 2. Mint signing authorization via `createSubAccountSigningGrant` (one interactive passkey ceremony).
-3. Execute `withdrawSubAccountToBank` using `automation_token`/`delegation_token` + `signing_grant`.
+3. Execute `withdrawFromSubAccount` or `withdrawSubAccountToBank` using `delegation_token` (or `automation_token` for bank) + `signing_grant`.
 
 `withdrawSubAccountToBank` executes PAJ offramp with server-side proxy-email OTP automation (same pattern as split bank withdrawals), so your integration does not need to collect OTP manually.
 
-`passkey_signature` on `withdrawSubAccountToBank` is now optional and should be treated as interactive fallback.
+`passkey_signature` on `withdrawFromSubAccount` and `withdrawSubAccountToBank` is now optional and should be treated as interactive fallback.
 
 Sub-account flows emit webhook lifecycle and transfer events:
 
