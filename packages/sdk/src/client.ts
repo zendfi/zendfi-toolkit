@@ -22,6 +22,8 @@ import type {
   SubAccountBalance,
   MintDelegationTokenRequest,
   MintDelegationTokenResponse,
+  MintChildDelegationTokenRequest,
+  MintChildDelegationTokenResponse,
   FreezeSubAccountRequest,
   UnfreezeSubAccountRequest,
   DrainSubAccountRequest,
@@ -39,6 +41,22 @@ import type {
   StartSubAccountSigningGrantBrowserIntentResponse,
   PollSubAccountSigningGrantBrowserIntentRequest,
   PollSubAccountSigningGrantBrowserIntentResponse,
+  CreateSubAccountPolicyRequest,
+  CreateSubAccountPolicyResponse,
+  DryRunSubAccountPolicyRequest,
+  DryRunSubAccountPolicyResponse,
+  SubAccountPolicy,
+  CreateWebhookTriggerSubscriptionRequest,
+  CreateWebhookTriggerSubscriptionResponse,
+  ListWebhookTriggerSubscriptionsResponse,
+  CreateExecutionIntentRequest,
+  CreateExecutionIntentResponse,
+  ApproveExecutionIntentRequest,
+  ApproveExecutionIntentResponse,
+  ReleaseExecutionIntentBySignalRequest,
+  ReleaseExecutionIntentBySignalResponse,
+  CreateBalanceRuleRequest,
+  CreateBalanceRuleResponse,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -318,6 +336,20 @@ export class ZendFiClient {
   }
 
   /**
+   * Mint child delegation token from an existing parent delegation token with attenuation.
+   */
+  async mintSubAccountChildDelegationToken(
+    subAccountId: string,
+    request: MintChildDelegationTokenRequest
+  ): Promise<MintChildDelegationTokenResponse> {
+    return this.request<MintChildDelegationTokenResponse>(
+      'POST',
+      `/api/v1/subaccounts/${subAccountId}/session-key/child`,
+      request
+    );
+  }
+
+  /**
    * Freeze sub-account. Frozen accounts block all activity.
    */
   async freezeSubAccount(subAccountId: string, request: FreezeSubAccountRequest = {}): Promise<{
@@ -462,6 +494,118 @@ export class ZendFiClient {
     return this.request<RevokeSubAccountSigningGrantResponse>(
       'POST',
       `/api/v1/merchants/me/subaccounts/signing-grants/${grantId}/revoke`
+    );
+  }
+
+  /**
+   * Create a versioned sub-account policy document.
+   */
+  async createSubAccountPolicy(
+    request: CreateSubAccountPolicyRequest
+  ): Promise<CreateSubAccountPolicyResponse> {
+    return this.request<CreateSubAccountPolicyResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/policies',
+      request
+    );
+  }
+
+  /**
+   * Evaluate a policy document without persisting it.
+   */
+  async dryRunSubAccountPolicy(
+    request: DryRunSubAccountPolicyRequest
+  ): Promise<DryRunSubAccountPolicyResponse> {
+    return this.request<DryRunSubAccountPolicyResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/policies/dry-run',
+      request
+    );
+  }
+
+  /**
+   * Fetch a sub-account policy by id.
+   */
+  async getSubAccountPolicy(policyId: string): Promise<SubAccountPolicy> {
+    return this.request<SubAccountPolicy>(
+      'GET',
+      `/api/v1/merchants/me/subaccounts/policies/${policyId}`
+    );
+  }
+
+  /**
+   * Create a reactive webhook trigger subscription.
+   */
+  async createSubAccountWebhookTriggerSubscription(
+    request: CreateWebhookTriggerSubscriptionRequest
+  ): Promise<CreateWebhookTriggerSubscriptionResponse> {
+    return this.request<CreateWebhookTriggerSubscriptionResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/webhook-triggers',
+      request
+    );
+  }
+
+  /**
+   * List webhook trigger subscriptions.
+   */
+  async listSubAccountWebhookTriggerSubscriptions(): Promise<ListWebhookTriggerSubscriptionsResponse> {
+    return this.request<ListWebhookTriggerSubscriptionsResponse>(
+      'GET',
+      '/api/v1/merchants/me/subaccounts/webhook-triggers'
+    );
+  }
+
+  /**
+   * Create an execution intent.
+   */
+  async createSubAccountExecutionIntent(
+    request: CreateExecutionIntentRequest
+  ): Promise<CreateExecutionIntentResponse> {
+    return this.request<CreateExecutionIntentResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/execution-intents',
+      request
+    );
+  }
+
+  /**
+   * Approve or reject an execution intent.
+   */
+  async approveSubAccountExecutionIntent(
+    intentId: string,
+    request: ApproveExecutionIntentRequest = {}
+  ): Promise<ApproveExecutionIntentResponse> {
+    return this.request<ApproveExecutionIntentResponse>(
+      'POST',
+      `/api/v1/merchants/me/subaccounts/execution-intents/${intentId}/approve`,
+      request
+    );
+  }
+
+  /**
+   * Release an execution intent by webhook signal token.
+   */
+  async releaseSubAccountExecutionIntentBySignal(
+    request: ReleaseExecutionIntentBySignalRequest
+  ): Promise<ReleaseExecutionIntentBySignalResponse> {
+    return this.request<ReleaseExecutionIntentBySignalResponse>(
+      'POST',
+      '/api/v1/subaccounts/execution-intents/release',
+      request
+    );
+  }
+
+  /**
+   * Create sub-account balance rule automation.
+   */
+  async createSubAccountBalanceRule(
+    request: CreateBalanceRuleRequest
+  ): Promise<CreateBalanceRuleResponse> {
+    return this.request<CreateBalanceRuleResponse>(
+      'POST',
+      '/api/v1/merchants/me/subaccounts/balance-rules',
+      request
     );
   }
 

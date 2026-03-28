@@ -192,6 +192,10 @@ export interface MintDelegationTokenRequest {
   expires_in_seconds?: number;
   whitelist?: string[];
   single_use?: boolean;
+  policy_version_id?: string;
+  agent_label?: string;
+  agent_public_key?: string;
+  agent_metadata?: Record<string, any>;
 }
 
 export interface MintDelegationTokenResponse {
@@ -200,6 +204,30 @@ export interface MintDelegationTokenResponse {
   scope: DelegationScope | string;
   expires_at: string;
   spend_limit_usdc: number;
+  delegation_token: string;
+}
+
+export interface MintChildDelegationTokenRequest {
+  parent_delegation_token: string;
+  scope: DelegationScope;
+  spend_limit_usdc?: number;
+  expires_in_seconds?: number;
+  whitelist?: string[];
+  single_use?: boolean;
+  policy_version_id?: string;
+  agent_label?: string;
+  agent_public_key?: string;
+  agent_metadata?: Record<string, any>;
+}
+
+export interface MintChildDelegationTokenResponse {
+  token_id: string;
+  parent_token_id: string;
+  subaccount_id: string;
+  scope: DelegationScope | string;
+  expires_at: string;
+  spend_limit_usdc: number;
+  delegation_depth: number;
   delegation_token: string;
 }
 
@@ -226,6 +254,7 @@ export interface SubAccountWithdrawRequest {
   mode?: ApiKeyMode;
   delegation_token?: string;
   signing_grant?: string;
+  execution_intent_id?: string;
 }
 
 export interface SubAccountWithdrawToBankRequest {
@@ -237,6 +266,7 @@ export interface SubAccountWithdrawToBankRequest {
   delegation_token?: string;
   automation_token?: string;
   signing_grant?: string;
+  execution_intent_id?: string;
 }
 
 export interface SubAccountTransferResponse {
@@ -273,6 +303,11 @@ export interface CreateSubAccountAutomationTokenRequest {
   allowed_bank_ids?: string[];
   allowed_account_numbers?: string[];
   mode?: ApiKeyMode;
+  policy_version_id?: string;
+  parent_token_id?: string;
+  agent_label?: string;
+  agent_public_key?: string;
+  agent_metadata?: Record<string, any>;
 }
 
 export interface CreateSubAccountAutomationTokenResponse {
@@ -305,7 +340,153 @@ export interface CreateSubAccountSigningGrantRequest {
   allowed_bank_ids?: string[];
   allowed_account_numbers?: string[];
   mode?: ApiKeyMode;
+  policy_version_id?: string;
+  parent_grant_id?: string;
+  active_days_utc?: number[];
+  active_start_time_utc?: string;
+  active_end_time_utc?: string;
+  auto_renew?: boolean;
+  agent_label?: string;
+  agent_public_key?: string;
+  agent_metadata?: Record<string, any>;
   passkey_signature: PasskeySignaturePayload;
+}
+
+export interface CreateSubAccountPolicyRequest {
+  sub_account_id?: string;
+  policy_type: string;
+  policy_json: Record<string, any>;
+  status?: 'draft' | 'active' | 'deprecated' | 'revoked';
+}
+
+export interface CreateSubAccountPolicyResponse {
+  policy_id: string;
+  merchant_id: string;
+  sub_account_id?: string;
+  policy_type: string;
+  version_number: number;
+  status: string;
+  semantic_hash: string;
+  created_at: string;
+}
+
+export interface DryRunSubAccountPolicyRequest {
+  policy_json: Record<string, any>;
+  amount_usdc: number;
+  counterparty?: string;
+  mode?: ApiKeyMode;
+  sub_account_id?: string;
+  daily_spend_usdc?: number;
+}
+
+export interface DryRunSubAccountPolicyResponse {
+  allowed: boolean;
+  reason?: string;
+}
+
+export interface SubAccountPolicy {
+  id: string;
+  merchant_id: string;
+  sub_account_id?: string;
+  policy_type: string;
+  version_number: number;
+  status: string;
+  policy_json: Record<string, any>;
+  semantic_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateWebhookTriggerSubscriptionRequest {
+  sub_account_id?: string;
+  trigger_type:
+    | 'balance_below'
+    | 'balance_above'
+    | 'threshold_crossed'
+    | 'funds_arrival'
+    | 'daily_withdrawal_above';
+  threshold_value_usdc?: number;
+  cooldown_seconds?: number;
+  policy_version_id?: string;
+  destination_webhook_url?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateWebhookTriggerSubscriptionResponse {
+  subscription_id: string;
+  trigger_type: string;
+  status: string;
+}
+
+export interface SubAccountWebhookTriggerSubscription {
+  id: string;
+  sub_account_id?: string;
+  trigger_type: string;
+  threshold_value_usdc?: number;
+  cooldown_seconds: number;
+  status: string;
+  last_triggered_at?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface ListWebhookTriggerSubscriptionsResponse {
+  subscriptions: SubAccountWebhookTriggerSubscription[];
+  count: number;
+}
+
+export interface CreateExecutionIntentRequest {
+  sub_account_id: string;
+  intent_type: string;
+  requires_signal_type: 'passkey_session' | 'webhook_ack' | 'programmatic_condition';
+  payload: Record<string, any>;
+  policy_version_id?: string;
+  expires_in_seconds?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateExecutionIntentResponse {
+  intent_id: string;
+  status: string;
+  signal_token?: string;
+  expires_at?: string;
+}
+
+export interface ApproveExecutionIntentRequest {
+  approve?: boolean;
+  reason?: string;
+}
+
+export interface ApproveExecutionIntentResponse {
+  success: boolean;
+  status: string;
+}
+
+export interface ReleaseExecutionIntentBySignalRequest {
+  signal_token: string;
+}
+
+export interface ReleaseExecutionIntentBySignalResponse {
+  success: boolean;
+  status: string;
+  intent_id: string;
+}
+
+export interface CreateBalanceRuleRequest {
+  sub_account_id: string;
+  rule_name: string;
+  rule_type: 'topup_below' | 'drain_above';
+  threshold_usdc: number;
+  action_amount_usdc?: number;
+  max_actions_per_day?: number;
+  cooldown_seconds?: number;
+  policy_version_id?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateBalanceRuleResponse {
+  rule_id: string;
+  status: string;
 }
 
 export interface CreateSubAccountSigningGrantResponse {

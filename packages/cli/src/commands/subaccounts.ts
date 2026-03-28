@@ -204,6 +204,10 @@ export async function mintSubAccountToken(id: string, options: {
   ttl?: number;
   whitelist?: string;
   singleUse?: boolean;
+  policyVersionId?: string;
+  agentLabel?: string;
+  agentPublicKey?: string;
+  agentMetadata?: string;
 }): Promise<void> {
   const spinner = ora('Minting delegation token...').start();
   const result = await request<any>(`/subaccounts/${id}/session-key`, {
@@ -214,6 +218,10 @@ export async function mintSubAccountToken(id: string, options: {
       expires_in_seconds: options.ttl,
       whitelist: options.whitelist ? options.whitelist.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
       single_use: options.singleUse,
+      policy_version_id: options.policyVersionId,
+      agent_label: options.agentLabel,
+      agent_public_key: options.agentPublicKey,
+      agent_metadata: options.agentMetadata ? JSON.parse(options.agentMetadata) : undefined,
     },
   });
   spinner.succeed('Delegation token minted');
@@ -223,6 +231,46 @@ export async function mintSubAccountToken(id: string, options: {
   console.log(chalk.gray('  Scope:      ') + chalk.white(result.scope));
   console.log(chalk.gray('  Expires:    ') + chalk.white(result.expires_at));
   console.log(chalk.gray('  Token:      ') + chalk.yellow(result.delegation_token));
+  console.log('');
+}
+
+export async function mintSubAccountChildToken(id: string, options: {
+  parentDelegationToken: string;
+  scope?: string;
+  spendLimit?: number;
+  ttl?: number;
+  whitelist?: string;
+  singleUse?: boolean;
+  policyVersionId?: string;
+  agentLabel?: string;
+  agentPublicKey?: string;
+  agentMetadata?: string;
+}): Promise<void> {
+  const spinner = ora('Minting child delegation token...').start();
+  const result = await request<any>(`/subaccounts/${id}/session-key/child`, {
+    method: 'POST',
+    body: {
+      parent_delegation_token: options.parentDelegationToken,
+      scope: parseScope(options.scope),
+      spend_limit_usdc: options.spendLimit,
+      expires_in_seconds: options.ttl,
+      whitelist: options.whitelist ? options.whitelist.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      single_use: options.singleUse,
+      policy_version_id: options.policyVersionId,
+      agent_label: options.agentLabel,
+      agent_public_key: options.agentPublicKey,
+      agent_metadata: options.agentMetadata ? JSON.parse(options.agentMetadata) : undefined,
+    },
+  });
+  spinner.succeed('Child delegation token minted');
+
+  console.log(chalk.cyan('\nChild Delegation Token'));
+  console.log(chalk.gray('  Token ID:       ') + chalk.white(result.token_id));
+  console.log(chalk.gray('  Parent Token:   ') + chalk.white(result.parent_token_id));
+  console.log(chalk.gray('  Scope:          ') + chalk.white(result.scope));
+  console.log(chalk.gray('  Expires:        ') + chalk.white(result.expires_at));
+  console.log(chalk.gray('  Depth:          ') + chalk.white(String(result.delegation_depth)));
+  console.log(chalk.gray('  Token:          ') + chalk.yellow(result.delegation_token));
   console.log('');
 }
 
@@ -287,6 +335,7 @@ export async function withdrawSubAccount(id: string, options: {
   passkeyFile?: string;
   delegationToken?: string;
   signingGrant?: string;
+  executionIntentId?: string;
 }): Promise<void> {
   const passkey = parseOptionalPasskeyFile(options.passkeyFile);
   if (!options.signingGrant && !passkey) {
@@ -307,6 +356,7 @@ export async function withdrawSubAccount(id: string, options: {
       mode: options.mode,
       delegation_token: options.delegationToken,
       signing_grant: options.signingGrant,
+      execution_intent_id: options.executionIntentId,
       passkey_signature: passkey,
     },
   });
@@ -330,6 +380,7 @@ export async function withdrawSubAccountToBank(id: string, options: {
   delegationToken?: string;
   automationToken?: string;
   signingGrant?: string;
+  executionIntentId?: string;
 }): Promise<void> {
   if (options.automationToken && options.delegationToken) {
     throw new Error('Use either --automation-token or --delegation-token, not both.');
@@ -355,6 +406,7 @@ export async function withdrawSubAccountToBank(id: string, options: {
       delegation_token: options.delegationToken,
       automation_token: options.automationToken,
       signing_grant: options.signingGrant,
+      execution_intent_id: options.executionIntentId,
       passkey_signature: passkey,
     },
   });
@@ -385,6 +437,11 @@ export async function mintSubAccountAutomationToken(options: {
   bankIds?: string;
   accountNumbers?: string;
   mode?: 'test' | 'live';
+  policyVersionId?: string;
+  parentTokenId?: string;
+  agentLabel?: string;
+  agentPublicKey?: string;
+  agentMetadata?: string;
 }): Promise<void> {
   const spinner = ora('Minting sub-account automation token...').start();
   const result = await request<any>('/merchants/me/subaccounts/automation-tokens', {
@@ -402,6 +459,11 @@ export async function mintSubAccountAutomationToken(options: {
         ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
         : undefined,
       mode: options.mode,
+      policy_version_id: options.policyVersionId,
+      parent_token_id: options.parentTokenId,
+      agent_label: options.agentLabel,
+      agent_public_key: options.agentPublicKey,
+      agent_metadata: options.agentMetadata ? JSON.parse(options.agentMetadata) : undefined,
     },
   });
   spinner.succeed('Automation token minted');
@@ -439,7 +501,23 @@ export async function mintSubAccountSigningGrant(options: {
   mode?: 'test' | 'live';
   passkeyFile?: string;
   open?: boolean;
+  policyVersionId?: string;
+  parentGrantId?: string;
+  activeDaysUtc?: string;
+  activeStartUtc?: string;
+  activeEndUtc?: string;
+  autoRenew?: boolean;
+  agentLabel?: string;
+  agentPublicKey?: string;
+  agentMetadata?: string;
 }): Promise<void> {
+  const activeDays = options.activeDaysUtc
+    ? options.activeDaysUtc
+        .split(',')
+        .map((v) => parseInt(v.trim(), 10))
+        .filter((v) => Number.isInteger(v) && v >= 0 && v <= 6)
+    : undefined;
+
   const requestBody = {
     sub_account_id: options.subAccountId,
     ttl_seconds: options.ttl,
@@ -453,6 +531,15 @@ export async function mintSubAccountSigningGrant(options: {
       ? options.accountNumbers.split(',').map((v) => v.trim()).filter(Boolean)
       : undefined,
     mode: options.mode,
+    policy_version_id: options.policyVersionId,
+    parent_grant_id: options.parentGrantId,
+    active_days_utc: activeDays,
+    active_start_time_utc: options.activeStartUtc,
+    active_end_time_utc: options.activeEndUtc,
+    auto_renew: options.autoRenew,
+    agent_label: options.agentLabel,
+    agent_public_key: options.agentPublicKey,
+    agent_metadata: options.agentMetadata ? JSON.parse(options.agentMetadata) : undefined,
   };
 
   if (options.passkeyFile) {
@@ -565,4 +652,213 @@ export async function closeSubAccount(id: string): Promise<void> {
   spinner.succeed('Sub-account closed');
 
   console.log(chalk.green(`\n${result.subaccount_id} is now ${result.status}.\n`));
+}
+
+export async function createSubAccountPolicy(options: {
+  subAccountId?: string;
+  policyType: string;
+  policyJson: string;
+  status?: 'draft' | 'active' | 'deprecated' | 'revoked';
+}): Promise<void> {
+  const spinner = ora('Creating sub-account policy...').start();
+  const result = await request<any>('/merchants/me/subaccounts/policies', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      policy_type: options.policyType,
+      policy_json: JSON.parse(options.policyJson),
+      status: options.status,
+    },
+  });
+  spinner.succeed('Policy created');
+
+  console.log(chalk.cyan('\nSub-account Policy'));
+  console.log(chalk.gray('  Policy ID:      ') + chalk.white(result.policy_id));
+  console.log(chalk.gray('  Type:           ') + chalk.white(result.policy_type));
+  console.log(chalk.gray('  Version:        ') + chalk.white(String(result.version_number)));
+  console.log(chalk.gray('  Status:         ') + chalk.white(result.status));
+  console.log(chalk.gray('  Hash:           ') + chalk.white(result.semantic_hash));
+  console.log('');
+}
+
+export async function dryRunSubAccountPolicy(options: {
+  policyJson: string;
+  amount: number;
+  counterparty?: string;
+  mode?: 'test' | 'live';
+  subAccountId?: string;
+  dailySpend?: number;
+}): Promise<void> {
+  const spinner = ora('Evaluating policy dry-run...').start();
+  const result = await request<any>('/merchants/me/subaccounts/policies/dry-run', {
+    method: 'POST',
+    body: {
+      policy_json: JSON.parse(options.policyJson),
+      amount_usdc: options.amount,
+      counterparty: options.counterparty,
+      mode: options.mode,
+      sub_account_id: options.subAccountId,
+      daily_spend_usdc: options.dailySpend,
+    },
+  });
+  spinner.succeed('Policy evaluated');
+  console.log(chalk.cyan('\nPolicy Dry Run'));
+  console.log(chalk.gray('  Allowed:        ') + chalk.white(String(result.allowed)));
+  if (result.reason) {
+    console.log(chalk.gray('  Reason:         ') + chalk.yellow(result.reason));
+  }
+  console.log('');
+}
+
+export async function createWebhookTriggerSubscription(options: {
+  subAccountId?: string;
+  triggerType: string;
+  threshold?: number;
+  cooldown?: number;
+  policyVersionId?: string;
+  destinationWebhookUrl?: string;
+  metadata?: string;
+}): Promise<void> {
+  const spinner = ora('Creating webhook trigger subscription...').start();
+  const result = await request<any>('/merchants/me/subaccounts/webhook-triggers', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      trigger_type: options.triggerType,
+      threshold_value_usdc: options.threshold,
+      cooldown_seconds: options.cooldown,
+      policy_version_id: options.policyVersionId,
+      destination_webhook_url: options.destinationWebhookUrl,
+      metadata: options.metadata ? JSON.parse(options.metadata) : undefined,
+    },
+  });
+  spinner.succeed('Webhook trigger subscription created');
+
+  console.log(chalk.cyan('\nWebhook Trigger'));
+  console.log(chalk.gray('  Subscription:   ') + chalk.white(result.subscription_id));
+  console.log(chalk.gray('  Trigger:        ') + chalk.white(result.trigger_type));
+  console.log(chalk.gray('  Status:         ') + chalk.white(result.status));
+  console.log('');
+}
+
+export async function listWebhookTriggerSubscriptions(): Promise<void> {
+  const spinner = ora('Listing webhook trigger subscriptions...').start();
+  const result = await request<any>('/merchants/me/subaccounts/webhook-triggers');
+  spinner.succeed(`Found ${result.count ?? 0} subscription${result.count === 1 ? '' : 's'}`);
+
+  const items = result.subscriptions || [];
+  if (!items.length) {
+    console.log(chalk.gray('\nNo trigger subscriptions found.\n'));
+    return;
+  }
+
+  console.log('');
+  items.forEach((item: any, idx: number) => {
+    console.log(chalk.bold(`${idx + 1}. ${item.trigger_type} (${item.status})`));
+    console.log(chalk.gray('   ID:        ') + chalk.white(item.id));
+    console.log(chalk.gray('   Sub:       ') + chalk.white(item.sub_account_id ?? 'merchant_scope'));
+    if (item.threshold_value_usdc != null) {
+      console.log(chalk.gray('   Threshold: ') + chalk.white(String(item.threshold_value_usdc)));
+    }
+    console.log(chalk.gray('   Cooldown:  ') + chalk.white(String(item.cooldown_seconds)));
+    console.log('');
+  });
+}
+
+export async function createExecutionIntent(options: {
+  subAccountId: string;
+  intentType: string;
+  signalType: 'passkey_session' | 'webhook_ack' | 'programmatic_condition';
+  payload: string;
+  policyVersionId?: string;
+  expires?: number;
+  metadata?: string;
+}): Promise<void> {
+  const spinner = ora('Creating execution intent...').start();
+  const result = await request<any>('/merchants/me/subaccounts/execution-intents', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      intent_type: options.intentType,
+      requires_signal_type: options.signalType,
+      payload: JSON.parse(options.payload),
+      policy_version_id: options.policyVersionId,
+      expires_in_seconds: options.expires,
+      metadata: options.metadata ? JSON.parse(options.metadata) : undefined,
+    },
+  });
+  spinner.succeed('Execution intent created');
+
+  console.log(chalk.cyan('\nExecution Intent'));
+  console.log(chalk.gray('  Intent ID:      ') + chalk.white(result.intent_id));
+  console.log(chalk.gray('  Status:         ') + chalk.white(result.status));
+  if (result.signal_token) {
+    console.log(chalk.gray('  Signal Token:   ') + chalk.yellow(result.signal_token));
+  }
+  if (result.expires_at) {
+    console.log(chalk.gray('  Expires:        ') + chalk.white(result.expires_at));
+  }
+  console.log('');
+}
+
+export async function approveExecutionIntent(intentId: string, options: {
+  approve?: boolean;
+  reason?: string;
+}): Promise<void> {
+  const spinner = ora('Updating execution intent approval...').start();
+  const result = await request<any>(`/merchants/me/subaccounts/execution-intents/${intentId}/approve`, {
+    method: 'POST',
+    body: {
+      approve: options.approve,
+      reason: options.reason,
+    },
+  });
+  spinner.succeed('Execution intent updated');
+  console.log(chalk.green(`\nIntent ${intentId} is now ${result.status}.\n`));
+}
+
+export async function releaseExecutionIntentBySignal(signalToken: string): Promise<void> {
+  const spinner = ora('Releasing execution intent by signal...').start();
+  const result = await request<any>('/subaccounts/execution-intents/release', {
+    method: 'POST',
+    body: {
+      signal_token: signalToken,
+    },
+  });
+  spinner.succeed('Execution intent released');
+  console.log(chalk.green(`\nIntent ${result.intent_id} released (status=${result.status}).\n`));
+}
+
+export async function createBalanceRule(options: {
+  subAccountId: string;
+  ruleName: string;
+  ruleType: 'topup_below' | 'drain_above';
+  threshold: number;
+  actionAmount?: number;
+  maxActionsPerDay?: number;
+  cooldown?: number;
+  policyVersionId?: string;
+  metadata?: string;
+}): Promise<void> {
+  const spinner = ora('Creating balance rule...').start();
+  const result = await request<any>('/merchants/me/subaccounts/balance-rules', {
+    method: 'POST',
+    body: {
+      sub_account_id: options.subAccountId,
+      rule_name: options.ruleName,
+      rule_type: options.ruleType,
+      threshold_usdc: options.threshold,
+      action_amount_usdc: options.actionAmount,
+      max_actions_per_day: options.maxActionsPerDay,
+      cooldown_seconds: options.cooldown,
+      policy_version_id: options.policyVersionId,
+      metadata: options.metadata ? JSON.parse(options.metadata) : undefined,
+    },
+  });
+  spinner.succeed('Balance rule created');
+
+  console.log(chalk.cyan('\nBalance Rule'));
+  console.log(chalk.gray('  Rule ID:        ') + chalk.white(result.rule_id));
+  console.log(chalk.gray('  Status:         ') + chalk.white(result.status));
+  console.log('');
 }

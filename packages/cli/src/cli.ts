@@ -43,6 +43,7 @@ import {
   getSubAccount,
   getSubAccountBalance,
   mintSubAccountToken,
+  mintSubAccountChildToken,
   freezeSubAccount,
   unfreezeSubAccount,
   drainSubAccount,
@@ -53,6 +54,14 @@ import {
   mintSubAccountSigningGrant,
   revokeSubAccountSigningGrant,
   closeSubAccount,
+  createSubAccountPolicy,
+  dryRunSubAccountPolicy,
+  createWebhookTriggerSubscription,
+  listWebhookTriggerSubscriptions,
+  createExecutionIntent,
+  approveExecutionIntent,
+  releaseExecutionIntentBySignal,
+  createBalanceRule,
 } from './commands/subaccounts.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -319,9 +328,35 @@ subAccountsCmd
   .option('--ttl <seconds>', 'Token TTL in seconds', parseInt)
   .option('--whitelist <addresses>', 'Comma-separated whitelisted destination addresses')
   .option('--single-use', 'Revoke token automatically after first use')
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--agent-label <label>', 'Agent label for attribution')
+  .option('--agent-public-key <key>', 'Agent public key for attribution')
+  .option('--agent-metadata <json>', 'Agent metadata JSON')
   .action(async (id, options) => {
     try {
       await mintSubAccountToken(id, options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('token-child <id>')
+  .description('Mint an attenuated child delegation token from a parent delegation token')
+  .requiredOption('--parent-delegation-token <token>', 'Parent delegation token')
+  .option('--scope <scope>', 'deposit_only|withdraw_only|spend_only|read_only|full_access', 'deposit_only')
+  .option('--spend-limit <amount>', 'Maximum spendable USDC', parseFloat)
+  .option('--ttl <seconds>', 'Token TTL in seconds', parseInt)
+  .option('--whitelist <addresses>', 'Comma-separated whitelisted destination addresses')
+  .option('--single-use', 'Revoke token automatically after first use')
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--agent-label <label>', 'Agent label for attribution')
+  .option('--agent-public-key <key>', 'Agent public key for attribution')
+  .option('--agent-metadata <json>', 'Agent metadata JSON')
+  .action(async (id, options) => {
+    try {
+      await mintSubAccountChildToken(id, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -379,6 +414,7 @@ subAccountsCmd
   .option('--mode <mode>', 'test or live', 'live')
   .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
   .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
+  .option('--execution-intent-id <id>', 'Execution intent id gate (UUID)')
   .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
   .action(async (id, options) => {
     try {
@@ -399,6 +435,7 @@ subAccountsCmd
   .option('--delegation-token <token>', 'Scoped delegation token for delegated execution')
   .option('--automation-token <token>', 'Automation token minted via merchant session endpoint')
   .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
+  .option('--execution-intent-id <id>', 'Execution intent id gate (UUID)')
   .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
   .action(async (id, options) => {
     try {
@@ -420,6 +457,11 @@ subAccountsCmd
   .option('--bank-ids <ids>', 'Comma-separated allowed bank IDs')
   .option('--account-numbers <accounts>', 'Comma-separated allowed account numbers')
   .option('--mode <mode>', 'test or live', 'live')
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--parent-token-id <id>', 'Parent automation token id (UUID)')
+  .option('--agent-label <label>', 'Agent label for attribution')
+  .option('--agent-public-key <key>', 'Agent public key for attribution')
+  .option('--agent-metadata <json>', 'Agent metadata JSON')
   .action(async (options) => {
     try {
       await mintSubAccountAutomationToken(options);
@@ -453,6 +495,15 @@ subAccountsCmd
   .option('--account-numbers <accounts>', 'Comma-separated allowed account numbers')
   .option('--mode <mode>', 'test or live', 'live')
   .option('--passkey-file <path>', 'Legacy manual passkey payload fallback (deprecated)')
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--parent-grant-id <id>', 'Parent signing grant id (UUID)')
+  .option('--active-days-utc <days>', 'Comma-separated active weekdays (Mon=0..Sun=6)')
+  .option('--active-start-utc <time>', 'Active window start HH:MM UTC')
+  .option('--active-end-utc <time>', 'Active window end HH:MM UTC')
+  .option('--auto-renew', 'Enable auto-renew behavior for this grant')
+  .option('--agent-label <label>', 'Agent label for attribution')
+  .option('--agent-public-key <key>', 'Agent public key for attribution')
+  .option('--agent-metadata <json>', 'Agent metadata JSON')
   .option('--no-open', 'Do not auto-open browser; print approval URL and poll only')
   .action(async (options) => {
     try {
@@ -481,6 +532,141 @@ subAccountsCmd
   .action(async (id) => {
     try {
       await closeSubAccount(id);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('policy-create')
+  .description('Create a versioned sub-account policy')
+  .requiredOption('--policy-type <type>', 'Policy type (delegation_token|automation_token|signing_grant|execution_gate|balance_rule|webhook_trigger)')
+  .requiredOption('--policy-json <json>', 'Policy JSON document')
+  .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
+  .option('--status <status>', 'draft|active|deprecated|revoked', 'active')
+  .action(async (options) => {
+    try {
+      await createSubAccountPolicy(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('policy-dry-run')
+  .description('Dry-run policy evaluation')
+  .requiredOption('--policy-json <json>', 'Policy JSON document')
+  .requiredOption('--amount <amount>', 'Amount in USDC', parseFloat)
+  .option('--counterparty <counterparty>', 'Counterparty identifier')
+  .option('--mode <mode>', 'test or live')
+  .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
+  .option('--daily-spend <amount>', 'Daily spend amount in USDC', parseFloat)
+  .action(async (options) => {
+    try {
+      await dryRunSubAccountPolicy(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('trigger-create')
+  .description('Create reactive webhook trigger subscription')
+  .requiredOption('--trigger-type <type>', 'balance_below|balance_above|threshold_crossed|funds_arrival|daily_withdrawal_above')
+  .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
+  .option('--threshold <amount>', 'Threshold value in USDC', parseFloat)
+  .option('--cooldown <seconds>', 'Cooldown seconds', parseInt)
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--destination-webhook-url <url>', 'Override destination webhook URL')
+  .option('--metadata <json>', 'Metadata JSON')
+  .action(async (options) => {
+    try {
+      await createWebhookTriggerSubscription(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('trigger-list')
+  .description('List reactive webhook trigger subscriptions')
+  .action(async () => {
+    try {
+      await listWebhookTriggerSubscriptions();
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('intent-create')
+  .description('Create execution intent')
+  .requiredOption('--subaccount-id <id>', 'Sub-account id/external id')
+  .requiredOption('--intent-type <type>', 'Intent type (e.g., withdraw_to_bank, withdraw_to_external)')
+  .requiredOption('--signal-type <type>', 'passkey_session|webhook_ack|programmatic_condition')
+  .requiredOption('--payload <json>', 'Intent payload JSON')
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--expires <seconds>', 'Expiry in seconds', parseInt)
+  .option('--metadata <json>', 'Metadata JSON')
+  .action(async (options) => {
+    try {
+      await createExecutionIntent(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('intent-approve <intent-id>')
+  .description('Approve or reject execution intent')
+  .option('--reject', 'Reject instead of approve')
+  .option('--reason <reason>', 'Approval or rejection reason')
+  .action(async (intentId, options) => {
+    try {
+      await approveExecutionIntent(intentId, {
+        approve: options.reject ? false : true,
+        reason: options.reason,
+      });
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('intent-release')
+  .description('Release execution intent via signal token')
+  .requiredOption('--signal-token <token>', 'Signal token')
+  .action(async (options) => {
+    try {
+      await releaseExecutionIntentBySignal(options.signalToken);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('balance-rule-create')
+  .description('Create sub-account balance automation rule')
+  .requiredOption('--subaccount-id <id>', 'Sub-account id/external id')
+  .requiredOption('--rule-name <name>', 'Rule name')
+  .requiredOption('--rule-type <type>', 'topup_below|drain_above')
+  .requiredOption('--threshold <amount>', 'Threshold in USDC', parseFloat)
+  .option('--action-amount <amount>', 'Action amount in USDC', parseFloat)
+  .option('--max-actions-per-day <count>', 'Maximum actions per day', parseInt)
+  .option('--cooldown <seconds>', 'Cooldown in seconds', parseInt)
+  .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
+  .option('--metadata <json>', 'Metadata JSON')
+  .action(async (options) => {
+    try {
+      await createBalanceRule(options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
