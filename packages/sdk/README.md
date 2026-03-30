@@ -342,13 +342,15 @@ if (!grant) {
 
 await zendfi.withdrawSubAccountToBank('sa_7b1w9j2k4m8p', {
   amount_usdc: 25,
-  bank_id: '9PSB7A2A2LJZ3H6Q4G8XJ6A4',
+  bank_id: 'GTB',
   account_number: '0123456789',
   mode: 'live',
   automation_token: 'saatk_xxxxx',
   signing_grant: grant,
 });
 ```
+
+`bank_id` accepts PAJ bank id, bank code, or bank name.
 
 `withdrawSubAccountToBank` executes PAJ offramp with server-side proxy-email OTP automation (same pattern as split bank withdrawals), so your integration does not need to collect OTP manually.
 

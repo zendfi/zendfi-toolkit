@@ -134,7 +134,10 @@ export interface BankAccountSplitRecipient extends SplitRecipientBase {
   recipient_type: 'bank_account';
   recipient_account_name: string;   // Account holder name
   recipient_bank_account: string;   // Account number
-  recipient_bank_id: string;        // Bank routing code
+  recipient_bank_id?: string;       // Bank identifier (PAJ id, bank code, or bank name)
+  recipient_bank?: string;          // Alias for recipient_bank_id
+  bank_identifier?: string;         // Alias for recipient_bank_id
+  bank_code?: string;               // Alias for recipient_bank_id
   recipient_email: string;          // For OTP verification
 }
 
@@ -259,7 +262,9 @@ export interface SubAccountWithdrawRequest {
 
 export interface SubAccountWithdrawToBankRequest {
   amount_usdc: number;
-  bank_id: string;
+  bank_id?: string;                 // Bank identifier (PAJ id, bank code, or bank name)
+  bank_identifier?: string;         // Alias for bank_id
+  bank_code?: string;               // Alias for bank_id
   account_number: string;
   passkey_signature?: PasskeySignaturePayload;
   mode?: ApiKeyMode;

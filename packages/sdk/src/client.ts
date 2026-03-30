@@ -156,8 +156,32 @@ export class ZendFiClient {
    * Create a payment link (shareable checkout URL)
    */
   async createPaymentLink(request: CreatePaymentLinkRequest): Promise<PaymentLink> {
+    const normalizedSplitRecipients = request.split_recipients?.map((recipient) => {
+      if (recipient.recipient_type !== 'bank_account') {
+        return recipient;
+      }
+
+      const bankIdentifier =
+        recipient.recipient_bank_id ||
+        recipient.recipient_bank ||
+        recipient.bank_identifier ||
+        recipient.bank_code;
+
+      if (!bankIdentifier) {
+        throw new Error(
+          'Bank-account split recipient requires a bank identifier. Provide recipient_bank_id, recipient_bank, bank_identifier, or bank_code.'
+        );
+      }
+
+      return {
+        ...recipient,
+        recipient_bank_id: bankIdentifier,
+      };
+    });
+
     const response = await this.request<PaymentLink>('POST', '/api/v1/payment-links', {
       ...request,
+      split_recipients: normalizedSplitRecipients,
       currency: request.currency || 'USD',
       token: request.token || 'USDC',
       onramp: request.onramp || false,
@@ -408,10 +432,18 @@ export class ZendFiClient {
     subAccountId: string,
     request: SubAccountWithdrawToBankRequest
   ): Promise<SubAccountWithdrawToBankResponse> {
+    const bankIdentifier = request.bank_id || request.bank_identifier || request.bank_code;
+    if (!bankIdentifier) {
+      throw new Error('bank_id is required (or provide bank_identifier/bank_code).');
+    }
+
     return this.request<SubAccountWithdrawToBankResponse>(
       'POST',
       `/api/v1/subaccounts/${subAccountId}/withdraw-bank`,
-      request
+      {
+        ...request,
+        bank_id: bankIdentifier,
+      }
     );
   }
 

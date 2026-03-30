@@ -374,6 +374,7 @@ export async function withdrawSubAccount(id: string, options: {
 export async function withdrawSubAccountToBank(id: string, options: {
   amount: number;
   bankId: string;
+  bank?: string;
   accountNumber: string;
   mode?: 'test' | 'live';
   passkeyFile?: string;
@@ -395,12 +396,17 @@ export async function withdrawSubAccountToBank(id: string, options: {
     throw new Error('Use either --signing-grant or --passkey-file, not both.');
   }
 
+  const bankIdentifier = options.bankId || options.bank;
+  if (!bankIdentifier) {
+    throw new Error('Provide --bank-id (or --bank) with a bank identifier.');
+  }
+
   const spinner = ora('Submitting sub-account bank withdrawal...').start();
   const result = await request<any>(`/subaccounts/${id}/withdraw-bank`, {
     method: 'POST',
     body: {
       amount_usdc: options.amount,
-      bank_id: options.bankId,
+      bank_id: bankIdentifier,
       account_number: options.accountNumber,
       mode: options.mode,
       delegation_token: options.delegationToken,
