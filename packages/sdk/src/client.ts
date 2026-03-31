@@ -57,6 +57,7 @@ import type {
   ReleaseExecutionIntentBySignalResponse,
   CreateBalanceRuleRequest,
   CreateBalanceRuleResponse,
+  SplitRecipient,
 } from './types';
 import { ConfigLoader, generateIdempotencyKey, sleep } from './utils';
 import { createZendFiError, isZendFiError } from './errors';
@@ -90,11 +91,56 @@ export class ZendFiClient {
   }
 
   /**
+   * Normalize split recipient aliases before sending to API.
+   */
+  private normalizeSplitRecipients(recipients?: SplitRecipient[]): SplitRecipient[] | undefined {
+    return recipients?.map((recipient) => {
+      if (recipient.recipient_type === 'bank_account') {
+        const bankIdentifier =
+          recipient.recipient_bank_id ||
+          recipient.recipient_bank ||
+          recipient.bank_identifier ||
+          recipient.bank_code;
+
+        if (!bankIdentifier) {
+          throw new Error(
+            'Bank-account split recipient requires a bank identifier. Provide recipient_bank_id, recipient_bank, bank_identifier, or bank_code.'
+          );
+        }
+
+        return {
+          ...recipient,
+          recipient_bank_id: bankIdentifier,
+        };
+      }
+
+      const aliasSubAccount = recipient.recipient_sub_account;
+      const canonicalSubAccount = recipient.sub_account_id;
+
+      if (aliasSubAccount && canonicalSubAccount && aliasSubAccount !== canonicalSubAccount) {
+        throw new Error('Wallet split recipient has conflicting sub-account aliases: sub_account_id and recipient_sub_account must match.');
+      }
+
+      if (aliasSubAccount && !canonicalSubAccount) {
+        return {
+          ...recipient,
+          sub_account_id: aliasSubAccount,
+        };
+      }
+
+      return recipient;
+    });
+  }
+
+  /**
    * Create a new payment
    */
   async createPayment(request: CreatePaymentRequest): Promise<Payment> {
+    const normalizedSplitRecipients = this.normalizeSplitRecipients(request.split_recipients);
+
     return this.request<Payment>('POST', '/api/v1/payments', {
       ...request,
+      split_recipients: normalizedSplitRecipients,
       currency: request.currency || 'USD',
       token: request.token || 'USDC',
     });
@@ -156,28 +202,7 @@ export class ZendFiClient {
    * Create a payment link (shareable checkout URL)
    */
   async createPaymentLink(request: CreatePaymentLinkRequest): Promise<PaymentLink> {
-    const normalizedSplitRecipients = request.split_recipients?.map((recipient) => {
-      if (recipient.recipient_type !== 'bank_account') {
-        return recipient;
-      }
-
-      const bankIdentifier =
-        recipient.recipient_bank_id ||
-        recipient.recipient_bank ||
-        recipient.bank_identifier ||
-        recipient.bank_code;
-
-      if (!bankIdentifier) {
-        throw new Error(
-          'Bank-account split recipient requires a bank identifier. Provide recipient_bank_id, recipient_bank, bank_identifier, or bank_code.'
-        );
-      }
-
-      return {
-        ...recipient,
-        recipient_bank_id: bankIdentifier,
-      };
-    });
+    const normalizedSplitRecipients = this.normalizeSplitRecipients(request.split_recipients);
 
     const response = await this.request<PaymentLink>('POST', '/api/v1/payment-links', {
       ...request,

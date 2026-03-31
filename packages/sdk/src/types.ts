@@ -125,6 +125,7 @@ export interface WalletSplitRecipient extends SplitRecipientBase {
   recipient_type: 'wallet';
   recipient_wallet?: string;     // Solana wallet address
   sub_account_id?: string;       // sub-account external_id or UUID
+  recipient_sub_account?: string; // alias for sub_account_id
 }
 
 /**
