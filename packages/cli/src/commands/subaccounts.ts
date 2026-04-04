@@ -198,6 +198,62 @@ export async function getSubAccountBalance(id: string): Promise<void> {
   console.log('');
 }
 
+export async function getSubAccountTtlPolicy(): Promise<void> {
+  const spinner = ora('Fetching sub-account TTL policy...').start();
+  const result = await request<any>('/subaccounts/ttl-policy');
+  spinner.succeed('TTL policy fetched');
+
+  console.log(chalk.cyan('\nSub-account TTL Policy'));
+  console.log(chalk.gray('  Merchant: ') + chalk.white(result.merchant_id));
+  console.log(chalk.bold('\n  Effective Maximums'));
+  console.log(chalk.gray('    Signing Grant:   ') + chalk.white(String(result.policy.effective.signing_grant_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('    Automation Token:') + chalk.white(String(result.policy.effective.automation_token_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('    Child Delegation:') + chalk.white(String(result.policy.effective.child_delegation_max_ttl_seconds)) + chalk.gray(' sec'));
+
+  console.log(chalk.bold('\n  Merchant Overrides'));
+  console.log(chalk.gray('    Signing Grant:   ') + chalk.white(String(result.policy.merchant_overrides.signing_grant_max_ttl_seconds ?? 'not set')));
+  console.log(chalk.gray('    Automation Token:') + chalk.white(String(result.policy.merchant_overrides.automation_token_max_ttl_seconds ?? 'not set')));
+  console.log(chalk.gray('    Child Delegation:') + chalk.white(String(result.policy.merchant_overrides.child_delegation_max_ttl_seconds ?? 'not set')));
+
+  console.log(chalk.bold('\n  Platform Hard Caps'));
+  console.log(chalk.gray('    Signing Grant:   ') + chalk.white(String(result.policy.platform_hard_caps.signing_grant_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('    Automation Token:') + chalk.white(String(result.policy.platform_hard_caps.automation_token_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('    Child Delegation:') + chalk.white(String(result.policy.platform_hard_caps.child_delegation_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log('');
+}
+
+export async function updateSubAccountTtlPolicy(options: {
+  signingGrantMaxTtl?: number;
+  automationTokenMaxTtl?: number;
+  childDelegationMaxTtl?: number;
+}): Promise<void> {
+  if (
+    options.signingGrantMaxTtl == null
+    && options.automationTokenMaxTtl == null
+    && options.childDelegationMaxTtl == null
+  ) {
+    throw new Error('Provide at least one value: --signing-grant-max-ttl, --automation-token-max-ttl, or --child-delegation-max-ttl.');
+  }
+
+  const spinner = ora('Updating sub-account TTL policy...').start();
+  const result = await request<any>('/subaccounts/ttl-policy', {
+    method: 'POST',
+    body: {
+      signing_grant_max_ttl_seconds: options.signingGrantMaxTtl,
+      automation_token_max_ttl_seconds: options.automationTokenMaxTtl,
+      child_delegation_max_ttl_seconds: options.childDelegationMaxTtl,
+    },
+  });
+  spinner.succeed('TTL policy updated');
+
+  console.log(chalk.cyan('\nUpdated Sub-account TTL Policy'));
+  console.log(chalk.gray('  Merchant: ') + chalk.white(result.merchant_id));
+  console.log(chalk.gray('  Signing Grant Max TTL:    ') + chalk.white(String(result.policy.effective.signing_grant_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('  Automation Token Max TTL: ') + chalk.white(String(result.policy.effective.automation_token_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log(chalk.gray('  Child Delegation Max TTL: ') + chalk.white(String(result.policy.effective.child_delegation_max_ttl_seconds)) + chalk.gray(' sec'));
+  console.log('');
+}
+
 export async function mintSubAccountToken(id: string, options: {
   scope?: string;
   spendLimit?: number;

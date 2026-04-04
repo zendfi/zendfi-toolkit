@@ -42,6 +42,8 @@ import {
   listSubAccounts,
   getSubAccount,
   getSubAccountBalance,
+  getSubAccountTtlPolicy,
+  updateSubAccountTtlPolicy,
   mintSubAccountToken,
   mintSubAccountChildToken,
   freezeSubAccount,
@@ -321,6 +323,33 @@ subAccountsCmd
   });
 
 subAccountsCmd
+  .command('ttl-policy-get')
+  .description('Get merchant sub-account TTL policy (effective values, overrides, and hard caps)')
+  .action(async () => {
+    try {
+      await getSubAccountTtlPolicy();
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
+  .command('ttl-policy-set')
+  .description('Update merchant sub-account TTL policy overrides')
+  .option('--signing-grant-max-ttl <seconds>', 'Max signing-grant TTL in seconds', parseInt)
+  .option('--automation-token-max-ttl <seconds>', 'Max automation-token TTL in seconds', parseInt)
+  .option('--child-delegation-max-ttl <seconds>', 'Max child-delegation TTL in seconds', parseInt)
+  .action(async (options) => {
+    try {
+      await updateSubAccountTtlPolicy(options);
+    } catch (error) {
+      console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+subAccountsCmd
   .command('token <id>')
   .description('Mint a scoped delegation token for a sub-account')
   .option('--scope <scope>', 'deposit_only|withdraw_only|spend_only|read_only|full_access', 'deposit_only')
@@ -451,7 +480,7 @@ subAccountsCmd
   .command('automation-token-mint')
   .description('Mint bounded automation token for headless sub-account bank withdrawals')
   .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
-  .option('--ttl <seconds>', 'Token TTL in seconds (60 to 604800)', parseInt, 3600)
+  .option('--ttl <seconds>', 'Token TTL in seconds (must be within merchant TTL policy bounds)', parseInt, 3600)
   .option('--max-uses <count>', 'Maximum number of uses', parseInt, 25)
   .option('--total-limit <amount>', 'Total spend limit in USDC', parseFloat, 500)
   .option('--per-tx-limit <amount>', 'Per transaction limit in USDC', parseFloat, 50)
@@ -488,7 +517,7 @@ subAccountsCmd
   .command('signing-grant-mint')
   .description('Mint bounded signing grant for headless sub-account signing (browser passkey flow)')
   .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
-  .option('--ttl <seconds>', 'Grant TTL in seconds (60 to 604800)', parseInt, 3600)
+  .option('--ttl <seconds>', 'Grant TTL in seconds (must be within merchant TTL policy bounds)', parseInt, 3600)
   .option('--max-uses <count>', 'Maximum number of uses', parseInt, 25)
   .option('--total-limit <amount>', 'Total spend limit in USDC', parseFloat, 500)
   .option('--per-tx-limit <amount>', 'Per transaction limit in USDC', parseFloat, 50)

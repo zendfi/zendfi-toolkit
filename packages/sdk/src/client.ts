@@ -20,6 +20,8 @@ import type {
   SubAccount,
   ListSubAccountsResponse,
   SubAccountBalance,
+  UpdateSubAccountTtlPolicyRequest,
+  SubAccountTtlPolicyResponse,
   MintDelegationTokenRequest,
   MintDelegationTokenResponse,
   MintChildDelegationTokenRequest,
@@ -368,6 +370,22 @@ export class ZendFiClient {
    */
   async getSubAccountBalance(subAccountId: string): Promise<SubAccountBalance> {
     return this.request<SubAccountBalance>('GET', `/api/v1/subaccounts/${subAccountId}/balance`);
+  }
+
+  /**
+   * Get merchant-level sub-account TTL policy (effective values, overrides, and hard caps).
+   */
+  async getSubAccountTtlPolicy(): Promise<SubAccountTtlPolicyResponse> {
+    return this.request<SubAccountTtlPolicyResponse>('GET', '/api/v1/subaccounts/ttl-policy');
+  }
+
+  /**
+   * Update merchant-level sub-account TTL policy overrides.
+   */
+  async updateSubAccountTtlPolicy(
+    request: UpdateSubAccountTtlPolicyRequest
+  ): Promise<SubAccountTtlPolicyResponse> {
+    return this.request<SubAccountTtlPolicyResponse>('POST', '/api/v1/subaccounts/ttl-policy', request);
   }
 
   /**

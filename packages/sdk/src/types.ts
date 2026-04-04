@@ -190,6 +190,33 @@ export interface SubAccountBalance {
   status: SubAccountStatus | string;
 }
 
+export interface UpdateSubAccountTtlPolicyRequest {
+  signing_grant_max_ttl_seconds?: number;
+  automation_token_max_ttl_seconds?: number;
+  child_delegation_max_ttl_seconds?: number;
+}
+
+export interface SubAccountTtlPolicyResponse {
+  merchant_id: string;
+  policy: {
+    effective: {
+      signing_grant_max_ttl_seconds: number;
+      automation_token_max_ttl_seconds: number;
+      child_delegation_max_ttl_seconds: number;
+    };
+    merchant_overrides: {
+      signing_grant_max_ttl_seconds?: number;
+      automation_token_max_ttl_seconds?: number;
+      child_delegation_max_ttl_seconds?: number;
+    };
+    platform_hard_caps: {
+      signing_grant_max_ttl_seconds: number;
+      automation_token_max_ttl_seconds: number;
+      child_delegation_max_ttl_seconds: number;
+    };
+  };
+}
+
 export interface MintDelegationTokenRequest {
   scope: DelegationScope;
   spend_limit_usdc?: number;
