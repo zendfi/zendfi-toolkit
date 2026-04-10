@@ -182,6 +182,7 @@ zendfi payment create \
   --amount 100 \
   --description "Premium subscription" \
   --email customer@example.com \
+  --idempotency-key order_123_payment_create \
   --open \
   --watch
 ```
@@ -190,6 +191,7 @@ zendfi payment create \
 - `--amount <number>` - Payment amount in USD
 - `--description <text>` - Payment description
 - `--email <email>` - Customer email
+- `--idempotency-key <key>` - Optional key to safely retry the same create request
 - `--open` - Open payment URL in browser
 - `--watch` - Watch payment status in real-time
 
@@ -369,6 +371,19 @@ Use either `--automation-token` or `--delegation-token` for `withdraw-bank`, not
 Use either `--signing-grant` or `--passkey-file` for `withdraw`, not both.
 Use either `--signing-grant` or `--passkey-file` for `withdraw-bank`, not both.
 
+All mutating subaccount commands also support `--idempotency-key <key>` for deterministic retries. Reuse the same key only when retrying the exact same request payload.
+
+```bash
+# Example retry-safe subaccount withdrawal
+zendfi subaccounts withdraw sa_xxxxx \
+  --to 7xKX...AsU \
+  --amount 10 \
+  --token Usdc \
+  --delegation-token satk_xxxxx \
+  --signing-grant ssgt_xxxxx \
+  --idempotency-key sa_withdraw_user123_attempt1
+```
+
 Passkey payload file format:
 
 ```json
@@ -388,14 +403,19 @@ Create payment intents for two-phase checkout flows (Stripe-like).
 
 ```bash
 # Create a payment intent
-zendfi intents create --amount 99.99
+zendfi intents create --amount 99.99 --idempotency-key cart_42_intent_create
 
 # Confirm an intent
-zendfi intents confirm <intent-id> --wallet Hx7B...abc
+zendfi intents confirm <intent-id> --wallet Hx7B...abc --idempotency-key cart_42_intent_confirm
+
+# Cancel an intent safely
+zendfi intents cancel <intent-id> --idempotency-key cart_42_intent_cancel
 
 # List all intents
 zendfi intents list
 ```
+
+Use the same `--idempotency-key` value when retrying a failed network call for the same write operation and payload.
 
 ---
 

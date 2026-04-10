@@ -114,6 +114,33 @@ console.log(payment.payment_url);
 }
 ```
 
+### Idempotency and Safe Retries
+
+The SDK automatically attaches an `Idempotency-Key` header on non-GET requests by default.
+
+```typescript
+import { zendfi } from '@zendfi/sdk';
+
+// Enabled by default
+const payment = await zendfi.createPayment({
+  amount: 50,
+  description: 'Order #1234',
+});
+```
+
+You can disable this behavior if you need fully custom request handling:
+
+```typescript
+import { ZendFiClient } from '@zendfi/sdk';
+
+const client = new ZendFiClient({
+  apiKey: process.env.ZENDFI_API_KEY,
+  idempotencyEnabled: false,
+});
+```
+
+For production flows, keep idempotency enabled and reuse the same request payload when retrying writes.
+
 ---
 
 ## Embedded Checkout

@@ -8,6 +8,7 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import open from 'open';
 import clipboardy from 'clipboardy';
+import { buildApiHeaders } from '../utils/idempotency.js';
 
 interface TestPaymentOptions {
   amount?: number;
@@ -15,6 +16,7 @@ interface TestPaymentOptions {
   email?: string;
   open?: boolean;
   watch?: boolean;
+  idempotencyKey?: string;
 }
 
 interface Payment {
@@ -101,10 +103,7 @@ export async function testPayment(options: TestPaymentOptions): Promise<void> {
   try {
     const response = await fetch('https://api.zendfi.tech/api/v1/payments', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers: buildApiHeaders(apiKey, 'POST', options.idempotencyKey),
       body: JSON.stringify({
         amount,
         currency: 'USD',

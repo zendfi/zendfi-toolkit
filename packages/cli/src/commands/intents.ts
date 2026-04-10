@@ -12,6 +12,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
+import { buildApiHeaders } from '../utils/idempotency.js';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
@@ -68,6 +69,7 @@ export async function createIntent(options: {
   agentId?: string;
   captureMethod?: string;
   expires?: number;
+  idempotencyKey?: string;
 }): Promise<void> {
   console.log(chalk.cyan.bold('\n💳 Create Payment Intent\n'));
 
@@ -129,10 +131,7 @@ export async function createIntent(options: {
   try {
     const response = await fetch(`${ZENDFI_API_BASE}/payment-intents`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: buildApiHeaders(apiKey, 'POST', options.idempotencyKey),
       body: JSON.stringify({
         amount,
         description,
@@ -296,6 +295,7 @@ export async function confirmIntent(
     wallet?: string;
     secret?: string;
     gasless?: boolean;
+    idempotencyKey?: string;
   }
 ): Promise<void> {
   console.log(chalk.cyan.bold('\nConfirm Payment Intent\n'));
@@ -345,10 +345,7 @@ export async function confirmIntent(
   try {
     const response = await fetch(`${ZENDFI_API_BASE}/payment-intents/${intentId}/confirm`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: buildApiHeaders(apiKey, 'POST', options.idempotencyKey),
       body: JSON.stringify({
         client_secret: clientSecret,
         customer_wallet: wallet,
@@ -379,7 +376,7 @@ export async function confirmIntent(
   }
 }
 
-export async function cancelIntent(intentId: string): Promise<void> {
+export async function cancelIntent(intentId: string, options: { idempotencyKey?: string } = {}): Promise<void> {
   console.log(chalk.cyan.bold('\nCancel Payment Intent\n'));
 
   const apiKey = getApiKey();
@@ -407,10 +404,7 @@ export async function cancelIntent(intentId: string): Promise<void> {
   try {
     const response = await fetch(`${ZENDFI_API_BASE}/payment-intents/${intentId}/cancel`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: buildApiHeaders(apiKey, 'POST', options.idempotencyKey),
     });
 
     if (!response.ok) {

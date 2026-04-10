@@ -111,6 +111,7 @@ paymentCmd
   .option('--amount <amount>', 'Payment amount in USD', parseFloat)
   .option('--description <description>', 'Payment description')
   .option('--email <email>', 'Customer email')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .option('--open', 'Open checkout URL in browser')
   .option('--watch', 'Watch payment status')
   .action(async (options) => {
@@ -202,6 +203,7 @@ intentsCmd
   .option('--currency <currency>', 'Currency code (default: USD)')
   .option('--description <description>', 'Payment description')
   .option('--capture <method>', 'Capture method: automatic or manual')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createIntent(options);
@@ -240,6 +242,7 @@ intentsCmd
   .description('Confirm a payment intent')
   .option('--wallet <wallet>', 'User Solana wallet address')
   .option('--client-secret <secret>', 'Client secret for verification')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (intentId, options) => {
     try {
       await confirmIntent(intentId, options);
@@ -252,9 +255,10 @@ intentsCmd
 intentsCmd
   .command('cancel <intent-id>')
   .description('Cancel a payment intent')
-  .action(async (intentId) => {
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
+  .action(async (intentId, options) => {
     try {
-      await cancelIntent(intentId);
+      await cancelIntent(intentId, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -277,6 +281,7 @@ subAccountsCmd
   .option('--spend-limit <amount>', 'Sub-account spend limit in USDC', parseFloat)
   .option('--access-mode <mode>', 'delegated or merchant_managed', 'delegated')
   .option('--yield-enabled', 'Enable yield for this sub-account')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createSubAccount(options);
@@ -340,6 +345,7 @@ subAccountsCmd
   .option('--signing-grant-max-ttl <seconds>', 'Max signing-grant TTL in seconds', parseInt)
   .option('--automation-token-max-ttl <seconds>', 'Max automation-token TTL in seconds', parseInt)
   .option('--child-delegation-max-ttl <seconds>', 'Max child-delegation TTL in seconds', parseInt)
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await updateSubAccountTtlPolicy(options);
@@ -361,6 +367,7 @@ subAccountsCmd
   .option('--agent-label <label>', 'Agent label for attribution')
   .option('--agent-public-key <key>', 'Agent public key for attribution')
   .option('--agent-metadata <json>', 'Agent metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await mintSubAccountToken(id, options);
@@ -383,6 +390,7 @@ subAccountsCmd
   .option('--agent-label <label>', 'Agent label for attribution')
   .option('--agent-public-key <key>', 'Agent public key for attribution')
   .option('--agent-metadata <json>', 'Agent metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await mintSubAccountChildToken(id, options);
@@ -396,6 +404,7 @@ subAccountsCmd
   .command('freeze <id>')
   .description('Freeze a sub-account and revoke active delegation tokens')
   .option('--reason <reason>', 'Freeze reason for audit trail')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await freezeSubAccount(id, options);
@@ -409,6 +418,7 @@ subAccountsCmd
   .command('unfreeze <id>')
   .description('Unfreeze a frozen sub-account and restore active status')
   .option('--reason <reason>', 'Unfreeze reason for audit trail')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await unfreezeSubAccount(id, options);
@@ -425,6 +435,7 @@ subAccountsCmd
   .option('--token <token>', 'Sol or Usdc', 'Usdc')
   .option('--mode <mode>', 'test or live', 'live')
   .requiredOption('--passkey-file <path>', 'JSON file containing passkey signature payload')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await drainSubAccount(id, options);
@@ -445,6 +456,7 @@ subAccountsCmd
   .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
   .option('--execution-intent-id <id>', 'Execution intent id gate (UUID)')
   .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await withdrawSubAccount(id, options);
@@ -467,6 +479,7 @@ subAccountsCmd
   .option('--signing-grant <grant>', 'Signing grant minted via merchant session endpoint')
   .option('--execution-intent-id <id>', 'Execution intent id gate (UUID)')
   .option('--passkey-file <path>', 'Fallback interactive signing payload (deprecated for automation)')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (id, options) => {
     try {
       await withdrawSubAccountToBank(id, options);
@@ -492,6 +505,7 @@ subAccountsCmd
   .option('--agent-label <label>', 'Agent label for attribution')
   .option('--agent-public-key <key>', 'Agent public key for attribution')
   .option('--agent-metadata <json>', 'Agent metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await mintSubAccountAutomationToken(options);
@@ -504,9 +518,10 @@ subAccountsCmd
 subAccountsCmd
   .command('automation-token-revoke <token-id>')
   .description('Revoke an automation token immediately')
-  .action(async (tokenId) => {
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
+  .action(async (tokenId, options) => {
     try {
-      await revokeSubAccountAutomationToken(tokenId);
+      await revokeSubAccountAutomationToken(tokenId, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -535,6 +550,7 @@ subAccountsCmd
   .option('--agent-public-key <key>', 'Agent public key for attribution')
   .option('--agent-metadata <json>', 'Agent metadata JSON')
   .option('--no-open', 'Do not auto-open browser; print approval URL and poll only')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await mintSubAccountSigningGrant(options);
@@ -547,9 +563,10 @@ subAccountsCmd
 subAccountsCmd
   .command('signing-grant-revoke <grant-id>')
   .description('Revoke a signing grant immediately')
-  .action(async (grantId) => {
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
+  .action(async (grantId, options) => {
     try {
-      await revokeSubAccountSigningGrant(grantId);
+      await revokeSubAccountSigningGrant(grantId, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -559,9 +576,10 @@ subAccountsCmd
 subAccountsCmd
   .command('close <id>')
   .description('Close a sub-account and revoke all delegation tokens')
-  .action(async (id) => {
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
+  .action(async (id, options) => {
     try {
-      await closeSubAccount(id);
+      await closeSubAccount(id, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -575,6 +593,7 @@ subAccountsCmd
   .requiredOption('--policy-json <json>', 'Policy JSON document')
   .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
   .option('--status <status>', 'draft|active|deprecated|revoked', 'active')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createSubAccountPolicy(options);
@@ -593,6 +612,7 @@ subAccountsCmd
   .option('--mode <mode>', 'test or live')
   .option('--subaccount-id <id>', 'Optional sub-account id/external id scope')
   .option('--daily-spend <amount>', 'Daily spend amount in USDC', parseFloat)
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await dryRunSubAccountPolicy(options);
@@ -612,6 +632,7 @@ subAccountsCmd
   .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
   .option('--destination-webhook-url <url>', 'Override destination webhook URL')
   .option('--metadata <json>', 'Metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createWebhookTriggerSubscription(options);
@@ -643,6 +664,7 @@ subAccountsCmd
   .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
   .option('--expires <seconds>', 'Expiry in seconds', parseInt)
   .option('--metadata <json>', 'Metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createExecutionIntent(options);
@@ -657,11 +679,13 @@ subAccountsCmd
   .description('Approve or reject execution intent')
   .option('--reject', 'Reject instead of approve')
   .option('--reason <reason>', 'Approval or rejection reason')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (intentId, options) => {
     try {
       await approveExecutionIntent(intentId, {
         approve: options.reject ? false : true,
         reason: options.reason,
+        idempotencyKey: options.idempotencyKey,
       });
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
@@ -673,9 +697,10 @@ subAccountsCmd
   .command('intent-release')
   .description('Release execution intent via signal token')
   .requiredOption('--signal-token <token>', 'Signal token')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
-      await releaseExecutionIntentBySignal(options.signalToken);
+      await releaseExecutionIntentBySignal(options.signalToken, options);
     } catch (error) {
       console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
@@ -694,6 +719,7 @@ subAccountsCmd
   .option('--cooldown <seconds>', 'Cooldown in seconds', parseInt)
   .option('--policy-version-id <id>', 'Attached policy version id (UUID)')
   .option('--metadata <json>', 'Metadata JSON')
+  .option('--idempotency-key <key>', 'Optional idempotency key for safe retries')
   .action(async (options) => {
     try {
       await createBalanceRule(options);

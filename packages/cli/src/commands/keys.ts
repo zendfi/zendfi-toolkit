@@ -8,6 +8,7 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { buildApiHeaders } from '../utils/idempotency.js';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
@@ -143,10 +144,7 @@ export async function createKey(options: {
   try {
     const response = await fetch(`${ZENDFI_API_BASE}/keys`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: buildApiHeaders(apiKey, 'POST'),
       body: JSON.stringify({
         name: answers.name,
         mode: answers.mode,
@@ -259,10 +257,7 @@ export async function rotateKey(keyId: string): Promise<void> {
   try {
     const response = await fetch(`${ZENDFI_API_BASE}/keys/${keyId}/rotate`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: buildApiHeaders(apiKey, 'POST'),
     });
 
     if (!response.ok) {

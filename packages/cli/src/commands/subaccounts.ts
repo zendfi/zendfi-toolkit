@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { readFileSync } from 'fs';
 import open from 'open';
+import { buildApiHeaders } from '../utils/idempotency.js';
 
 const ZENDFI_API_BASE = process.env.ZENDFI_API_URL || 'https://api.zendfi.tech/api/v1';
 
@@ -22,6 +23,7 @@ interface PasskeySignaturePayload {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'DELETE';
   body?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 interface StartSigningGrantBrowserIntentResponse {
@@ -62,12 +64,10 @@ function getApiKey(): string {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const apiKey = getApiKey();
+  const method = options.method || 'GET';
   const response = await fetch(`${ZENDFI_API_BASE}${path}`, {
-    method: options.method || 'GET',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+    method,
+    headers: buildApiHeaders(apiKey, method, options.idempotencyKey),
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
@@ -124,6 +124,7 @@ export async function createSubAccount(options: {
   spendLimit?: number;
   accessMode?: string;
   yieldEnabled?: boolean;
+  idempotencyKey?: string;
 }): Promise<void> {
   if (!options.label) {
     throw new Error('Missing required --label for subaccount creation');
@@ -132,6 +133,7 @@ export async function createSubAccount(options: {
   const spinner = ora('Creating sub-account...').start();
   const result = await request<any>('/subaccounts', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       label: options.label,
       spend_limit_usdc: options.spendLimit,
@@ -226,6 +228,7 @@ export async function updateSubAccountTtlPolicy(options: {
   signingGrantMaxTtl?: number;
   automationTokenMaxTtl?: number;
   childDelegationMaxTtl?: number;
+  idempotencyKey?: string;
 }): Promise<void> {
   if (
     options.signingGrantMaxTtl == null
@@ -238,6 +241,7 @@ export async function updateSubAccountTtlPolicy(options: {
   const spinner = ora('Updating sub-account TTL policy...').start();
   const result = await request<any>('/subaccounts/ttl-policy', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       signing_grant_max_ttl_seconds: options.signingGrantMaxTtl,
       automation_token_max_ttl_seconds: options.automationTokenMaxTtl,
@@ -264,10 +268,12 @@ export async function mintSubAccountToken(id: string, options: {
   agentLabel?: string;
   agentPublicKey?: string;
   agentMetadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Minting delegation token...').start();
   const result = await request<any>(`/subaccounts/${id}/session-key`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       scope: parseScope(options.scope),
       spend_limit_usdc: options.spendLimit,
@@ -301,10 +307,12 @@ export async function mintSubAccountChildToken(id: string, options: {
   agentLabel?: string;
   agentPublicKey?: string;
   agentMetadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Minting child delegation token...').start();
   const result = await request<any>(`/subaccounts/${id}/session-key/child`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       parent_delegation_token: options.parentDelegationToken,
       scope: parseScope(options.scope),
@@ -330,10 +338,11 @@ export async function mintSubAccountChildToken(id: string, options: {
   console.log('');
 }
 
-export async function freezeSubAccount(id: string, options: { reason?: string }): Promise<void> {
+export async function freezeSubAccount(id: string, options: { reason?: string; idempotencyKey?: string }): Promise<void> {
   const spinner = ora('Freezing sub-account...').start();
   const result = await request<any>(`/subaccounts/${id}/freeze`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: { reason: options.reason },
   });
   spinner.succeed('Sub-account frozen');
@@ -341,10 +350,11 @@ export async function freezeSubAccount(id: string, options: { reason?: string })
   console.log(chalk.green(`\n${result.subaccount_id} is now ${result.status}.\n`));
 }
 
-export async function unfreezeSubAccount(id: string, options: { reason?: string }): Promise<void> {
+export async function unfreezeSubAccount(id: string, options: { reason?: string; idempotencyKey?: string }): Promise<void> {
   const spinner = ora('Unfreezing sub-account...').start();
   const result = await request<any>(`/subaccounts/${id}/unfreeze`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: { reason: options.reason },
   });
   spinner.succeed('Sub-account unfrozen');
@@ -361,11 +371,13 @@ export async function drainSubAccount(id: string, options: {
   token?: 'Sol' | 'Usdc';
   mode?: 'test' | 'live';
   passkeyFile?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const passkey = parsePasskeyFile(options.passkeyFile);
   const spinner = ora('Draining sub-account...').start();
   const result = await request<any>(`/subaccounts/${id}/drain`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       amount: options.amount,
       token: options.token,
@@ -392,6 +404,7 @@ export async function withdrawSubAccount(id: string, options: {
   delegationToken?: string;
   signingGrant?: string;
   executionIntentId?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const passkey = parseOptionalPasskeyFile(options.passkeyFile);
   if (!options.signingGrant && !passkey) {
@@ -405,6 +418,7 @@ export async function withdrawSubAccount(id: string, options: {
   const spinner = ora('Submitting sub-account withdrawal...').start();
   const result = await request<any>(`/subaccounts/${id}/withdraw`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       to_address: options.to,
       amount: options.amount,
@@ -438,6 +452,7 @@ export async function withdrawSubAccountToBank(id: string, options: {
   automationToken?: string;
   signingGrant?: string;
   executionIntentId?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   if (options.automationToken && options.delegationToken) {
     throw new Error('Use either --automation-token or --delegation-token, not both.');
@@ -460,6 +475,7 @@ export async function withdrawSubAccountToBank(id: string, options: {
   const spinner = ora('Submitting sub-account bank withdrawal...').start();
   const result = await request<any>(`/subaccounts/${id}/withdraw-bank`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       amount_usdc: options.amount,
       bank_id: bankIdentifier,
@@ -504,10 +520,12 @@ export async function mintSubAccountAutomationToken(options: {
   agentLabel?: string;
   agentPublicKey?: string;
   agentMetadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Minting sub-account automation token...').start();
   const result = await request<any>('/merchants/me/subaccounts/automation-tokens', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       sub_account_id: options.subAccountId,
       ttl_seconds: options.ttl,
@@ -542,10 +560,11 @@ export async function mintSubAccountAutomationToken(options: {
   console.log('');
 }
 
-export async function revokeSubAccountAutomationToken(tokenId: string): Promise<void> {
+export async function revokeSubAccountAutomationToken(tokenId: string, options: { idempotencyKey?: string } = {}): Promise<void> {
   const spinner = ora('Revoking sub-account automation token...').start();
   const result = await request<any>(`/merchants/me/subaccounts/automation-tokens/${tokenId}/revoke`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
   });
   spinner.succeed('Automation token revoked');
 
@@ -572,6 +591,7 @@ export async function mintSubAccountSigningGrant(options: {
   agentLabel?: string;
   agentPublicKey?: string;
   agentMetadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const activeDays = options.activeDaysUtc
     ? options.activeDaysUtc
@@ -609,6 +629,7 @@ export async function mintSubAccountSigningGrant(options: {
     const spinner = ora('Minting sub-account signing grant (legacy passkey payload flow)...').start();
     const result = await request<any>('/merchants/me/subaccounts/signing-grants', {
       method: 'POST',
+      idempotencyKey: options.idempotencyKey,
       body: {
         ...requestBody,
         passkey_signature: passkey,
@@ -634,6 +655,7 @@ export async function mintSubAccountSigningGrant(options: {
     '/subaccounts/signing-grants/browser-intents/start',
     {
       method: 'POST',
+      idempotencyKey: options.idempotencyKey,
       body: requestBody,
     }
   );
@@ -698,19 +720,23 @@ export async function mintSubAccountSigningGrant(options: {
   throw new Error('Timed out waiting for browser approval. Re-run command and complete passkey approval before intent expiry.');
 }
 
-export async function revokeSubAccountSigningGrant(grantId: string): Promise<void> {
+export async function revokeSubAccountSigningGrant(grantId: string, options: { idempotencyKey?: string } = {}): Promise<void> {
   const spinner = ora('Revoking sub-account signing grant...').start();
   const result = await request<any>(`/merchants/me/subaccounts/signing-grants/${grantId}/revoke`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
   });
   spinner.succeed('Signing grant revoked');
 
   console.log(chalk.green(`\nGrant ${result.grant_id} is now ${result.status}.\n`));
 }
 
-export async function closeSubAccount(id: string): Promise<void> {
+export async function closeSubAccount(id: string, options: { idempotencyKey?: string } = {}): Promise<void> {
   const spinner = ora('Closing sub-account...').start();
-  const result = await request<any>(`/subaccounts/${id}`, { method: 'DELETE' });
+  const result = await request<any>(`/subaccounts/${id}`, {
+    method: 'DELETE',
+    idempotencyKey: options.idempotencyKey,
+  });
   spinner.succeed('Sub-account closed');
 
   console.log(chalk.green(`\n${result.subaccount_id} is now ${result.status}.\n`));
@@ -721,10 +747,12 @@ export async function createSubAccountPolicy(options: {
   policyType: string;
   policyJson: string;
   status?: 'draft' | 'active' | 'deprecated' | 'revoked';
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Creating sub-account policy...').start();
   const result = await request<any>('/merchants/me/subaccounts/policies', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       sub_account_id: options.subAccountId,
       policy_type: options.policyType,
@@ -750,10 +778,12 @@ export async function dryRunSubAccountPolicy(options: {
   mode?: 'test' | 'live';
   subAccountId?: string;
   dailySpend?: number;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Evaluating policy dry-run...').start();
   const result = await request<any>('/merchants/me/subaccounts/policies/dry-run', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       policy_json: JSON.parse(options.policyJson),
       amount_usdc: options.amount,
@@ -780,10 +810,12 @@ export async function createWebhookTriggerSubscription(options: {
   policyVersionId?: string;
   destinationWebhookUrl?: string;
   metadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Creating webhook trigger subscription...').start();
   const result = await request<any>('/merchants/me/subaccounts/webhook-triggers', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       sub_account_id: options.subAccountId,
       trigger_type: options.triggerType,
@@ -835,10 +867,12 @@ export async function createExecutionIntent(options: {
   policyVersionId?: string;
   expires?: number;
   metadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Creating execution intent...').start();
   const result = await request<any>('/merchants/me/subaccounts/execution-intents', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       sub_account_id: options.subAccountId,
       intent_type: options.intentType,
@@ -866,10 +900,12 @@ export async function createExecutionIntent(options: {
 export async function approveExecutionIntent(intentId: string, options: {
   approve?: boolean;
   reason?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Updating execution intent approval...').start();
   const result = await request<any>(`/merchants/me/subaccounts/execution-intents/${intentId}/approve`, {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       approve: options.approve,
       reason: options.reason,
@@ -879,10 +915,11 @@ export async function approveExecutionIntent(intentId: string, options: {
   console.log(chalk.green(`\nIntent ${intentId} is now ${result.status}.\n`));
 }
 
-export async function releaseExecutionIntentBySignal(signalToken: string): Promise<void> {
+export async function releaseExecutionIntentBySignal(signalToken: string, options: { idempotencyKey?: string } = {}): Promise<void> {
   const spinner = ora('Releasing execution intent by signal...').start();
   const result = await request<any>('/subaccounts/execution-intents/release', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       signal_token: signalToken,
     },
@@ -901,10 +938,12 @@ export async function createBalanceRule(options: {
   cooldown?: number;
   policyVersionId?: string;
   metadata?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const spinner = ora('Creating balance rule...').start();
   const result = await request<any>('/merchants/me/subaccounts/balance-rules', {
     method: 'POST',
+    idempotencyKey: options.idempotencyKey,
     body: {
       sub_account_id: options.subAccountId,
       rule_name: options.ruleName,
